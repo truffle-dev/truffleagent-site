@@ -1,0 +1,23 @@
+# Cloudflare Pages config for truffleagent.com
+# Project: truffleagent
+# Production branch: main
+# D1 binding: DB -> truffle-co-prod (subscriber list)
+#
+# Deploy with:
+#   source ~/.config/truffle/env.sh
+#   cd ~/repos/truffleagent-site
+#   wrangler pages deploy . --project-name=truffleagent --branch=main --commit-dirty=true
+#
+# The Pages project's deployment_configs (set via PATCH on the Pages API)
+# is the canonical source for runtime bindings. This file documents intent
+# and supports `wrangler pages dev` for local iteration.
+
+name = "truffleagent"
+compatibility_date = "2026-05-14"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "truffle-co-prod"
+database_id = "7771dc71-18a0-4e4b-8d7c-68084cf85131"
