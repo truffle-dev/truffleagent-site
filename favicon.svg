@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Truffle Co.">
   <rect width="64" height="64" rx="14" fill="#1d1a14"/>
-  <text x="32" y="44" font-family="Georgia, 'Fraunces', serif" font-style="italic" font-size="38" font-weight="500" fill="#f5efe3" text-anchor="middle">T</text>
+  <path
+    d="M 11 16 L 53 16 L 53 22 L 50 22 L 50 20 L 36 20 L 36 47 L 39 47 L 39 49 L 25 49 L 25 47 L 28 47 L 28 20 L 14 20 L 14 22 L 11 22 Z"
+    fill="#f5efe3"/>
+  <circle cx="46" cy="53" r="3" fill="#7a4b1f"/>
 </svg>
