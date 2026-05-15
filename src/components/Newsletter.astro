@@ -1,0 +1,138 @@
+---
+const { source = "homepage" } = Astro.props;
+---
+<section id="newsletter" class="nl">
+  <div class="container-page nl-grid">
+    <div class="reveal">
+      <p class="eyebrow">Dispatches</p>
+      <h2 class="editorial text-balance">
+        One short letter when something <em>real</em> ships.
+      </h2>
+      <p class="prose-truffle text-pretty nl-blurb">
+        Notes from open-source contributions, the build log for Truffle Co., one product drop announcement when it earns one. No drip campaigns. No re-engagement nudges. Unsubscribe is on every email and it works on the first click.
+      </p>
+    </div>
+
+    <form class="nl-form card reveal" data-source={source} novalidate>
+      <label for="nl-email" class="nl-label">
+        <span class="eyebrow">Email</span>
+        <input
+          id="nl-email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          inputmode="email"
+          required
+          class="input"
+          placeholder="you@somewhere.com"
+        />
+      </label>
+      <button type="submit" class="btn btn-primary nl-submit">
+        <span class="nl-submit-label">Subscribe</span>
+        <span class="nl-submit-arrow" aria-hidden="true">→</span>
+      </button>
+      <p class="nl-status" role="status" aria-live="polite"></p>
+      <p class="meta nl-fine">No spam. One-click unsubscribe. Operated from a phantom container.</p>
+    </form>
+  </div>
+</section>
+
+<style>
+  .nl {
+    padding-block: clamp(4rem, 8vw, 7rem);
+    border-top: 1px solid var(--border);
+    position: relative;
+  }
+  .nl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: center;
+  }
+  .nl-grid .eyebrow { display: block; margin-bottom: 1.25rem; }
+  .nl-grid h2 { margin: 0 0 1.25rem; }
+  .nl-grid em { color: var(--accent); }
+  .nl-blurb { max-width: 480px; margin: 0; }
+
+  .nl-form {
+    display: grid;
+    gap: 0.875rem;
+    padding: 2rem;
+  }
+  .nl-label {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .nl-submit {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .nl-submit-arrow { transition: transform 150ms var(--ease-out); }
+  .nl-submit:hover .nl-submit-arrow { transform: translateX(3px); }
+  .nl-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .nl-status {
+    min-height: 1.25rem;
+    font-size: 0.875rem;
+    margin: 0;
+    color: var(--content-2);
+  }
+  .nl-status.error { color: #b85a3a; }
+  .nl-status.success { color: #5a8a3a; font-family: var(--font-serif); font-style: italic; font-size: 1rem; }
+  .nl-fine { margin: 0; }
+
+  @media (max-width: 760px) {
+    .nl-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>("form.nl-form").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = form.querySelector<HTMLInputElement>("input[name=email]");
+      const submit = form.querySelector<HTMLButtonElement>("button[type=submit]");
+      const labelSpan = form.querySelector<HTMLSpanElement>(".nl-submit-label");
+      const status = form.querySelector<HTMLParagraphElement>(".nl-status");
+      if (!input || !submit || !status || !labelSpan) return;
+
+      status.textContent = "";
+      status.classList.remove("error", "success");
+
+      const email = input.value.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        status.textContent = "Please enter a valid email.";
+        status.classList.add("error");
+        input.focus();
+        return;
+      }
+
+      submit.disabled = true;
+      labelSpan.textContent = "Sending...";
+      try {
+        const res = await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email, source: form.dataset.source || "site" }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || "Could not subscribe. Try again in a moment.");
+        status.textContent = "You're in. Check your inbox for confirmation.";
+        status.classList.add("success");
+        input.value = "";
+        labelSpan.textContent = "Subscribed";
+      } catch (err: any) {
+        status.textContent = err?.message || "Something went wrong.";
+        status.classList.add("error");
+        submit.disabled = false;
+        labelSpan.textContent = "Subscribe";
+      }
+    });
+  });
+</script>

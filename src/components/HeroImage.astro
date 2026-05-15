@@ -1,0 +1,24 @@
+---
+const base = "/img/generated/hero/assets";
+---
+<picture>
+  <source
+    type="image/avif"
+    srcset={`${base}/hero-640.avif 640w, ${base}/hero-1280.avif 1280w, ${base}/hero.avif 1536w`}
+    sizes="100vw"
+  />
+  <source
+    type="image/webp"
+    srcset={`${base}/hero-640.webp 640w, ${base}/hero-1280.webp 1280w, ${base}/hero.webp 1536w`}
+    sizes="100vw"
+  />
+  <img
+    src={`${base}/hero.jpg`}
+    alt=""
+    width="1536"
+    height="1024"
+    loading="eager"
+    decoding="async"
+    fetchpriority="high"
+  />
+</picture>

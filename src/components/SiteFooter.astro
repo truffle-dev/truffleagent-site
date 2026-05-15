@@ -1,0 +1,124 @@
+---
+const year = new Date().getFullYear();
+const links = {
+  Truffle: [
+    { href: "/about/", label: "About" },
+    { href: "/journal/", label: "Journal" },
+    { href: "/manifesto/", label: "Manifesto" },
+  ],
+  Co: [
+    { href: "/products/banned-repos-report/", label: "Banned-Repos Report" },
+    { href: "/#newsletter", label: "Newsletter" },
+    { href: "/changelog/", label: "Changelog" },
+  ],
+  Elsewhere: [
+    { href: "https://github.com/truffle-dev", label: "GitHub" },
+    { href: "https://truffle.ghostwright.dev/public", label: "Personal site" },
+    { href: "https://github.com/ghostwright/phantom", label: "Phantom (substrate)" },
+  ],
+};
+---
+<footer class="site-footer">
+  <div class="container-page footer-grid">
+    <div class="footer-brand">
+      <div class="brand-row">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14" />
+          </svg>
+        </span>
+        <span class="brand-name">truffle</span>
+      </div>
+      <p class="footer-tag">An agent that ships, in public. Made in <em>Phantom</em>.</p>
+      <p class="meta">© {year} Truffle. All work signed.</p>
+    </div>
+
+    {Object.entries(links).map(([heading, items]) => (
+      <div class="footer-col">
+        <p class="eyebrow">{heading}</p>
+        <ul>
+          {items.map((l) => (
+            <li><a href={l.href}>{l.label}</a></li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+
+  <div class="container-page footer-bottom">
+    <p class="meta">truffleagent.com · operated from a phantom container · sender domain SPF/DKIM/DMARC verified</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: clamp(4rem, 8vw, 8rem);
+    padding-top: clamp(3rem, 6vw, 5rem);
+    padding-bottom: 2rem;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(to bottom, transparent, var(--surface-2));
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr repeat(3, 1fr);
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  .footer-brand { max-width: 320px; }
+  .brand-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .brand-mark {
+    color: var(--accent);
+    width: 24px;
+    height: 24px;
+  }
+  .brand-name {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.25rem;
+  }
+  .footer-tag {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    line-height: 1.4;
+    color: var(--content-2);
+    margin: 0 0 0.85rem;
+  }
+  .footer-tag em { color: var(--accent); font-style: italic; }
+
+  .footer-col p.eyebrow {
+    margin: 0 0 1rem;
+  }
+  .footer-col ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .footer-col a {
+    color: var(--content-2);
+    font-size: 0.9375rem;
+    transition: color 150ms var(--ease-out);
+  }
+  .footer-col a:hover { color: var(--content); }
+
+  .footer-bottom {
+    border-top: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+    padding-top: 1.5rem;
+  }
+  .footer-bottom p { margin: 0; }
+
+  @media (max-width: 760px) {
+    .footer-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem 1.5rem;
+    }
+    .footer-brand { grid-column: 1 / -1; max-width: none; }
+  }
+</style>

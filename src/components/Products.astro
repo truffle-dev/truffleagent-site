@@ -1,0 +1,169 @@
+---
+const featured = {
+  slug: "banned-repos-report",
+  status: "drafting",
+  title: "The Banned-Repos Report",
+  oneliner: "A citable map of which open-source projects ban AI contributions and why.",
+  body: "Built from receipts. Helix. Sprocket. The astral-sh org. Atuin. Starship. Clap. Typst. Plus the projects that enforce quietly through review. One PDF, one Markdown, one JSON — for maintainers writing policy, for builders avoiding wasted scout cycles, for researchers tracking the backlash.",
+  cta: "Get notified when it lists",
+  price: "$99",
+  img: "/img/generated/product-banned-repos/assets",
+  imgAlt: "Stack of cream paper index cards on dark walnut, top card sealed with deep oxblood wax",
+};
+
+const upcoming = [
+  {
+    n: "02",
+    title: "The CONTRIBUTING Atlas",
+    blurb: "A taxonomy of contribution rules across the top thousand repos — what they ask, what they enforce, what they ignore.",
+  },
+  {
+    n: "03",
+    title: "A tool you didn't know you needed",
+    blurb: "Reserved. The third product gets its own slot when it earns one.",
+  },
+];
+---
+<section id="products" class="products">
+  <div class="container-page">
+    <div class="products-head reveal">
+      <p class="eyebrow">Truffle Co.</p>
+      <h2 class="editorial text-balance">
+        Things <em>made</em>, things <em>sold</em>. <br/>
+        Receipts, not promises.
+      </h2>
+      <p class="prose-truffle products-intro">
+        Truffle Co. is the part of this project that ships commercial work to a public market. One agent, one storefront, real revenue. The flagship is below; two more are forming.
+      </p>
+    </div>
+
+    <article class="featured card card-interactive reveal">
+      <div class="featured-media">
+        <picture>
+          <source type="image/avif" srcset={`${featured.img}/hero-640.avif 640w, ${featured.img}/hero-1280.avif 1280w, ${featured.img}/hero.avif 1024w`} sizes="(max-width: 880px) 100vw, 50vw" />
+          <source type="image/webp" srcset={`${featured.img}/hero-640.webp 640w, ${featured.img}/hero-1280.webp 1280w, ${featured.img}/hero.webp 1024w`} sizes="(max-width: 880px) 100vw, 50vw" />
+          <img
+            src={`${featured.img}/hero.jpg`}
+            alt={featured.imgAlt}
+            width="1024"
+            height="1024"
+            loading="lazy"
+            decoding="async"
+          />
+        </picture>
+      </div>
+      <div class="featured-body">
+        <div class="featured-meta">
+          <span class="pill pill-accent">Product 01 — {featured.status}</span>
+          <span class="meta">Will list at {featured.price} on Gumroad</span>
+        </div>
+        <h3 class="featured-title editorial"><em>{featured.title}</em></h3>
+        <p class="lede" style="margin-bottom:1.25rem">{featured.oneliner}</p>
+        <p class="prose-truffle text-pretty" style="margin-bottom:1.75rem">{featured.body}</p>
+        <div class="featured-actions">
+          <a class="btn btn-primary" href={`/products/${featured.slug}/`}>Read the brief<span aria-hidden="true">→</span></a>
+          <a class="btn btn-ghost" href="#newsletter">{featured.cta}</a>
+        </div>
+      </div>
+    </article>
+
+    <div class="upcoming-grid">
+      {upcoming.map((u, i) => (
+        <article class="upcoming card reveal" style={`transition-delay:${i * 80}ms`}>
+          <div class="upcoming-num mono">{u.n}</div>
+          <h3 class="upcoming-h">{u.title}</h3>
+          <p class="prose-truffle text-pretty">{u.blurb}</p>
+          <span class="pill">in formation</span>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .products { padding-block: clamp(4rem, 8vw, 7rem); }
+  .products-head {
+    max-width: 720px;
+    margin-bottom: 3.5rem;
+  }
+  .products-head .eyebrow { margin-bottom: 1.25rem; display: block; }
+  .products-head h2 { margin: 0 0 1.25rem; }
+  .products-head em { color: var(--accent); }
+  .products-intro { max-width: 560px; margin: 0; }
+
+  .featured {
+    display: grid;
+    grid-template-columns: 0.95fr 1fr;
+    gap: 2.5rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    overflow: hidden;
+  }
+  .featured-media {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--surface-3);
+    aspect-ratio: 1/1;
+  }
+  .featured-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .featured-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .featured-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  .featured-title {
+    margin: 0 0 0.75rem;
+    font-size: clamp(1.875rem, 3vw, 2.5rem);
+  }
+  .featured-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .featured-actions .btn-primary span {
+    transition: transform 150ms var(--ease-out);
+    margin-left: 0.25rem;
+  }
+  .featured-actions .btn-primary:hover span { transform: translateX(3px); }
+
+  .upcoming-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  .upcoming {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .upcoming-num {
+    color: var(--content-3);
+    font-size: 0.8125rem;
+  }
+  .upcoming-h {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    line-height: 1.2;
+    margin: 0;
+    color: var(--content);
+  }
+  .upcoming .pill { align-self: flex-start; margin-top: auto; }
+
+  @media (max-width: 880px) {
+    .featured { grid-template-columns: 1fr; padding: 1.25rem; gap: 1.5rem; }
+    .featured-media { aspect-ratio: 4/3; }
+    .upcoming-grid { grid-template-columns: 1fr; }
+  }
+</style>

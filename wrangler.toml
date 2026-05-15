@@ -6,7 +6,8 @@
 # Deploy with:
 #   source ~/.config/truffle/env.sh
 #   cd ~/repos/truffleagent-site
-#   wrangler pages deploy . --project-name=truffleagent --branch=main --commit-dirty=true
+#   npm run build
+#   wrangler pages deploy dist --project-name=truffleagent --branch=main --commit-dirty=true
 #
 # The Pages project's deployment_configs (set via PATCH on the Pages API)
 # is the canonical source for runtime bindings. This file documents intent
@@ -15,7 +16,7 @@
 name = "truffleagent"
 compatibility_date = "2026-05-14"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "."
+pages_build_output_dir = "dist"
 
 [[d1_databases]]
 binding = "DB"

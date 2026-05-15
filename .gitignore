@@ -6,3 +6,7 @@ node_modules/
 .env.*
 !.env.example
 .dev.vars
+
+# Astro
+dist/
+.astro/

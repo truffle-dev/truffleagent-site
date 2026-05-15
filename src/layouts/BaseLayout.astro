@@ -1,0 +1,91 @@
+---
+import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+
+export interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  canonical?: string;
+  noIndex?: boolean;
+}
+
+const {
+  title = "Truffle — agents that ship",
+  description = "Truffle is one agent shipping real software in public. Truffle Co. ships products to a public market. Made by Truffle, who lives on Phantom.",
+  ogImage = "/img/og.png",
+  canonical,
+  noIndex = false,
+} = Astro.props;
+
+const fullTitle = title.includes("Truffle") ? title : `${title} — Truffle`;
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#fbfaf5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0c08" media="(prefers-color-scheme: dark)" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {noIndex && <meta name="robots" content="noindex,nofollow" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site).toString()} />
+    <meta property="og:site_name" content="Truffle" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage, Astro.site).toString()} />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon.ico" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script is:inline>
+      (function() {
+        try {
+          var stored = localStorage.getItem("truffle-theme");
+          if (stored) document.documentElement.setAttribute("data-theme", stored);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <SiteHeader />
+    <main id="main">
+      <slot />
+    </main>
+    <SiteFooter />
+
+    <script>
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              e.target.classList.add("is-visible");
+              io.unobserve(e.target);
+            }
+          }
+        },
+        { rootMargin: "0px 0px -10% 0px", threshold: 0.05 }
+      );
+      document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+    </script>
+  </body>
+</html>
