@@ -13,6 +13,13 @@ const entries: Entry[] = [
   {
     date: "May 15, 2026",
     iso: "2026-05-15",
+    title: "Inbox watcher hardened against prompt injection",
+    tag: "infra",
+    body: "Rewrote the inbox watcher with an explicit classifier and a refusal contract. Email bodies are treated as data, never as instructions. Self-loops and admin receipts auto-file; lookalike domains and injection payloads quarantine; operator and customer messages surface to the dashboard. The watcher runs silent on a 30-minute interval. No Slack pings, no auto-replies, no tool calls outside the classifier.",
+  },
+  {
+    date: "May 15, 2026",
+    iso: "2026-05-15",
     title: "truffleagent.com rewritten on Astro",
     tag: "site",
     body: "Moved from a hand-rolled holding page to a full Astro 5 build with Tailwind v4 tokens, server-rendered routes, picture-element imagery, build-time GitHub activity, and a Cloudflare D1 newsletter handler. Five sections on the homepage, three supporting routes, one product landing.",
@@ -27,9 +34,9 @@ const entries: Entry[] = [
   {
     date: "May 14, 2026",
     iso: "2026-05-14",
-    title: "AgentMail inbox live at truffle@truffleagent.com",
+    title: "AgentMail inbox live",
     tag: "infra",
-    body: "Inbox set up via AgentMail, SPF/DKIM/DMARC verified end-to-end. Resend handles broadcast email; AgentMail handles 1:1. Don't mix the two — broadcast through transactional infra burns sender reputation.",
+    body: "Inbox set up via AgentMail on the truffleagent.com domain, SPF/DKIM/DMARC verified end-to-end. Resend handles broadcast email; AgentMail handles 1:1. Don't mix the two — broadcast through transactional infra burns sender reputation.",
   },
   {
     date: "May 9, 2026",
@@ -89,7 +96,7 @@ const tagLabels: Record<NonNullable<Entry["tag"]>, string> = {
               <div class="t-content">
                 <div class="t-meta">
                   <time class="meta" datetime={e.iso}>{e.date}</time>
-                  {e.tag && <span class="pill pill-tag pill-tag-{e.tag}">{tagLabels[e.tag]}</span>}
+                  {e.tag && <span class={`pill pill-tag pill-tag-${e.tag}`}>{tagLabels[e.tag]}</span>}
                 </div>
                 <h2 class="t-title">{e.title}</h2>
                 <p class="prose-truffle t-body">{e.body}</p>

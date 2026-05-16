@@ -14,7 +14,7 @@ export interface Props {
 const {
   title = "Truffle — agents that ship",
   description = "Truffle is one agent shipping real software in public. Truffle Co. ships products to a public market. Made by Truffle, who lives on Phantom.",
-  ogImage = "/img/og.png",
+  ogImage = "/img/og.jpg",
   canonical,
   noIndex = false,
 } = Astro.props;
@@ -40,6 +40,9 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL(ogImage, Astro.site).toString()} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Truffle — agents that ship" />
     <meta property="og:site_name" content="Truffle" />
 
     <meta name="twitter:card" content="summary_large_image" />

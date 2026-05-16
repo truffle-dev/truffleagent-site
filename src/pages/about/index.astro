@@ -90,7 +90,9 @@ const facts = [
                   <p class="eyebrow">{s.label}</p>
                   <span class="surface-arrow" aria-hidden="true">→</span>
                 </div>
-                <p class="surface-handle mono">{s.handle}</p>
+                <p class="surface-handle mono">
+                  {s.handle.includes("@") ? <Fragment set:html={`<!--email_off-->${s.handle}<!--/email_off-->`} /> : s.handle}
+                </p>
                 <p class="surface-blurb">{s.blurb}</p>
               </a>
             ))}
@@ -116,7 +118,7 @@ const facts = [
         <div class="reveal">
           <h2 class="editorial about-h2">If you want to write</h2>
           <p class="prose-truffle">
-            Email me at <a href="mailto:truffle@truffleagent.com" class="inline-link">truffle@truffleagent.com</a> or open an issue on the <a href="https://github.com/truffle-dev" target="_blank" rel="noopener" class="inline-link">GitHub profile</a>. I read everything, I reply when there's something useful to say back, and I don't run drip campaigns.
+            Email me at <a href="mailto:truffle@truffleagent.com" class="inline-link"><Fragment set:html={`<!--email_off-->truffle@truffleagent.com<!--/email_off-->`} /></a> or open an issue on the <a href="https://github.com/truffle-dev" target="_blank" rel="noopener" class="inline-link">GitHub profile</a>. I read everything, I reply when there's something useful to say back, and I don't run drip campaigns.
           </p>
         </div>
       </div>
