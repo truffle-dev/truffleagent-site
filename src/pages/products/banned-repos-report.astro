@@ -20,6 +20,20 @@ const features = [
   "JSON corpus for the technical reader, Markdown for skimming, PDF for printing or sharing.",
   "One free update for six months when new entries land.",
 ];
+
+// Corpus snapshot as of last pass (007 on 2026-05-16). Sourced from
+// banned-repos-canonical.json. Counts roll up the 16-value status taxonomy
+// into four readable buckets.
+const corpus = {
+  total: 75,
+  asOf: "2026-05-16",
+  buckets: [
+    { count: 8, label: "Outright bans", note: "CONTRIBUTING.md prohibits AI contributions, or a maintainer publicly asked." },
+    { count: 18, label: "Strict restrictions", note: "Narrow scope, autonomous-agent bans, or required reviewer involvement." },
+    { count: 30, label: "Disclosure required", note: "AI contributions accepted only with trailer, checkbox, or PR-template flag." },
+    { count: 19, label: "Welcomed", note: "Accepted, often with trailer, attribution, or human-owner requirement." },
+  ],
+};
 ---
 <BaseLayout
   title="The Banned-Repos Report — Truffle Co."
@@ -54,11 +68,29 @@ const features = [
       </div>
     </section>
 
+    <section class="corpus-snapshot">
+      <div class="container-prose">
+        <p class="eyebrow">Corpus snapshot</p>
+        <p class="snapshot-headline">
+          <strong>{corpus.total} projects</strong> documented as of <time datetime={corpus.asOf}>{corpus.asOf}</time>. Outright bans are the loud minority. Most projects sit somewhere on the spectrum between restriction and welcome.
+        </p>
+        <div class="bucket-grid">
+          {corpus.buckets.map((b) => (
+            <div class="bucket">
+              <span class="bucket-count">{b.count}</span>
+              <span class="bucket-label">{b.label}</span>
+              <span class="bucket-note">{b.note}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
     <section class="product-body">
       <div class="container-prose">
         <h2 class="editorial">Why this exists</h2>
         <p class="prose-truffle">
-          A growing share of well-run projects are saying no to AI-generated contributions — sometimes in CONTRIBUTING.md, sometimes through reviewer behavior. The policies aren't reactionary. They're considered. Reasons range from review-time pollution to philosophical objections to GitHub-induced load. If you're an agent-builder, you need to know which doors are closed before you walk into one. If you're a maintainer drafting policy, you want to see how peers framed theirs.
+          A growing share of well-run projects have written down what they think about AI contributions — some banning, some requiring disclosure, some welcoming with attribution. The policies aren't reactionary. They're considered. Reasons range from review-time pollution to philosophical objections to GitHub-induced load. If you're an agent-builder, you need to know which doors are closed and which are conditional before you walk into one. If you're a maintainer drafting policy, you want to see how peers framed theirs.
         </p>
 
         <p class="prose-truffle">
@@ -133,7 +165,7 @@ const features = [
   }
 
   .product-hero-img {
-    padding-bottom: clamp(3rem, 6vw, 5rem);
+    padding-bottom: clamp(2rem, 4vw, 3rem);
   }
   .product-hero-img picture {
     display: block;
@@ -147,6 +179,59 @@ const features = [
     height: 100%;
     object-fit: cover;
     display: block;
+  }
+
+  .corpus-snapshot {
+    padding-block: clamp(2rem, 4vw, 3rem);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .corpus-snapshot .eyebrow {
+    display: block;
+    margin-bottom: 1rem;
+    color: var(--content-3);
+  }
+  .corpus-snapshot .snapshot-headline {
+    font-size: clamp(1.05rem, 2vw, 1.2rem);
+    line-height: 1.55;
+    color: var(--content-2);
+    max-width: 640px;
+    margin: 0 0 1.75rem;
+  }
+  .corpus-snapshot .snapshot-headline strong {
+    color: var(--content);
+    font-weight: 600;
+  }
+  .bucket-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem;
+  }
+  .bucket {
+    display: grid;
+    gap: 0.4rem;
+    padding: 1.1rem 1.2rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .bucket-count {
+    font-family: var(--font-display, "Fraunces", serif);
+    font-style: italic;
+    font-size: 2.4rem;
+    line-height: 1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .bucket-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--content);
+  }
+  .bucket-note {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--content-3);
   }
 
   .product-body {
