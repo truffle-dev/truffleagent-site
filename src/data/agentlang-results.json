@@ -1,0 +1,803 @@
+{
+  "generatedAt": "2026-05-19T01:33:47.846Z",
+  "models": [
+    {
+      "model": "gpt-5",
+      "perLang": {
+        "zero": {
+          "passed": 0,
+          "total": 20,
+          "rate": 0
+        },
+        "ts": {
+          "passed": 20,
+          "total": 20,
+          "rate": 1
+        },
+        "rust": {
+          "passed": 19,
+          "total": 20,
+          "rate": 0.95
+        },
+        "go": {
+          "passed": 20,
+          "total": 20,
+          "rate": 1
+        },
+        "python": {
+          "passed": 20,
+          "total": 20,
+          "rate": 1
+        }
+      },
+      "totalPassed": 79,
+      "totalAttempts": 100,
+      "passRate": 0.79,
+      "langTax": {
+        "ts": 1,
+        "rust": 0.95,
+        "go": 1,
+        "python": 1
+      },
+      "timestamp": "2026-05-19T01:32:49.245Z",
+      "totalPromptTokens": 64510,
+      "totalCompletionTokens": 348714
+    },
+    {
+      "model": "gpt-4o",
+      "perLang": {
+        "zero": {
+          "passed": 0,
+          "total": 20,
+          "rate": 0
+        },
+        "ts": {
+          "passed": 19,
+          "total": 20,
+          "rate": 0.95
+        },
+        "rust": {
+          "passed": 15,
+          "total": 20,
+          "rate": 0.75
+        },
+        "go": {
+          "passed": 19,
+          "total": 20,
+          "rate": 0.95
+        },
+        "python": {
+          "passed": 17,
+          "total": 20,
+          "rate": 0.85
+        }
+      },
+      "totalPassed": 70,
+      "totalAttempts": 100,
+      "passRate": 0.7,
+      "langTax": {
+        "ts": 0.95,
+        "rust": 0.75,
+        "go": 0.95,
+        "python": 0.85
+      },
+      "timestamp": "2026-05-19T00:39:58.638Z",
+      "totalPromptTokens": 64610,
+      "totalCompletionTokens": 22803
+    },
+    {
+      "model": "gpt-4o-mini",
+      "perLang": {
+        "zero": {
+          "passed": 0,
+          "total": 20,
+          "rate": 0
+        },
+        "ts": {
+          "passed": 14,
+          "total": 20,
+          "rate": 0.7
+        },
+        "rust": {
+          "passed": 13,
+          "total": 20,
+          "rate": 0.65
+        },
+        "go": {
+          "passed": 15,
+          "total": 20,
+          "rate": 0.75
+        },
+        "python": {
+          "passed": 14,
+          "total": 20,
+          "rate": 0.7
+        }
+      },
+      "totalPassed": 56,
+      "totalAttempts": 100,
+      "passRate": 0.56,
+      "langTax": {
+        "ts": 0.7,
+        "rust": 0.65,
+        "go": 0.75,
+        "python": 0.7
+      },
+      "timestamp": "2026-05-19T00:31:37.832Z",
+      "totalPromptTokens": 64610,
+      "totalCompletionTokens": 21038
+    }
+  ],
+  "tasks": [
+    {
+      "slug": "000-hello-stdout",
+      "title": "Hello, stdout",
+      "tags": [
+        "io",
+        "smoke-test"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "001-fibonacci-memoized",
+      "title": "Fibonacci with memoization",
+      "tags": [
+        "computation",
+        "memoization",
+        "recursion"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "002-sieve-prime-count",
+      "title": "Prime count via Sieve of Eratosthenes",
+      "tags": [
+        "computation",
+        "sieve",
+        "arrays"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "003-levenshtein-distance",
+      "title": "Levenshtein edit distance",
+      "tags": [
+        "computation",
+        "dp",
+        "strings"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "004-matrix-multiply",
+      "title": "Square integer matrix multiply",
+      "tags": [
+        "computation",
+        "matrix",
+        "loops"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "005-balanced-parens",
+      "title": "Balanced bracket checker",
+      "tags": [
+        "parsing",
+        "stack",
+        "strings"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "006-substring-count",
+      "title": "Non-overlapping substring count",
+      "tags": [
+        "parsing",
+        "strings",
+        "search"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "007-csv-line-tokenize",
+      "title": "CSV line tokenizer (RFC 4180 subset)",
+      "tags": [
+        "parsing",
+        "strings",
+        "state-machine"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "008-word-reverse",
+      "title": "Reverse the order of words on a line",
+      "tags": [
+        "parsing",
+        "strings",
+        "tokenization"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "009-word-count",
+      "title": "Count whitespace-separated tokens in input",
+      "tags": [
+        "io",
+        "parsing",
+        "counting"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "010-byte-frequency",
+      "title": "Per-byte frequency table sorted by byte value",
+      "tags": [
+        "io",
+        "counting",
+        "sorting",
+        "multi-record-output"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "011-rle-encode",
+      "title": "Run-length encode the input as count/byte pairs",
+      "tags": [
+        "io",
+        "encoding",
+        "single-pass",
+        "multi-record-output"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "012-http-status-code",
+      "title": "GET a URL and write the HTTP status code",
+      "tags": [
+        "networking",
+        "http",
+        "stdlib-breadth"
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "slug": "013-http-json-sum",
+      "title": "POST a JSON pair and extract the sum",
+      "tags": [
+        "networking",
+        "http",
+        "json",
+        "stdlib-breadth"
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "slug": "014-http-header-echo",
+      "title": "GET a URL and echo a named response header",
+      "tags": [
+        "networking",
+        "http",
+        "headers",
+        "stdlib-breadth"
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "slug": "015-checked-divide-u32",
+      "title": "Parse two unsigned integers and write their integer quotient, or error on any failure",
+      "tags": [
+        "error-handling",
+        "parsing",
+        "arithmetic",
+        "stdlib-breadth"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "016-parse-list-sum",
+      "title": "Read a count then that many u32 integers and write their sum, or error on any failure",
+      "tags": [
+        "error-handling",
+        "parsing",
+        "loop",
+        "arithmetic",
+        "stdlib-breadth"
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "slug": "017-checked-add-overflow",
+      "title": "Parse two unsigned integers and write their sum, or error on parse failure or u32 overflow",
+      "tags": [
+        "error-handling",
+        "parsing",
+        "arithmetic",
+        "overflow"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "018-caesar-cipher",
+      "title": "Shift a lowercase ASCII string by a Caesar offset, or error on bad input",
+      "tags": [
+        "string-transform",
+        "module-boundary",
+        "multi-file"
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "slug": "019-run-length-encode",
+      "title": "Run-length encode a lowercase ASCII string, or error on bad input",
+      "tags": [
+        "string-transform",
+        "module-boundary",
+        "multi-file",
+        "run-length-encoding"
+      ],
+      "difficulty": "easy"
+    }
+  ],
+  "perTaskPerModel": {
+    "000-hello-stdout": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "001-fibonacci-memoized": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "002-sieve-prime-count": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "003-levenshtein-distance": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 0,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "004-matrix-multiply": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 0,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 0,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "005-balanced-parens": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "006-substring-count": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "007-csv-line-tokenize": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 0,
+        "python": 0
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "008-word-reverse": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "009-word-count": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 0,
+        "python": 0
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "010-byte-frequency": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 0
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "011-rle-encode": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "012-http-status-code": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 0
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 0,
+        "rust": 0,
+        "go": 1,
+        "python": 0
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "013-http-json-sum": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 0
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 0,
+        "rust": 0,
+        "go": 1,
+        "python": 0
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "014-http-header-echo": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 0
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 0,
+        "rust": 0,
+        "go": 1,
+        "python": 0
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "015-checked-divide-u32": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 0,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "016-parse-list-sum": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "017-checked-add-overflow": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "018-caesar-cipher": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 0,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    },
+    "019-run-length-encode": {
+      "gpt-4o": {
+        "zero": 0,
+        "ts": 0,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "gpt-4o-mini": {
+        "zero": 0,
+        "ts": 0,
+        "rust": 0,
+        "go": 0,
+        "python": 1
+      },
+      "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      }
+    }
+  }
+}

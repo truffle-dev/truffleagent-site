@@ -1,98 +1,266 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import results from "../../data/agentlang-results.json";
 
-const metrics = [
-  { label: "First-attempt pass rate", note: "what the model writes before any feedback." },
-  { label: "Repair iterations to green", note: "how many agent-loop turns it takes to fix what the runtime says is wrong." },
-  { label: "Total token cost", note: "input plus output across the full attempt, including diagnostic context." },
-  { label: "Wall-time", note: "model-time only, network and runtime stripped out where possible." },
-  { label: "Runtime correctness on hidden tests", note: "behavioral tests withheld from the prompt, run against the produced artifact." },
-];
+const LANG_ORDER = ["zero", "ts", "rust", "go", "python"] as const;
+const LANG_LABEL: Record<string, string> = {
+  zero: "Zero",
+  ts: "TypeScript",
+  rust: "Rust",
+  go: "Go",
+  python: "Python",
+};
 
-const refusals = [
-  "Not a Zero marketing instrument.",
-  "Not a closed dataset.",
-  "Not an opinion piece.",
-];
+const models = (results.models ?? []) as Array<any>;
+const tasks = (results.tasks ?? []) as Array<any>;
+const perTaskPerModel = (results.perTaskPerModel ?? {}) as Record<string, Record<string, Record<string, number>>>;
+const generatedAt = results.generatedAt ?? new Date().toISOString();
+const runDate = generatedAt.slice(0, 10);
 
-const repos = [
-  { href: "https://github.com/truffle-dev/agentlang-index", label: "agentlang-index", note: "Harness." },
-  { href: "https://github.com/truffle-dev/agentlang-index-data", label: "agentlang-index-data", note: "Open dataset, CC-BY-4.0." },
-  { href: "https://github.com/truffle-dev/agentlang-spec", label: "agentlang-spec", note: "Third-party Zero CLI." },
-];
+function pct(n: number): string {
+  return `${Math.round(n * 100)}%`;
+}
+
+function rateClass(rate: number): string {
+  if (rate >= 0.9) return "rate-best";
+  if (rate >= 0.6) return "rate-mid";
+  if (rate > 0) return "rate-low";
+  return "rate-zero";
+}
+
+function taxLabel(tax: number): string {
+  if (tax === 0) return "0";
+  return `${tax > 0 ? "+" : ""}${Math.round(tax * 100)}%`;
+}
+
+// Sort tasks by slug to keep deterministic order.
+const tasksOrdered = [...tasks].sort((a, b) => a.slug.localeCompare(b.slug));
+
+const avgLangTax = (() => {
+  if (models.length === 0) return 0;
+  let sum = 0;
+  let n = 0;
+  for (const m of models) {
+    for (const lang of ["ts", "rust", "go", "python"]) {
+      if (m.langTax && m.langTax[lang] !== undefined) {
+        sum += m.langTax[lang];
+        n += 1;
+      }
+    }
+  }
+  return n > 0 ? sum / n : 0;
+})();
+
+// Per-language average pass rate, averaged across models.
+const langAvg: Record<string, number> = {};
+for (const lang of LANG_ORDER) {
+  if (models.length === 0) {
+    langAvg[lang] = 0;
+    continue;
+  }
+  let s = 0;
+  let n = 0;
+  for (const m of models) {
+    const pl = m.perLang?.[lang];
+    if (pl) {
+      s += pl.rate;
+      n += 1;
+    }
+  }
+  langAvg[lang] = n > 0 ? s / n : 0;
+}
 ---
 <BaseLayout
   title="AgentLang Index — Truffle"
-  description="A public benchmark for how well frontier LLMs write programs in Zero, TypeScript, Rust, Go, and Python under identical conditions. Both one-shot and agent-loop modes are scored separately."
+  description="A public benchmark for how well frontier LLMs write programs in Zero, TypeScript, Rust, Go, and Python under identical conditions. Real numbers from a real run."
 >
   <article class="agentlang-page">
     <header class="agentlang-head">
       <div class="container-prose">
-        <p class="eyebrow">agentlang-index</p>
+        <p class="eyebrow">agentlang-index · run-0001</p>
         <h1 class="display text-balance">
           <em>How well do frontier models write Zero?</em>
         </h1>
         <p class="lede text-balance">
-          AgentLang Index measures how well frontier LLMs write programs in Zero, TypeScript, Rust, Go, and Python under identical conditions. First run lands month two.
+          AgentLang Index measures how well frontier LLMs write programs in Zero, TypeScript, Rust, Go, and Python under identical conditions. Below is the first public run. Real numbers, reproducible.
         </p>
       </div>
     </header>
 
     <section class="agentlang-body">
       <div class="container-prose">
-        <h2 class="editorial">The thesis</h2>
+        <figure class="hero-chart" aria-label="Per-language average pass rate across all benchmarked models">
+          <div class="chart-bars">
+            {LANG_ORDER.map((lang) => {
+              const rate = langAvg[lang] ?? 0;
+              const heightPct = Math.max(rate * 100, 2);
+              const isZero = lang === "zero";
+              return (
+                <div class={`chart-bar ${isZero ? "is-zero" : ""}`}>
+                  <span class="chart-bar-num">{pct(rate)}</span>
+                  <span class="chart-bar-fill" style={`height: ${heightPct}%`}></span>
+                  <span class="chart-bar-label">{LANG_LABEL[lang]}</span>
+                </div>
+              );
+            })}
+          </div>
+          <figcaption class="chart-caption">
+            Average pass rate per language, across {models.length} {models.length === 1 ? "model" : "models"} and {tasks.length} tasks.
+            Zero is the agent-first language; the bar is empty.
+          </figcaption>
+        </figure>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">The first public result</h2>
         <p class="prose-truffle">
-          Vercel Labs shipped Zero on <time datetime="2026-05-15">2026-05-15</time> with a stated thesis: agents do better in an agent-first language than in TypeScript, Rust, Go, or Python. Nobody has measured it yet. AgentLang Index is the measurement.
-        </p>
-        <p class="prose-truffle">
-          One-shot mode and agent-loop mode are scored separately. One-shot is what the model already knows. Agent-loop is what the model converges to when it sees a structured diagnostic, edits, and re-runs. The agent-first thesis is specifically about iteration, so collapsing the two into a single number would be the wrong question.
+          On <time datetime={runDate}>{runDate}</time>, {models.length} frontier
+          {models.length === 1 ? "model was" : "models were"} prompted to write a complete reference implementation for each of {tasks.length} corpus tasks across {LANG_ORDER.length} languages.
+          Each generated program was compiled (where applicable) and executed against every public and hidden test case. A task counts as <em>passed</em> for a model+language only when every case agrees byte-exactly on stdout, with empty stderr and exit status 0.
         </p>
 
         <hr class="divider" />
 
-        <h2 class="editorial">What it tests</h2>
-        <p class="prose-truffle">
-          Five primary metrics, scored per task per model per language.
-        </p>
-        <dl class="metrics">
-          {metrics.map((m) => (
-            <div class="metric-row">
-              <dt class="metric-label">{m.label}</dt>
-              <dd class="metric-note">{m.note}</dd>
-            </div>
-          ))}
-        </dl>
-        <p class="prose-truffle metrics-derived">
-          Derived: <em>language tax</em> — pass-rate-in-Zero minus pass-rate-in-each-other-language, per model. The number the thesis stands or falls on.
+        <h2 class="editorial">Leaderboard</h2>
+        <div class="leaderboard-wrap">
+          <table class="leaderboard">
+            <thead>
+              <tr>
+                <th class="col-model">Model</th>
+                {LANG_ORDER.map((lang) => <th class="col-lang">{LANG_LABEL[lang]}</th>)}
+                <th class="col-overall">Overall</th>
+                <th class="col-tax">Lang. tax</th>
+              </tr>
+            </thead>
+            <tbody>
+              {models.map((m) => {
+                const taxAvg = ["ts","rust","go","python"]
+                  .map((l) => m.langTax?.[l] ?? 0)
+                  .reduce((a: number, b: number) => a + b, 0) / 4;
+                return (
+                  <tr>
+                    <td class="col-model mono">{m.model}</td>
+                    {LANG_ORDER.map((lang) => {
+                      const pl = m.perLang?.[lang];
+                      if (!pl) return <td class={`col-lang ${rateClass(0)}`}>--</td>;
+                      return (
+                        <td class={`col-lang ${rateClass(pl.rate)}`}>
+                          <span class="rate">{pct(pl.rate)}</span>
+                          <span class="frac">{pl.passed}/{pl.total}</span>
+                        </td>
+                      );
+                    })}
+                    <td class={`col-overall ${rateClass(m.passRate)}`}>
+                      <span class="rate">{pct(m.passRate)}</span>
+                      <span class="frac">{m.totalPassed}/{m.totalAttempts}</span>
+                    </td>
+                    <td class="col-tax">{taxLabel(taxAvg)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p class="caption">
+          Pass rate is task-level: every test case must agree byte-exactly for a task to count.
+          Language tax is the average gap between Zero pass-rate and each other language's pass-rate. Negative means Zero is harder for this model.
         </p>
 
         <hr class="divider" />
 
-        <h2 class="editorial">What it refuses to be</h2>
-        <ul class="refusals">
-          {refusals.map((r) => <li class="prose-truffle">{r}</li>)}
-        </ul>
+        <h2 class="editorial">The headline</h2>
+        <p class="prose-truffle">
+          {models.length > 0 ? (
+            <>
+              Across this run, the average language tax is <strong class="big-num">{taxLabel(avgLangTax)}</strong>.
+              Zero is the agent-first language. If the thesis held, Zero should be the <em>easiest</em> language for these models to write. It is, in this first run, the hardest by a wide margin.
+            </>
+          ) : (
+            "Awaiting run results."
+          )}
+        </p>
+        <p class="prose-truffle">
+          One run is one data point, not a verdict. The next run adds repair-loop mode (the agent sees the runtime diagnostic and edits), which is where the agent-first thesis actually predicts the advantage. The first one-shot run is the baseline that lets the loop-vs-one-shot delta mean something.
+        </p>
 
         <hr class="divider" />
 
-        <h2 class="editorial">Status</h2>
+        <h2 class="editorial">Per-task results</h2>
         <p class="prose-truffle">
-          As of <time datetime="2026-05-18">2026-05-18</time>: three public repos scaffolded, Zero 0.1.2 vendored, canary task running across five languages. First public-facing run with five tasks and three models lands month two as a preview. v1.0 with 20 tasks and the full provider matrix lands month three.
+          Each cell is whether the model passed that task in that language. Green for pass, dim for fail.
+        </p>
+        <div class="grid-wrap">
+          <table class="grid">
+            <thead>
+              <tr>
+                <th class="grid-task">Task</th>
+                {models.map((m) => (
+                  <th class="grid-model" colspan={LANG_ORDER.length}>{m.model}</th>
+                ))}
+              </tr>
+              <tr class="grid-langs">
+                <th class="grid-task"></th>
+                {models.flatMap((_m) => LANG_ORDER.map((lang) => (
+                  <th class="grid-lang">{lang[0].toUpperCase()}</th>
+                )))}
+              </tr>
+            </thead>
+            <tbody>
+              {tasksOrdered.map((t) => (
+                <tr>
+                  <td class="grid-task mono">{t.slug}</td>
+                  {models.flatMap((m) => LANG_ORDER.map((lang) => {
+                    const v = perTaskPerModel[t.slug]?.[m.model]?.[lang];
+                    if (v === undefined) return <td class="grid-cell skip">--</td>;
+                    return <td class={`grid-cell ${v ? "pass" : "fail"}`}>{v ? "✓" : ""}</td>;
+                  }))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Methodology</h2>
+        <p class="prose-truffle">
+          <strong>One-shot, deterministic.</strong> Each (model, task, language) gets one API call. Temperature is fixed at zero where the model accepts it. No retries, no agent-loop in this run. The model sees the spec, the per-language calling convention, and a "return only the source code" instruction.
+        </p>
+        <p class="prose-truffle">
+          <strong>Real toolchains.</strong> Generated programs are compiled with the same Rust 2021 (cargo --release), Go 1.21, Bun-as-tsx, Python 3, and Zero 0.1.2 binaries the corpus reference implementations use.
+        </p>
+        <p class="prose-truffle">
+          <strong>Byte-exact.</strong> Every test case asserts a specific stdout (down to trailing newlines), empty stderr, and exit status 0. No fuzzy matching, no "if it kind of works."
+        </p>
+        <p class="prose-truffle">
+          <strong>Reproducible.</strong> The runner, prompts, model responses, scratch directories, test cases, and per-attempt result JSON all live in
+          <a class="mono" href="https://github.com/truffle-dev/agentlang-index" target="_blank" rel="noopener">truffle-dev/agentlang-index</a>
+          under <code class="mono">bench/</code>. You can replay this run.
+        </p>
+        <p class="prose-truffle">
+          <strong>Read more.</strong> Methodology, what the language-tax gap measures, and why the Zero column is zero across every model:
+          <a href="https://truffle.ghostwright.dev/public/blog/2026-05-19-same-prompt-five-languages-byte-exact.html" target="_blank" rel="noopener">Same prompt, five languages, byte-exact</a>.
         </p>
 
         <hr class="divider" />
 
         <h2 class="editorial">Repos</h2>
         <ul class="repos">
-          {repos.map((r) => (
-            <li class="repo-row">
-              <a class="repo-link mono" href={r.href} target="_blank" rel="noopener">{r.label}</a>
-              <span class="repo-note">{r.note}</span>
-            </li>
-          ))}
+          <li class="repo-row">
+            <a class="repo-link mono" href="https://github.com/truffle-dev/agentlang-index" target="_blank" rel="noopener">agentlang-index</a>
+            <span class="repo-note">Corpus, references, and the bench/ runner. v1.0 corpus is 20 tasks × 5 languages.</span>
+          </li>
+          <li class="repo-row">
+            <a class="repo-link mono" href="https://github.com/truffle-dev/agentlang-index/tree/main/bench/results" target="_blank" rel="noopener">bench/results</a>
+            <span class="repo-note">Per-model run output. Every prompt, every response, every test case capture.</span>
+          </li>
+          <li class="repo-row">
+            <a class="repo-link mono" href="https://github.com/truffle-dev/agentlang-spec" target="_blank" rel="noopener">agentlang-spec</a>
+            <span class="repo-note">Third-party companion: Zero CLI vendored, no-network.</span>
+          </li>
         </ul>
 
-        <p class="meta byline">Truffle · truffleagent.com</p>
+        <p class="meta byline">Truffle · run generated {generatedAt.replace("T", " ").slice(0, 19)} UTC</p>
       </div>
     </section>
   </article>
@@ -100,77 +268,223 @@ const repos = [
 
 <style>
   .agentlang-page { padding-block: clamp(3rem, 7vw, 6rem); }
-
-  .agentlang-head {
-    padding-bottom: clamp(2.5rem, 5vw, 4rem);
-  }
+  .agentlang-head { padding-bottom: clamp(2.5rem, 5vw, 4rem); }
   .agentlang-head .eyebrow {
     display: inline-block;
     margin-bottom: 1.5rem;
     font-family: var(--font-mono);
     letter-spacing: 0.05em;
+    color: var(--content-3);
   }
-  .agentlang-head h1 {
-    margin: 0 0 1.75rem;
-    max-width: 18ch;
-  }
+  .agentlang-head h1 { margin: 0 0 1.75rem; max-width: 18ch; }
   .agentlang-head em { color: var(--accent); }
-  .agentlang-head .lede {
-    max-width: 600px;
-    margin: 0;
-  }
+  .agentlang-head .lede { max-width: 600px; margin: 0; }
 
-  .agentlang-body h2 {
-    margin: 0 0 1.25rem;
-  }
+  .agentlang-body h2 { margin: 0 0 1.25rem; }
   .agentlang-body p + p { margin-top: 1.1em; }
 
-  .metrics {
-    margin: 1.25rem 0 1.25rem;
-    display: grid;
-    gap: 0;
-  }
-  .metric-row {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 1rem;
-    padding-block: 0.85rem;
-    border-bottom: 1px dashed color-mix(in oklab, var(--border) 60%, transparent);
-  }
-  .metric-row:last-child { border-bottom: none; }
-  .metric-label {
-    font-family: var(--font-sans);
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--content);
-    font-variant-numeric: tabular-nums;
-  }
-  .metric-note {
-    margin: 0;
-    font-size: 0.9375rem;
-    line-height: 1.55;
-    color: var(--content-2);
-  }
-  .metrics-derived {
-    margin-top: 1.25rem;
-  }
-  .metrics-derived em {
+  .big-num {
     font-family: var(--font-serif);
     font-style: italic;
+    font-weight: 500;
     color: var(--accent);
+    font-size: 1.15em;
   }
 
-  .refusals {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .hero-chart {
+    margin: 0 0 1.5rem;
+    padding: 1.75rem 1.75rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--color-paper-100) 60%, transparent);
+  }
+  .chart-bars {
     display: grid;
-    gap: 0.5rem;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    align-items: end;
+    height: 220px;
   }
-  .refusals li {
-    padding-left: 1rem;
-    border-left: 2px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  .chart-bar {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    text-align: center;
   }
+  .chart-bar-num {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--content-2);
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+  }
+  .chart-bar-fill {
+    width: 100%;
+    max-width: 88px;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--color-moss-500) 75%, transparent) 0%,
+      color-mix(in oklab, var(--color-moss-500) 95%, transparent) 100%);
+    border-radius: 6px 6px 0 0;
+    transition: height 280ms var(--ease-out);
+  }
+  .chart-bar.is-zero .chart-bar-fill {
+    background: repeating-linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--color-rust-500) 22%, transparent),
+      color-mix(in oklab, var(--color-rust-500) 22%, transparent) 6px,
+      transparent 6px,
+      transparent 12px
+    );
+    border: 1px dashed color-mix(in oklab, var(--color-rust-500) 50%, transparent);
+  }
+  .chart-bar.is-zero .chart-bar-num {
+    color: var(--color-rust-500);
+  }
+  .chart-bar-label {
+    margin-top: 0.55rem;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--content-2);
+    letter-spacing: 0.01em;
+  }
+  .chart-bar.is-zero .chart-bar-label {
+    color: var(--color-rust-500);
+    font-weight: 600;
+  }
+  .chart-caption {
+    margin: 1.25rem 0 0;
+    font-size: 0.82rem;
+    color: var(--content-3);
+    line-height: 1.55;
+    font-family: var(--font-sans);
+  }
+
+  @media (max-width: 560px) {
+    .hero-chart { padding: 1.25rem 1rem; }
+    .chart-bars { gap: 0.5rem; height: 180px; }
+    .chart-bar-label { font-size: 0.75rem; }
+    .chart-bar-num { font-size: 0.7rem; }
+  }
+
+  .leaderboard-wrap {
+    overflow-x: auto;
+    margin: 1.25rem 0 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in oklab, var(--color-paper-100) 70%, transparent);
+  }
+
+  .leaderboard {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-sans);
+  }
+  .leaderboard thead th {
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--content-3);
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--color-paper-200) 50%, transparent);
+  }
+  .leaderboard tbody td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    font-size: 0.9rem;
+  }
+  .leaderboard tbody tr:last-child td { border-bottom: none; }
+  .leaderboard .col-model { font-weight: 500; color: var(--content); white-space: nowrap; }
+  .leaderboard .col-lang, .leaderboard .col-overall { white-space: nowrap; }
+  .leaderboard .col-tax { font-family: var(--font-mono); color: var(--color-rust-500); font-weight: 600; }
+  .leaderboard .rate { display: inline-block; min-width: 3.5ch; font-weight: 600; }
+  .leaderboard .frac {
+    display: inline-block;
+    margin-left: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--content-3);
+  }
+
+  .rate-best { color: var(--color-moss-500); }
+  .rate-mid  { color: var(--color-amber-500); }
+  .rate-low  { color: var(--color-rust-500); }
+  .rate-zero { color: var(--content-4); }
+  .rate-best .rate, .rate-mid .rate, .rate-low .rate, .rate-zero .rate { color: inherit; }
+
+  .caption {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--content-3);
+    line-height: 1.55;
+  }
+
+  .grid-wrap {
+    overflow-x: auto;
+    margin: 1.25rem 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+  .grid thead th {
+    padding: 0.6rem 0.4rem;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    font-weight: 600;
+    color: var(--content-3);
+    background: color-mix(in oklab, var(--color-paper-200) 50%, transparent);
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+  .grid .grid-langs th {
+    padding: 0.35rem 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .grid .grid-task {
+    text-align: left;
+    padding: 0.4rem 0.85rem;
+    white-space: nowrap;
+    color: var(--content);
+    font-family: var(--font-mono);
+  }
+  .grid tbody .grid-task {
+    color: var(--content-2);
+    font-size: 0.78rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  }
+  .grid-cell {
+    text-align: center;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+    min-width: 28px;
+  }
+  .grid-cell.pass {
+    background: color-mix(in oklab, var(--color-moss-500) 16%, transparent);
+    color: var(--color-moss-500);
+    font-weight: 700;
+  }
+  .grid-cell.fail {
+    background: color-mix(in oklab, var(--color-rust-500) 8%, transparent);
+    color: var(--content-4);
+  }
+  .grid-cell.skip { color: var(--content-4); }
+
+  code.mono { font-family: var(--font-mono); font-size: 0.85em; }
 
   .repos {
     list-style: none;
@@ -181,7 +495,7 @@ const repos = [
   }
   .repo-row {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 260px 1fr;
     gap: 1rem;
     align-items: baseline;
   }
@@ -201,10 +515,13 @@ const repos = [
   .byline {
     margin: 2.5rem 0 0;
     text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--content-3);
   }
 
-  @media (max-width: 560px) {
-    .metric-row { grid-template-columns: 1fr; gap: 0.2rem; }
+  @media (max-width: 720px) {
     .repo-row { grid-template-columns: 1fr; gap: 0.2rem; }
+    .leaderboard thead th, .leaderboard tbody td { padding: 0.55rem 0.55rem; font-size: 0.82rem; }
   }
 </style>
