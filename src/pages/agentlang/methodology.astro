@@ -1,0 +1,250 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+<BaseLayout
+  title="AgentLang Index · Methodology"
+  description="How the AgentLang Index benchmark is run. Corpus design, scoring rules, what counts as a pass, what counts as a fail, and the ten Zero codegen quirks the first run exposed."
+>
+  <article class="agentlang-page agentlang-method">
+    <header class="agentlang-head">
+      <div class="container-prose">
+        <p class="eyebrow">agentlang-index · methodology</p>
+        <h1 class="display text-balance">
+          <em>What the benchmark actually measures.</em>
+        </h1>
+        <p class="lede text-balance">
+          AgentLang Index has one job: produce a comparable number for how often a given model writes a working program in Zero versus how often it writes a working program in TypeScript, Rust, Go, or Python under the same conditions. This page is the long form of that.
+        </p>
+      </div>
+    </header>
+
+    <section class="agentlang-body">
+      <div class="container-prose">
+
+        <h2 class="editorial">The thesis under test</h2>
+        <p class="prose-truffle">
+          Zero is Vercel Labs' agent-first programming language. The claim that motivates Zero is that frontier language models will write Zero more reliably than they write established languages, because Zero's grammar, error model, and standard library are designed for the way a model emits code rather than the way a human types code.
+        </p>
+        <p class="prose-truffle">
+          The thesis is testable. Pick a fixed set of tasks. Pick a fixed set of models. Ask each model to write each task in each of several languages under identical conditions. Score every output against byte-exact acceptance tests. Report the gaps. If Zero is easier for models, Zero's column should be the highest. If not, the numbers say so directly.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Corpus design</h2>
+        <p class="prose-truffle">
+          The v1.0 corpus is twenty tasks. Each task is a small, self-contained program with a written spec, a reference implementation in each of the five benchmarked languages, and a public test suite that asserts byte-exact stdout, empty stderr, and exit status 0. The reference implementations exist so the corpus tests itself before any model touches it: if my own reference does not pass the suite under the pinned toolchain, the task is not shippable.
+        </p>
+        <p class="prose-truffle">
+          Tasks cover six shapes, each chosen to exercise a different axis of language-and-stdlib usage:
+        </p>
+        <ul class="prose-truffle">
+          <li><strong>I/O smoke.</strong> Read stdin or print to stdout in the most direct form the language allows. Catches calling-convention mistakes (<code class="mono">000-hello-stdout</code>, <code class="mono">009-word-count</code>, <code class="mono">010-byte-frequency</code>).</li>
+          <li><strong>Algorithmic computation.</strong> Recursion, memoization, dynamic programming, fixed-size matrix math, prime sieve. The model has to translate a clear specification into integer arithmetic and control flow (<code class="mono">001-fibonacci-memoized</code>, <code class="mono">002-sieve-prime-count</code>, <code class="mono">003-levenshtein-distance</code>, <code class="mono">004-matrix-multiply</code>).</li>
+          <li><strong>Parsing and strings.</strong> Stack-based balanced-paren validation, substring counting, CSV state machine, word tokenization. Exercises slice operations, byte-vs-char distinctions, and whitespace handling (<code class="mono">005-balanced-parens</code>, <code class="mono">006-substring-count</code>, <code class="mono">007-csv-line-tokenize</code>, <code class="mono">008-word-reverse</code>).</li>
+          <li><strong>Encoding and transformation.</strong> Run-length encoding, byte frequency tabulation. Multi-record output forces correct loop boundaries and final-newline discipline (<code class="mono">011-rle-encode</code>, <code class="mono">019-run-length-encode</code>).</li>
+          <li><strong>Network and stdlib breadth.</strong> HTTP GET status code, HTTP JSON sum, HTTP header echo. The model has to find the language's HTTP client and JSON parser, then drive them correctly. This is where standard libraries differ most (<code class="mono">012-http-status-code</code>, <code class="mono">013-http-json-sum</code>, <code class="mono">014-http-header-echo</code>).</li>
+          <li><strong>Error handling and module boundaries.</strong> Checked u32 division, list-sum with parse failure, u32 overflow detection, Caesar cipher and RLE split across a driver plus a library file. Exercises typed errors, Maybe/Option/Result shapes, and inter-module function signatures (<code class="mono">015-checked-divide-u32</code>, <code class="mono">016-parse-list-sum</code>, <code class="mono">017-checked-add-overflow</code>, <code class="mono">018-caesar-cipher</code>).</li>
+        </ul>
+
+        <p class="prose-truffle">
+          Every task spec is a single JSON file with the slug, the natural-language prompt, the input schema, the output schema, byte-exact acceptance criteria, a token budget, and the languages it targets. The prompt the model sees is exactly the <code class="mono">prompt</code> field, prefixed by a language-specific calling convention block and suffixed by a "return only the source code" instruction. Nothing else.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Two run modes</h2>
+        <p class="prose-truffle">
+          <strong>One-shot.</strong> One API call per (model, task, language) triple. Temperature is fixed at zero where the model accepts it. No retries. No iteration. The model sees the prompt, returns code, the harness compiles and runs it. This is the baseline that lets every later improvement measure itself against something concrete.
+        </p>
+        <p class="prose-truffle">
+          <strong>Agent-loop.</strong> Up to five repair attempts. After the first attempt, the harness feeds the model structured diagnostics (compiler errors with file and line, runtime traces, failing test names with expected-vs-actual diffs) and the model edits. Identical to how a developer would use the model in an IDE. This is the mode where the agent-first thesis actually predicts a Zero advantage, because Zero's errors are designed to be machine-edited, not human-read.
+        </p>
+        <p class="prose-truffle">
+          The first public run, dated <time datetime="2026-05-19">2026-05-19</time>, is one-shot only. The agent-loop runner shipped on <time datetime="2026-05-20">2026-05-20</time> and will appear in subsequent runs alongside the one-shot column, so the loop-vs-one-shot delta is visible per model per language.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Scoring</h2>
+        <p class="prose-truffle">
+          A task counts as <em>passed</em> for a model+language only when every public test case and every hidden test case produces:
+        </p>
+        <ul class="prose-truffle">
+          <li>The exact stdout bytes specified by the spec (including trailing newlines).</li>
+          <li>Empty stderr.</li>
+          <li>Exit status 0.</li>
+          <li>Wall time under the per-task ceiling (typically 5 seconds, longer for the network tasks).</li>
+        </ul>
+        <p class="prose-truffle">
+          There is no fuzzy matching, no "off by one trailing newline is fine," no "the JSON parsed but the keys are in a different order." If the output is not byte-identical, the case fails, and any failing case fails the task. This shape is deliberately strict because the question the benchmark answers is not "does the model approximately understand the task" but "does the model produce a program that runs."
+        </p>
+        <p class="prose-truffle">
+          <strong>Language tax.</strong> The headline metric. For a given model, it is the average of (Zero pass-rate minus per-language pass-rate) across TypeScript, Rust, Go, and Python. A negative tax means Zero is harder for that model. A positive tax means Zero is easier. The first run reports tax in the range of -70% to -95% per model.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Toolchains</h2>
+        <p class="prose-truffle">
+          Generated programs are compiled and executed with the same binaries the corpus reference implementations use. No special handling per model, no permissive lints, no automatic formatting passes.
+        </p>
+        <ul class="prose-truffle">
+          <li><strong>Zero</strong> 0.1.2 from <a class="mono" href="https://github.com/truffle-dev/agentlang-spec" target="_blank" rel="noopener">agentlang-spec</a>. Direct ELF64 backend.</li>
+          <li><strong>TypeScript</strong> via <code class="mono">bun</code> 1.3.x, with the corpus's pinned <code class="mono">tsconfig.json</code>.</li>
+          <li><strong>Rust</strong> 2021 edition via <code class="mono">cargo --release</code>, rust-toolchain pinned per corpus.</li>
+          <li><strong>Go</strong> 1.21 via <code class="mono">go build</code>, module per task.</li>
+          <li><strong>Python</strong> 3.12, no third-party packages beyond the standard library and a tiny HTTP helper where the task requires it.</li>
+        </ul>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">What the first run exposed about Zero</h2>
+        <p class="prose-truffle">
+          The first public run is also the first systematic stress test of Zero 0.1.2 in the hands of code-generating models. Every Zero task failed across every model. The failures cluster around ten specific compiler or codegen quirks that the corpus surfaced. None of these are model failures of comprehension; the corresponding TypeScript, Rust, Go, and Python implementations are all correct. They are language-and-toolchain rough edges that an agent-first language has to smooth before it can deliver on the agent-first promise.
+        </p>
+        <ol class="prose-truffle quirks">
+          <li><strong>SIGFPE on inline <code class="mono">(u64 / const) as u32</code> narrowing.</strong> A divisor that is a power of two on the right-hand side of <code class="mono">u64 / divisor as u32</code> traps with SIGFPE (exit 136) in the direct ELF64 backend. Surfaced by the checked-divide tasks.</li>
+          <li><strong><code class="mono">i32</code> versus <code class="mono">usize</code> requires explicit <code class="mono">_usize</code> suffix.</strong> A bare integer literal in an index position is inferred <code class="mono">i32</code>, not <code class="mono">usize</code>, and the cast raises TYP002 at compile time. Surfaced by every loop that indexes a span.</li>
+          <li><strong><code class="mono">bool</code> is not <code class="mono">Bool</code>.</strong> The keyword is capitalized; the lowercase form raises TYP002 with no suggestion. Surfaced by every condition the models wrote.</li>
+          <li><strong><code class="mono">&amp;&amp;</code> does not short-circuit.</strong> Both sides of a logical-and are evaluated, so a bounds check followed by an array access traps if the array is empty. The fix is to nest two <code class="mono">if</code> blocks; the natural single-expression form is wrong.</li>
+          <li><strong>No <code class="mono">!</code> prefix operator.</strong> Negation is <code class="mono">== false</code>, written out. Models almost always reach for <code class="mono">!</code> first.</li>
+          <li><strong>Trailing write byte-count leaks to exit code.</strong> The number of bytes returned from <code class="mono">std.io.write</code> propagates as the process exit status unless the program ends with an explicit <code class="mono">return 0</code>. A program that prints correctly fails the exit-status check.</li>
+          <li><strong><code class="mono">Span&lt;u8&gt;</code> and shape values cannot cross user-function boundaries on direct ELF64.</strong> Function parameters and return types are restricted to scalars and <code class="mono">Bool</code> in the backend the harness uses. Helper functions that the model factors out for clarity stop compiling.</li>
+          <li><strong><code class="mono">std.parse.parseU*</code> rejects runtime strings.</strong> The parser entry points require a literal text argument and refuse a runtime <code class="mono">String</code> value. The natural shape for parsing stdin tokens is therefore not what the standard library supports.</li>
+          <li><strong>User code cannot construct <code class="mono">Maybe&lt;T&gt;::Some</code>.</strong> The standard-library <code class="mono">Maybe</code> type accepts <code class="mono">None</code> construction in user code but rejects <code class="mono">Some(...)</code> at module boundaries with PAR100. Error paths must return scalars and a side-channel <code class="mono">Bool</code>, not <code class="mono">Maybe&lt;T&gt;</code>.</li>
+          <li><strong><code class="mono">if</code> is statement-only.</strong> <code class="mono">let x = if cond &#123; a &#125; else &#123; b &#125;</code> is rejected. Models port this idiom from Rust and TypeScript by default; the workaround is a mutable binding plus a separate <code class="mono">if</code> statement.</li>
+        </ol>
+        <p class="prose-truffle">
+          Each quirk above is reproducible from the corpus tasks listed in <a class="mono" href="https://github.com/truffle-dev/agentlang-index/tree/main/corpus" target="_blank" rel="noopener">truffle-dev/agentlang-index/corpus</a>. The individual <code class="mono">notes.md</code> files in each task directory show the exact minimal repro and the workaround the reference implementation uses. The intent is for the Zero team to see this list and decide which quirks block adoption and which are intentional, then for the next Zero release to flip the language-tax curve in a measurable way.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Reproducing a run</h2>
+        <p class="prose-truffle">
+          Everything required to replay the first run lives in <a class="mono" href="https://github.com/truffle-dev/agentlang-index" target="_blank" rel="noopener">truffle-dev/agentlang-index</a>. The repo includes the harness, the corpus, the pinned vendor toolchains, the prompts, every model response captured during the run, and the per-attempt result JSON.
+        </p>
+        <pre class="repro"><code class="mono">git clone https://github.com/truffle-dev/agentlang-index
+cd agentlang-index
+make setup
+export OPENAI_API_KEY=...   # or ANTHROPIC_API_KEY, etc.
+bun bench/runner.ts --models gpt-4o-mini --tasks 000-hello-stdout --languages zero,ts,rust,go,python
+</code></pre>
+        <p class="prose-truffle">
+          The runner produces a fresh dashboard JSON under <code class="mono">bench/results/</code>. To regenerate the published run end-to-end, drop the <code class="mono">--models</code> and <code class="mono">--tasks</code> filters and pass the same model list the dashboard shows.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Dataset and license</h2>
+        <p class="prose-truffle">
+          The harness, corpus, and reference implementations are Apache-2.0. The published dataset (per-attempt model output, structured scores, run manifests) lives in <a class="mono" href="https://github.com/truffle-dev/agentlang-index-data" target="_blank" rel="noopener">truffle-dev/agentlang-index-data</a> under CC-BY-4.0. Both repos pin the harness git SHA and the Zero version per export, so a replay always knows which corpus and which compiler produced a given number.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">What the benchmark refuses to be</h2>
+        <p class="prose-truffle">
+          Not a Zero marketing instrument. Tasks where Zero scores poorly appear with the same prominence as tasks where it scores well, and the methodology page explains what went wrong rather than how to phrase around it.
+        </p>
+        <p class="prose-truffle">
+          Not a closed dataset. Every run is reproducible from the public corpus and the public dataset, with toolchain versions pinned.
+        </p>
+        <p class="prose-truffle">
+          Not an opinion piece. The thesis is testable, the artifact is the answer, and the next run will move whichever way the next run moves.
+        </p>
+
+        <p class="meta byline">
+          <a href="/agentlang/">Back to the leaderboard</a>
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .agentlang-page { padding-block: clamp(3rem, 7vw, 6rem); }
+  .agentlang-head { padding-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .agentlang-head .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    color: var(--content-3);
+  }
+  .agentlang-head h1 { margin: 0 0 1.75rem; max-width: 22ch; }
+  .agentlang-head em { color: var(--accent); }
+  .agentlang-head .lede { max-width: 620px; margin: 0; }
+
+  .agentlang-body h2 { margin: 0 0 1.25rem; }
+  .agentlang-body p + p { margin-top: 1.1em; }
+
+  .prose-truffle ul,
+  .prose-truffle ol {
+    margin: 1.1em 0 0;
+    padding-left: 1.4em;
+    line-height: 1.6;
+  }
+  .prose-truffle li { margin: 0.45em 0; }
+  .prose-truffle li code.mono,
+  .prose-truffle li strong code.mono {
+    background: color-mix(in oklab, var(--color-paper-200) 60%, transparent);
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+
+  .quirks { counter-reset: quirk; padding-left: 0; list-style: none; }
+  .quirks > li {
+    counter-increment: quirk;
+    position: relative;
+    padding: 0.85em 0 0.85em 3.2em;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  }
+  .quirks > li:last-child { border-bottom: none; }
+  .quirks > li::before {
+    content: counter(quirk, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 1em;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--color-rust-500);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  code.mono { font-family: var(--font-mono); font-size: 0.92em; }
+
+  .repro {
+    margin: 1.25rem 0;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in oklab, var(--color-paper-100) 70%, transparent);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--content);
+  }
+  .repro code { font-family: inherit; }
+
+  .byline {
+    margin: 2.5rem 0 0;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--content-3);
+  }
+  .byline a {
+    color: var(--accent);
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+  }
+  .byline a:hover { border-color: var(--accent); }
+
+  @media (max-width: 560px) {
+    .quirks > li { padding-left: 2.6em; }
+  }
+</style>
