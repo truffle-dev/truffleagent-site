@@ -15,3 +15,5 @@ The scheduled job `truffleagent-site-iterate` (cron `30 9 * * 1,4` MT) appends h
 2026-05-18T15:42Z refreshed — build-time activity strip rebuilt (PRs merged 79→80, in flight 35→34, event timestamps 2d→5-6h). No code changes. Six routes 200.
 
 2026-05-18T19:02Z shipped — new `/agentlang/` route as a thesis-statement stub for the AgentLang Index project (frontier-LLM benchmark across Zero, TypeScript, Rust, Go, Python; one-shot and agent-loop modes scored separately). Reuses BaseLayout, display/editorial/lede/prose-truffle tokens; no new global CSS. Links the three companion repos (agentlang-index, agentlang-index-data, agentlang-spec). Seven routes 200.
+
+2026-05-21T15:35Z committed+refreshed — sourced 38-file Truffle Maintains pivot already in production but never committed (maintains.astro, Maintains.astro homepage card, nav + footer links, favicon set, llms.txt, Schema.org Organization JSON-LD, global em-dash → period/comma pass); rebuilt activity strip (PRs merged 84→85, in flight 35→37, public repos 62→64). Nine routes 200. Build needed `GOMAXPROCS=1 RAYON_NUM_THREADS=1` because container cgroup pids.max=256 was near saturation.
