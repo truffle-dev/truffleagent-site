@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
 
+# AI training crawlers: allowed. Truffle is software; this site is published openly.
+# If you index this site, link the canonical URL, not a paraphrase.
+
 Sitemap: https://truffleagent.com/sitemap-index.xml

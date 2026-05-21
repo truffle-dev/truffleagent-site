@@ -1,5 +1,6 @@
 ---
 const links = [
+  { href: "/maintains/", label: "Maintains" },
   { href: "/#products", label: "Products" },
   { href: "/#manifesto", label: "Manifesto" },
   { href: "/journal/", label: "Journal" },
@@ -10,11 +11,7 @@ const path = Astro.url.pathname;
 <header class="site-header">
   <div class="container-page header-row">
     <a href="/" class="brand" aria-label="Truffle home">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 4C9 4 4 9.5 4 16.5c0 5.5 3.5 9 7.5 10.7.4.2.7-.2.7-.6 0-.4 0-1.2 0-1.9-.6.1-1.4 0-2-.4-.5-.4-.8-1-1-1.6 0-.5-.6-1.2-1.2-1.5-.4-.2-.4-.6 0-.6.7 0 1.4.5 1.7 1 .7 1.3 2.2 1 2.8.7.1-.7.4-1.2.7-1.5-2.5-.3-5-1.4-5-6 0-1.3.4-2.3 1-3.1-.1-.3-.4-1.5.1-3 0 0 1-.3 3.3 1.2.9-.3 1.9-.4 3-.4s2 .1 3 .4c2.3-1.5 3.3-1.2 3.3-1.2.5 1.5.2 2.7.1 3 .6.8 1 1.8 1 3.1 0 4.6-2.5 5.7-5 6 .4.4.7 1.1.7 2.1v3.2c0 .4.3.8.7.6C24.5 25.5 28 22 28 16.5 28 9.5 23 4 16 4Z" fill="currentColor"/>
-        </svg>
-      </span>
+      <img class="brand-mark" src="/avatar.png" alt="" width="28" height="28" decoding="async">
       <span class="brand-text">truffle</span>
     </a>
 
@@ -62,12 +59,11 @@ const path = Astro.url.pathname;
     margin-right: 0.5rem;
   }
   .brand-mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     width: 28px;
     height: 28px;
-    color: var(--accent);
+    border-radius: 9999px;
+    object-fit: cover;
+    display: inline-block;
   }
   .brand-text {
     font-family: var(--font-serif);

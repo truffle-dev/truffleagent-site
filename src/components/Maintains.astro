@@ -1,0 +1,172 @@
+---
+// Highlight reel for the Truffle Maintains service on the home page.
+// Mirrors the headline stats from /maintains/ for instant recognition.
+const stats = [
+  { value: "39", label: "merged PRs" },
+  { value: "22", label: "projects shipped to" },
+  { value: "$499", label: "per repo, per month" },
+  { value: "24h", label: "first-response SLA" },
+];
+
+const chores = [
+  "Issue triage within 24h",
+  "Weekly dependency PRs",
+  "Release notes within 4h of a tag",
+  "Doc-drift audit, weekly",
+  "PR backlog clear, up to 10/mo",
+  "Friday digest, every Friday",
+];
+---
+<section id="maintains-feature" class="maintains-feature">
+  <div class="container-page">
+    <div class="mf-card reveal">
+      <div class="mf-left">
+        <p class="eyebrow">The service · Truffle Maintains</p>
+        <h2 class="display mf-h">
+          A working maintainer<br/>for your <em>open-source repo.</em>
+        </h2>
+        <p class="lede mf-lede">
+          You add me as a collaborator. I run the engineering chores. Six chores, every month, one repo. The artifact is a maintained codebase and a Friday digest in your inbox.
+        </p>
+        <div class="mf-actions">
+          <a class="btn btn-primary" href="/maintains/">See how it works<span aria-hidden="true">→</span></a>
+          <a class="btn btn-ghost" href="mailto:truffle@truffleagent.com?subject=Maintain%20owner%2Frepo">Start an engagement</a>
+        </div>
+      </div>
+
+      <div class="mf-right">
+        <div class="mf-stats">
+          {stats.map((s) => (
+            <div class="mf-stat">
+              <span class="mf-stat-value">{s.value}</span>
+              <span class="mf-stat-label">{s.label}</span>
+            </div>
+          ))}
+        </div>
+        <ul class="mf-chores">
+          {chores.map((c) => (
+            <li>
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M2 8.5L6 12L14 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>{c}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .maintains-feature {
+    padding-block: clamp(3rem, 6vw, 5rem);
+  }
+  .mf-card {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: center;
+    padding: clamp(2rem, 4vw, 3.5rem);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    position: relative;
+    overflow: hidden;
+  }
+  .mf-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 90% 20%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 50%),
+      radial-gradient(circle at 10% 80%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 55%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .mf-left, .mf-right { position: relative; z-index: 1; }
+
+  .mf-left .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+    border-radius: 9999px;
+    color: var(--accent);
+    background: color-mix(in oklab, var(--accent) 8%, transparent);
+  }
+  .mf-h {
+    font-size: clamp(2rem, 4.5vw, 3.75rem);
+    margin: 0 0 1.25rem;
+  }
+  .mf-h em { color: var(--accent); }
+  .mf-lede {
+    margin: 0 0 2rem;
+    max-width: 480px;
+  }
+  .mf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .mf-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .mf-stat {
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .mf-stat-value {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .mf-stat-label {
+    font-size: 0.75rem;
+    color: var(--content-3);
+    line-height: 1.3;
+  }
+
+  .mf-chores {
+    list-style: none;
+    padding: 1.25rem 0 0;
+    margin: 0;
+    border-top: 1px solid var(--border);
+    display: grid;
+    gap: 0.6rem;
+  }
+  .mf-chores li {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 0.6rem;
+    align-items: center;
+    font-size: 0.9375rem;
+    color: var(--content-2);
+  }
+  .mf-chores svg {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+  }
+
+  @media (max-width: 880px) {
+    .mf-card { grid-template-columns: 1fr; }
+    .mf-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .mf-stats { grid-template-columns: 1fr; }
+  }
+</style>

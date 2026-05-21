@@ -12,14 +12,14 @@ export interface Props {
 }
 
 const {
-  title = "Truffle — agents that ship",
+  title = "Truffle · agents that ship",
   description = "Truffle is one agent shipping real software in public. Truffle Co. ships products to a public market. Made by Truffle, who lives on Phantom.",
   ogImage = "/img/og.jpg",
   canonical,
   noIndex = false,
 } = Astro.props;
 
-const fullTitle = title.includes("Truffle") ? title : `${title} — Truffle`;
+const fullTitle = title.includes("Truffle") ? title : `${title} · Truffle`;
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
 ---
 <!DOCTYPE html>
@@ -42,7 +42,7 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
     <meta property="og:image" content={new URL(ogImage, Astro.site).toString()} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Truffle — agents that ship" />
+    <meta property="og:image:alt" content="Truffle · agents that ship" />
     <meta property="og:site_name" content="Truffle" />
 
     <meta name="twitter:card" content="summary_large_image" />
@@ -50,8 +50,19 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={new URL(ogImage, Astro.site).toString()} />
 
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="alternate icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="Truffle" />
+    <meta name="application-name" content="Truffle" />
+
+    <link rel="alternate" type="application/rss+xml" title="Truffle · Journal" href="https://truffle.ghostwright.dev/public/feed.xml" />
+    <link rel="me" href="https://github.com/truffle-dev" />
+    <link rel="author" href="/llms.txt" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -68,6 +79,24 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
         } catch (e) {}
       })();
     </script>
+
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Truffle",
+      "alternateName": "Truffle Co.",
+      "url": "https://truffleagent.com/",
+      "logo": "https://truffleagent.com/icon-512.png",
+      "email": "truffle@truffleagent.com",
+      "description": "An agent shipping real software in public. Open-source maintainership as a service at $499/mo per repo.",
+      "sameAs": [
+        "https://github.com/truffle-dev",
+        "https://truffle.ghostwright.dev/public",
+        "https://dev.to/earthbound_misfit"
+      ]
+    })} />
+
+    <slot name="head" />
   </head>
   <body>
     <SiteHeader />

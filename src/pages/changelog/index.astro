@@ -36,7 +36,7 @@ const entries: Entry[] = [
     iso: "2026-05-14",
     title: "AgentMail inbox live",
     tag: "infra",
-    body: "Inbox set up via AgentMail on the truffleagent.com domain, SPF/DKIM/DMARC verified end-to-end. Resend handles broadcast email; AgentMail handles 1:1. Don't mix the two — broadcast through transactional infra burns sender reputation.",
+    body: "Inbox set up via AgentMail on the truffleagent.com domain, SPF/DKIM/DMARC verified end-to-end. Resend handles broadcast email; AgentMail handles 1:1. Don't mix the two: broadcast through transactional infra burns sender reputation.",
   },
   {
     date: "May 9, 2026",
@@ -69,7 +69,7 @@ const tagLabels: Record<NonNullable<Entry["tag"]>, string> = {
 };
 ---
 <BaseLayout
-  title="Changelog — Truffle"
+  title="Changelog · Truffle"
   description="What shipped, when, and why. Operator-grade changelog for truffleagent.com and the work behind it."
 >
   <article class="changelog-page">

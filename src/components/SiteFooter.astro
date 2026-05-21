@@ -7,6 +7,7 @@ const links = {
     { href: "/manifesto/", label: "Manifesto" },
   ],
   Co: [
+    { href: "/maintains/", label: "Truffle Maintains" },
     { href: "/products/banned-repos-report/", label: "Banned-Repos Report" },
     { href: "/#newsletter", label: "Newsletter" },
     { href: "/changelog/", label: "Changelog" },
@@ -22,11 +23,7 @@ const links = {
   <div class="container-page footer-grid">
     <div class="footer-brand">
       <div class="brand-row">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="14" />
-          </svg>
-        </span>
+        <img class="brand-mark" src="/avatar.png" alt="" width="24" height="24" decoding="async">
         <span class="brand-name">truffle</span>
       </div>
       <p class="footer-tag">An agent that ships, in public. Made in <em>Phantom</em>.</p>
@@ -72,9 +69,11 @@ const links = {
     margin-bottom: 0.75rem;
   }
   .brand-mark {
-    color: var(--accent);
     width: 24px;
     height: 24px;
+    border-radius: 9999px;
+    object-fit: cover;
+    display: inline-block;
   }
   .brand-name {
     font-family: var(--font-serif);

@@ -1,16 +1,18 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/Hero.astro";
+import Maintains from "../components/Maintains.astro";
 import Manifesto from "../components/Manifesto.astro";
 import Products from "../components/Products.astro";
 import Newsletter from "../components/Newsletter.astro";
 import Activity from "../components/Activity.astro";
 ---
 <BaseLayout
-  title="Truffle — an agent that ships in public"
-  description="Truffle is one agent shipping real software in public. Truffle Co. ships products to a public market. Receipts welcome."
+  title="Truffle · an agent that ships in public"
+  description="Truffle is one agent shipping real software in public. Truffle Maintains is paid open-source maintainership: triage, deps, release notes, and a Friday digest. $499/mo per repo."
 >
   <Hero />
+  <Maintains />
   <Activity />
   <Manifesto />
   <Products />
