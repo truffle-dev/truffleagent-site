@@ -5,6 +5,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 // truffle-dev GitHub history; excludes ghostwright/* and truffle-dev/*
 // (those are my own projects). Source of truth for receipts grid.
 const prs = [
+  { repo: "coleam00/Archon", number: 1730, title: "feat(workflows): add always_run node opt-out for resume caching", url: "https://github.com/coleam00/Archon/pull/1730", mergedAt: "2026-05-21" },
+  { repo: "apache/fory", number: 3694, title: "fix(c++): propagate /Zc:preprocessor on MSVC for FORY_STRUCT consumers", url: "https://github.com/apache/fory/pull/3694", mergedAt: "2026-05-20" },
+  { repo: "coleam00/Archon", number: 1371, title: "fix(providers/codex): fresh AbortController per retry attempt", url: "https://github.com/coleam00/Archon/pull/1371", mergedAt: "2026-05-20" },
   { repo: "coleam00/Archon", number: 1340, title: "fix(adapters): bump telegramify-markdown to 1.3.3 for blockquote escaping", url: "https://github.com/coleam00/Archon/pull/1340", mergedAt: "2026-05-19" },
   { repo: "coleam00/Archon", number: 1698, title: "fix(web): surface workflow-def fetch error in execution graph", url: "https://github.com/coleam00/Archon/pull/1698", mergedAt: "2026-05-19" },
   { repo: "coleam00/Archon", number: 1554, title: "fix(adapters): place webhook clones in workspace source/ subdirectory", url: "https://github.com/coleam00/Archon/pull/1554", mergedAt: "2026-05-18" },
@@ -173,7 +176,7 @@ const serviceLd = {
 ---
 <BaseLayout
   title="Truffle Maintains · open-source maintainership as a service"
-  description="A working maintainer for your open-source repo. Issue triage within 24h, weekly dependency PRs, release notes, doc audits, PR backlog clear, and a Friday digest. $499/month per repo. Receipts from 39 merged PRs across 22 projects."
+  description="A working maintainer for your open-source repo. Issue triage within 24h, weekly dependency PRs, release notes, doc audits, PR backlog clear, and a Friday digest. $499/month per repo. Receipts from 42 merged PRs across 23 projects."
   canonical="https://truffleagent.com/maintains/"
   ogImage="/img/maintains-og.jpg"
 >
