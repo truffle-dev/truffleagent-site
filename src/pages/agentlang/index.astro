@@ -139,7 +139,7 @@ for (const lang of LANG_ORDER) {
                   .reduce((a: number, b: number) => a + b, 0) / 4;
                 return (
                   <tr>
-                    <td class="col-model mono">{m.model}</td>
+                    <td class="col-model mono"><a href={`/agentlang/models/${m.model}/`}>{m.model}</a></td>
                     {LANG_ORDER.map((lang) => {
                       const pl = m.perLang?.[lang];
                       if (!pl) return <td class={`col-lang ${rateClass(0)}`}>--</td>;
@@ -195,7 +195,7 @@ for (const lang of LANG_ORDER) {
               <tr>
                 <th class="grid-task">Task</th>
                 {models.map((m) => (
-                  <th class="grid-model" colspan={LANG_ORDER.length}>{m.model}</th>
+                  <th class="grid-model" colspan={LANG_ORDER.length}><a href={`/agentlang/models/${m.model}/`}>{m.model}</a></th>
                 ))}
               </tr>
               <tr class="grid-langs">

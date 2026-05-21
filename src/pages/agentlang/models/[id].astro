@@ -1,0 +1,480 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import modelsData from "../../../data/agentlang-models.json";
+
+const LANG_ORDER = ["zero", "ts", "rust", "go", "python"] as const;
+const LANG_LABEL: Record<string, string> = {
+  zero: "Zero",
+  ts: "TypeScript",
+  rust: "Rust",
+  go: "Go",
+  python: "Python",
+};
+const FAILURE_LABEL: Record<string, string> = {
+  compile: "compile",
+  runtime: "runtime",
+  "wrong-output": "wrong output",
+  other: "other",
+  pass: "pass",
+};
+
+export async function getStaticPaths() {
+  const data = (await import("../../../data/agentlang-models.json")).default;
+  return data.models.map((m: any) => ({ params: { id: m.model } }));
+}
+
+const { id } = Astro.params;
+const data = modelsData as any;
+const model = data.models.find((m: any) => m.model === id);
+
+if (!model) {
+  throw new Error(`Unknown model id: ${id}`);
+}
+
+const generatedAt: string = data.generatedAt;
+const runDate = (model.timestamp ?? generatedAt).slice(0, 10);
+
+function pct(n: number): string {
+  return `${Math.round(n * 100)}%`;
+}
+
+function rateClass(rate: number): string {
+  if (rate >= 0.9) return "rate-best";
+  if (rate >= 0.6) return "rate-mid";
+  if (rate > 0) return "rate-low";
+  return "rate-zero";
+}
+
+function taxLabel(tax: number): string {
+  if (tax === 0) return "0";
+  return `${tax > 0 ? "+" : ""}${Math.round(tax * 100)}%`;
+}
+
+const langs = LANG_ORDER as readonly string[];
+
+const taxValues = ["ts", "rust", "go", "python"]
+  .map((l) => (model.langTax?.[l] ?? 0) as number);
+const avgTax = taxValues.reduce((a, b) => a + b, 0) / taxValues.length;
+
+const attemptsByTaskLang: Record<string, Record<string, any>> = {};
+for (const a of model.attempts) {
+  if (!attemptsByTaskLang[a.task]) attemptsByTaskLang[a.task] = {};
+  attemptsByTaskLang[a.task][a.lang] = a;
+}
+
+const orderedTaskSlugs = Object.keys(attemptsByTaskLang).sort();
+const taskTitleBySlug: Record<string, string> = {};
+for (const a of model.attempts) {
+  if (a.taskTitle) taskTitleBySlug[a.task] = a.taskTitle;
+}
+
+const zeroFails = model.attempts
+  .filter((a: any) => a.lang === "zero" && !a.passed)
+  .sort((a: any, b: any) => a.task.localeCompare(b.task));
+
+const otherModels = data.models.filter((m: any) => m.model !== id).map((m: any) => m.model);
+
+const totalTokens = (model.totalPromptTokens ?? 0) + (model.totalCompletionTokens ?? 0);
+---
+
+<BaseLayout
+  title={`AgentLang Index · ${model.model}`}
+  description={`How well did ${model.model} write Zero, TypeScript, Rust, Go, and Python under identical conditions. Per-task results, failure modes, and the Zero deep-dive from the first public run.`}
+>
+  <article class="model-page">
+    <header class="model-head">
+      <div class="container-prose">
+        <p class="eyebrow"><a href="/agentlang/">agentlang-index</a> · model deep-dive</p>
+        <h1 class="display text-balance">
+          <em>{model.model}</em>
+        </h1>
+        <p class="lede text-balance">
+          One model, twenty tasks, five languages, byte-exact scoring. Pass rate is {pct(model.passRate)} overall, {pct(model.perLang?.zero?.rate ?? 0)} in Zero, average tax versus the other four languages is {taxLabel(avgTax)}.
+        </p>
+      </div>
+    </header>
+
+    <section class="model-body">
+      <div class="container-prose">
+        <figure class="lang-bars" aria-label={`Per-language pass rate for ${model.model}`}>
+          <div class="chart-bars">
+            {langs.map((lang) => {
+              const pl = model.perLang?.[lang];
+              const rate = pl?.rate ?? 0;
+              const heightPct = Math.max(rate * 100, 2);
+              const isZero = lang === "zero";
+              return (
+                <div class={`chart-bar ${isZero ? "is-zero" : ""}`}>
+                  <span class="chart-bar-num">{pct(rate)}</span>
+                  <span class="chart-bar-fill" style={`height: ${heightPct}%`}></span>
+                  <span class="chart-bar-label">{LANG_LABEL[lang]}</span>
+                </div>
+              );
+            })}
+          </div>
+          <figcaption class="chart-caption">
+            Pass rate per language. Each bar is the count of tasks (out of {model.perLang?.zero?.total ?? 20}) the model passed in that language.
+          </figcaption>
+        </figure>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Per-task results</h2>
+        <p class="prose-truffle">
+          Every cell is a single attempt. Pass means stdout matched byte-exact on every public and hidden test case, stderr empty, exit zero. Click a failure to see the first line of the diagnostic.
+        </p>
+        <div class="task-grid-wrap">
+          <table class="task-grid">
+            <thead>
+              <tr>
+                <th class="grid-task-col">Task</th>
+                {langs.map((lang) => <th class="grid-lang-col">{LANG_LABEL[lang]}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {orderedTaskSlugs.map((slug) => (
+                <tr>
+                  <td class="grid-task-col mono">
+                    <span class="task-slug">{slug}</span>
+                    <span class="task-title">{taskTitleBySlug[slug] ?? ""}</span>
+                  </td>
+                  {langs.map((lang) => {
+                    const a = attemptsByTaskLang[slug]?.[lang];
+                    if (!a) return <td class="grid-cell skip">--</td>;
+                    if (a.passed) return <td class="grid-cell pass" title="pass">{"✓"}</td>;
+                    return (
+                      <td class="grid-cell fail" title={a.failureExcerpt}>
+                        <span class="cell-tag mono">{FAILURE_LABEL[a.failureMode]}</span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Failure modes</h2>
+        <p class="prose-truffle">
+          Each failed attempt classifies as <em>compile</em> (parser, type checker, codegen, or build-system error before the program could run), <em>runtime</em> (program ran but crashed or threw), or <em>wrong output</em> (program ran cleanly but emitted the wrong bytes).
+        </p>
+        <div class="fail-grid-wrap">
+          <table class="fail-grid">
+            <thead>
+              <tr>
+                <th class="fail-lang-col">Language</th>
+                <th class="fail-mode-col">pass</th>
+                <th class="fail-mode-col">compile</th>
+                <th class="fail-mode-col">runtime</th>
+                <th class="fail-mode-col">wrong output</th>
+                <th class="fail-mode-col">other</th>
+              </tr>
+            </thead>
+            <tbody>
+              {langs.map((lang) => {
+                const fc = model.failureCountsByLang?.[lang] ?? {};
+                return (
+                  <tr>
+                    <td class="fail-lang-col mono">{LANG_LABEL[lang]}</td>
+                    <td class="fail-mode-col pass-num">{fc.pass ?? 0}</td>
+                    <td class="fail-mode-col">{fc.compile ?? 0}</td>
+                    <td class="fail-mode-col">{fc.runtime ?? 0}</td>
+                    <td class="fail-mode-col">{fc["wrong-output"] ?? 0}</td>
+                    <td class="fail-mode-col">{fc.other ?? 0}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Zero deep-dive</h2>
+        <p class="prose-truffle">
+          {zeroFails.length === 20 ? (
+            <>Every Zero attempt failed. Below is each task with the first line of the captured diagnostic. The pattern across tasks is the signal worth reading — the same handful of error codes recur.</>
+          ) : (
+            <>{zeroFails.length} of 20 Zero attempts failed. Below is each failed task with the first line of the captured diagnostic.</>
+          )}
+        </p>
+        <ol class="zero-fail-list">
+          {zeroFails.map((a: any) => (
+            <li class="zero-fail">
+              <div class="zf-head">
+                <span class="zf-slug mono">{a.task}</span>
+                <span class="zf-title">{a.taskTitle}</span>
+                <span class="zf-mode mono">{FAILURE_LABEL[a.failureMode]}</span>
+              </div>
+              <pre class="zf-excerpt"><code>{a.failureExcerpt || "(no diagnostic captured)"}</code></pre>
+            </li>
+          ))}
+        </ol>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Cost</h2>
+        <table class="cost-table">
+          <tbody>
+            <tr>
+              <th>Prompt tokens</th>
+              <td class="mono">{(model.totalPromptTokens ?? 0).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <th>Completion tokens</th>
+              <td class="mono">{(model.totalCompletionTokens ?? 0).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <th>Total tokens</th>
+              <td class="mono">{totalTokens.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <th>Attempts</th>
+              <td class="mono">{model.totalAttempts} ({model.totalPassed} passed)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Compare</h2>
+        <p class="prose-truffle">
+          Other models in this run:
+          {otherModels.map((m: string, i: number) => (
+            <>
+              {i > 0 ? ", " : " "}
+              <a class="mono" href={`/agentlang/models/${m}/`}>{m}</a>
+            </>
+          ))}
+          . Or back to the <a href="/agentlang/">leaderboard</a> and <a href="/agentlang/methodology/">methodology</a>.
+        </p>
+
+        <p class="meta byline">Truffle · {model.model} · run captured {runDate}</p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .model-page { padding-block: clamp(3rem, 7vw, 6rem); }
+  .model-head { padding-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .model-head .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    color: var(--content-3);
+  }
+  .model-head .eyebrow a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+  .model-head h1 { margin: 0 0 1.75rem; }
+  .model-head em { color: var(--accent); font-family: var(--font-mono); font-style: normal; }
+  .model-head .lede { max-width: 640px; margin: 0; }
+
+  .model-body h2 { margin: 0 0 1.25rem; }
+  .model-body p + p { margin-top: 1.1em; }
+
+  .lang-bars {
+    margin: 0 0 1.5rem;
+    padding: 1.75rem 1.75rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--color-paper-100) 60%, transparent);
+  }
+  .chart-bars {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    align-items: end;
+    height: 200px;
+  }
+  .chart-bar {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    text-align: center;
+  }
+  .chart-bar-num {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--content-2);
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+  }
+  .chart-bar-fill {
+    width: 100%;
+    max-width: 88px;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--color-moss-500) 75%, transparent) 0%,
+      color-mix(in oklab, var(--color-moss-500) 95%, transparent) 100%);
+    border-radius: 6px 6px 0 0;
+    min-height: 4px;
+  }
+  .chart-bar.is-zero .chart-bar-fill {
+    background: color-mix(in oklab, var(--color-rust-500) 35%, transparent);
+  }
+  .chart-bar-label {
+    margin-top: 0.6rem;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--content-2);
+    font-weight: 500;
+  }
+  .chart-caption {
+    margin: 1rem 0 0;
+    font-size: 0.85rem;
+    color: var(--content-3);
+    text-align: center;
+  }
+
+  .task-grid-wrap, .fail-grid-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .task-grid, .fail-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .task-grid th, .task-grid td,
+  .fail-grid th, .fail-grid td {
+    padding: 0.55rem 0.7rem;
+    text-align: left;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+  .task-grid thead th, .fail-grid thead th {
+    font-weight: 600;
+    color: var(--content-2);
+    background: color-mix(in oklab, var(--color-paper-100) 50%, transparent);
+  }
+  .task-grid tbody tr:last-child td,
+  .fail-grid tbody tr:last-child td { border-bottom: 0; }
+  .grid-task-col {
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .task-slug {
+    font-family: var(--font-mono);
+    color: var(--content-2);
+    font-size: 0.82rem;
+  }
+  .task-title {
+    font-family: var(--font-sans);
+    color: var(--content-3);
+    font-size: 0.78rem;
+  }
+  .grid-lang-col, .fail-mode-col {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .grid-cell {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    width: 8.5em;
+  }
+  .grid-cell.pass {
+    color: var(--color-moss-500);
+    font-weight: 600;
+  }
+  .grid-cell.fail .cell-tag {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--color-rust-500) 12%, transparent);
+    color: color-mix(in oklab, var(--color-rust-500) 90%, var(--content-2));
+    font-size: 0.74rem;
+  }
+  .grid-cell.skip {
+    color: var(--content-3);
+  }
+
+  .fail-grid .pass-num { color: var(--color-moss-500); font-weight: 600; }
+
+  .zero-fail-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    counter-reset: zf;
+  }
+  .zero-fail {
+    counter-increment: zf;
+    position: relative;
+    padding: 0.9rem 0 1rem 3.2em;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  }
+  .zero-fail:last-child { border-bottom: 0; }
+  .zero-fail::before {
+    content: counter(zf, decimal-leading-zero);
+    position: absolute;
+    left: 0; top: 1.1em;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-rust-500);
+    font-weight: 600;
+  }
+  .zf-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.9rem;
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+  .zf-slug { color: var(--content-2); font-size: 0.85rem; }
+  .zf-title { font-family: var(--font-sans); color: var(--content-3); font-size: 0.85rem; }
+  .zf-mode {
+    font-size: 0.72rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--color-rust-500) 12%, transparent);
+    color: color-mix(in oklab, var(--color-rust-500) 90%, var(--content-2));
+  }
+  .zf-excerpt {
+    margin: 0;
+    padding: 0.7rem 0.95rem;
+    background: color-mix(in oklab, var(--color-paper-200) 50%, transparent);
+    border-left: 2px solid var(--color-rust-500);
+    border-radius: 0 6px 6px 0;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--content-2);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .zf-excerpt code { background: transparent; padding: 0; font: inherit; color: inherit; }
+
+  .cost-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .cost-table th, .cost-table td {
+    padding: 0.55rem 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+  .cost-table th { width: 14em; color: var(--content-2); font-weight: 500; }
+  .cost-table td { font-variant-numeric: tabular-nums; }
+  .cost-table tbody tr:last-child th, .cost-table tbody tr:last-child td { border-bottom: 0; }
+
+  .byline {
+    margin-top: 2.5rem;
+    color: var(--content-3);
+    font-size: 0.82rem;
+  }
+</style>
