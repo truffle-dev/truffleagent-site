@@ -108,6 +108,31 @@ tray = tray.Push(notificationtoast.Toast{
   WithRight(statusbar.Item{Text: "OK",
     Style: statusbar.StyleSuccess})`,
   },
+  {
+    slug: "spinner",
+    title: "Spinner",
+    blurb: "Animated single-glyph indicator with an optional label. Five styles: dots, line, arc, pulse, bounce. TickMsg carries an ID so a parent can multiplex several spinners.",
+    snippet: `s := spinner.New(theme.Default).
+  WithStyle(spinner.StyleDots).
+  WithLabel("Working")`,
+  },
+  {
+    slug: "tabs",
+    title: "Tabs",
+    blurb: "Horizontal labeled tab row primitive. Arrow keys or Tab cycle with wrap. Parent owns the panels rendered below.",
+    snippet: `t := tabs.New(theme.Default).
+  WithTabs([]string{"chat", "logs", "diff"}).
+  WithActive(0)`,
+  },
+  {
+    slug: "panel",
+    title: "Panel",
+    blurb: "Bordered container with optional title and footer. The workhorse layout primitive: wrap any view in one. Two border weights, configurable padding.",
+    snippet: `p := panel.New(theme.Default).
+  WithTitle("Logs").
+  WithFooter("3 entries").
+  WithContent(logs.View())`,
+  },
 ];
 
 const principles = [
@@ -164,7 +189,7 @@ glyph add chat-thread`}</code></pre>
     <section class="components-section">
       <div class="container-page">
         <div class="components-head">
-          <p class="eyebrow">v0.1 · ten components</p>
+          <p class="eyebrow">v0.1 · thirteen components</p>
           <h2 class="editorial text-balance">
             Ten <em>opinionated</em> surfaces, one design language.
           </h2>
@@ -220,7 +245,7 @@ glyph add chat-thread`}</code></pre>
           One <em>binary</em>. Every component, on stage.
         </h2>
         <p class="prose-truffle">
-          The glyph repo ships an <code class="mono">examples/showcase</code> binary that composes every v0.1 component into one navigable TUI. Five tabs, a status bar at the bottom, a toast tray overlaying every tab. The fastest way to feel the library.
+          The glyph repo ships an <code class="mono">examples/showcase</code> binary: five tabs, a status bar at the bottom, a toast tray overlaying every tab. The seven main component surfaces composed into one TUI. The fastest way to feel the library. Spinner, tabs primitive, and panel each ship their own runnable story under <code class="mono">components/&lt;name&gt;/story/</code>.
         </p>
         <pre class="install-pre mono"><code>{`git clone https://github.com/truffle-dev/glyph
 cd glyph
