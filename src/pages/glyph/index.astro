@@ -213,6 +213,21 @@ glyph add chat-thread`}</code></pre>
         <p class="meta head-meta">
           v0.1 is <a href="https://github.com/charmbracelet/bubbletea">Bubble Tea</a>. Adapters for ratatui, Textual, and Ink follow.
         </p>
+
+        <div class="head-chips">
+          <a class="head-chip" href="https://github.com/truffle-dev/glyph">
+            <span class="head-chip-label mono">repo</span>
+            <span class="head-chip-value mono">github.com/truffle-dev/glyph</span>
+          </a>
+          <a class="head-chip" href="https://github.com/truffle-dev/glyph/releases/tag/v0.1.0">
+            <span class="head-chip-label mono">release</span>
+            <span class="head-chip-value mono">v0.1.0</span>
+          </a>
+          <a class="head-chip" href="https://pkg.go.dev/github.com/truffle-dev/glyph">
+            <span class="head-chip-label mono">docs</span>
+            <span class="head-chip-value mono">pkg.go.dev</span>
+          </a>
+        </div>
       </div>
     </header>
 
@@ -260,12 +275,27 @@ glyph add chat-thread`}</code></pre>
             <article class="component-card">
               <header class="component-head">
                 <h3 class="component-title">{c.title}</h3>
-                <code class="component-slug mono">{c.slug}</code>
+                <a class="component-slug mono" href={`https://github.com/truffle-dev/glyph/tree/main/components/${c.slug}`} rel="noopener">
+                  {c.slug}
+                </a>
               </header>
+              <figure class="component-preview">
+                <img
+                  src={`/img/glyph/${c.slug}.png`}
+                  alt={`Terminal preview of the ${c.slug} component.`}
+                  width="689"
+                  height="490"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </figure>
               <p class="component-blurb">{c.blurb}</p>
               <pre class="component-snippet mono"><code>{c.snippet}</code></pre>
               <div class="component-actions">
                 <code class="component-install mono">glyph add {c.slug}</code>
+                <a class="component-source mono" href={`https://github.com/truffle-dev/glyph/tree/main/components/${c.slug}`} rel="noopener">
+                  source ↗
+                </a>
               </div>
             </article>
           ))}
@@ -359,6 +389,37 @@ go run ./examples/showcase`}</code></pre>
   }
   .head-meta {
     max-width: 720px;
+  }
+  .head-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-top: 1.25rem;
+  }
+  .head-chip {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    overflow: hidden;
+    background: var(--surface);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    color: var(--content);
+    transition: border-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+  }
+  .head-chip:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .head-chip-label {
+    background: var(--surface-2);
+    color: var(--content-3);
+    padding: 0.35rem 0.625rem;
+    border-right: 1px solid var(--border);
+  }
+  .head-chip-value {
+    padding: 0.35rem 0.75rem;
   }
 
   .reel-section {
@@ -463,6 +524,21 @@ go run ./examples/showcase`}</code></pre>
     justify-content: space-between;
     gap: 1rem;
   }
+  .component-preview {
+    margin: 0;
+    background: #272822;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    aspect-ratio: 689 / 490;
+  }
+  .component-preview img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top left;
+  }
   .component-title {
     margin: 0;
     font-family: var(--font-serif);
@@ -493,6 +569,29 @@ go run ./examples/showcase`}</code></pre>
   }
   .component-actions {
     margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .component-source {
+    color: var(--content-2);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+  }
+  .component-source:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .component-slug {
+    text-decoration: none;
+    transition: color 150ms var(--ease-out);
+  }
+  .component-slug:hover {
+    color: var(--accent);
   }
   .component-install {
     background: var(--surface-2);

@@ -1,0 +1,274 @@
+{
+  "$schema": "https://truffleagent.com/glyph/schema/registry.json",
+  "name": "glyph",
+  "homepage": "https://truffleagent.com/glyph",
+  "items": [
+    {
+      "name": "chat-bubble",
+      "type": "glyph:component",
+      "title": "Chat Bubble",
+      "description": "Role-aware speech bubble with width-aware wrapping. Supports user, assistant, system, and tool roles.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "chat",
+        "conversation",
+        "ai"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "chat-input",
+      "type": "glyph:component",
+      "title": "Chat Input",
+      "description": "Single-line chat prompt with placeholder, cursor, focus state, and submit/cancel key bindings. Bubble Tea model.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "chat",
+        "input",
+        "ai"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "chat-thread",
+      "type": "glyph:component",
+      "title": "Chat Thread",
+      "description": "Vertically scrolling conversation surface. Composes chat-bubble. Supports arrow keys, PgUp/PgDn, Home/End for scroll.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "chat",
+        "conversation",
+        "ai"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "command-palette",
+      "type": "glyph:component",
+      "title": "Command Palette",
+      "description": "Filterable modal command picker. Case-insensitive substring matching by default, swappable matcher. Bubble Tea model.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "navigation",
+        "input",
+        "modal"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "diff-view",
+      "type": "glyph:component",
+      "title": "Diff View",
+      "description": "Color-coded unified diff renderer. Additions green, removals red, hunk headers highlighted, line numbers on both sides. Includes a ParseUnified helper for diff -u output.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "diff",
+        "viewer",
+        "version-control"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "key-hints",
+      "type": "glyph:component",
+      "title": "Key hints",
+      "description": "Compact footer of key-and-description pairs separated by a thin divider. The bottom-row cheatsheet every TUI grows into; build it as a primitive so it's not rewritten in every parent model.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "navigation",
+        "primitive",
+        "feedback"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "list",
+      "type": "glyph:component",
+      "title": "List",
+      "description": "Vertical selectable list with cursor highlight, optional hints, disabled items, and internal scrolling. The navigation primitive most agent UIs reach for after tabs.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "navigation",
+        "primitive"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "log-stream",
+      "type": "glyph:component",
+      "title": "Log Stream",
+      "description": "Bounded, color-coded log view that tails like `tail -f`. Drops oldest on capacity overflow, filters by level, and sticks to the tail unless the user scrolls up.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "log",
+        "diagnostics",
+        "stream"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "markdown-viewer",
+      "type": "glyph:component",
+      "title": "Markdown Viewer",
+      "description": "Small markdown subset rendered to a scrollable terminal block. Headings, paragraphs, bullet lists, blockquotes, code blocks, inline bold/italic/code, and links. Bubble Tea model.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "content",
+        "viewer"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "notification-toast",
+      "type": "glyph:component",
+      "title": "Notification Toast",
+      "description": "Stacked, dismissible notifications with level-aware coloring. Push to add, Tick(now) to expire, Dismiss(id) to remove. Pairs with any Bubble Tea app.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "notification",
+        "feedback",
+        "overlay"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "panel",
+      "type": "glyph:component",
+      "title": "Panel",
+      "description": "Bordered container with optional title and footer. The workhorse layout primitive: almost every other component pairs well inside a Panel. Rounded corners, two border weights, configurable padding.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "layout",
+        "primitive",
+        "container"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "progress-bar",
+      "type": "glyph:component",
+      "title": "Progress bar",
+      "description": "Determinate progress indicator with an optional label and percentage readout. Color-tunable fill, glyph-tunable bar runes. Pair with spinner if you need an indeterminate indicator.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "feedback",
+        "progress",
+        "indicator"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "spinner",
+      "type": "glyph:component",
+      "title": "Spinner",
+      "description": "Animated single-glyph progress indicator with an optional label. Five built-in styles: dots, line, arc, pulse, bounce. Each spinner produces its own TickMsg, addressable by an optional ID so parent models can multiplex.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "feedback",
+        "progress",
+        "indicator"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "status-bar",
+      "type": "glyph:component",
+      "title": "Status Bar",
+      "description": "Single-line three-segment status bar. Left fills from the left, right anchors to the far edge, optional center placed at the visual middle. Truncates the left segment first under width pressure.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "layout",
+        "status",
+        "navigation"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "tabs",
+      "type": "glyph:component",
+      "title": "Tabs",
+      "description": "Horizontal row of labeled tabs with one active label. A primitive: it owns the selection and the label row, not the panels below it. Keys left/right and tab/shift+tab cycle and wrap.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "navigation",
+        "primitive"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "theme",
+      "type": "glyph:theme",
+      "title": "Theme",
+      "description": "Token palette every glyph component reads from. Edit one file to retheme an entire app.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "foundation"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    }
+  ]
+}
