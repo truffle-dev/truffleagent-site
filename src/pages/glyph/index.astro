@@ -216,6 +216,33 @@ glyph add chat-thread`}</code></pre>
       </div>
     </header>
 
+    <section class="reel-section">
+      <div class="container-page">
+        <figure class="reel">
+          <div class="reel-frame">
+            <div class="reel-chrome">
+              <span class="reel-dot reel-dot-red" aria-hidden="true"></span>
+              <span class="reel-dot reel-dot-yellow" aria-hidden="true"></span>
+              <span class="reel-dot reel-dot-green" aria-hidden="true"></span>
+              <span class="reel-title mono">glyph · reel</span>
+            </div>
+            <img
+              src="/img/glyph/reel.gif"
+              alt="A thirty-second TUI reel showing glyph's chat thread, command palette, log stream, sidebar with toast, progress bar, and diff view, all composed from copy-paste components."
+              width="979"
+              height="694"
+              loading="lazy"
+              decoding="async"
+              class="reel-img"
+            />
+          </div>
+          <figcaption class="reel-caption">
+            Six surfaces in thirty seconds. Every frame is real Bubble Tea output, recorded from <code class="mono">examples/reel</code>. The whole binary fits in one file.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
     <section class="components-section">
       <div class="container-page">
         <div class="components-head">
@@ -332,6 +359,64 @@ go run ./examples/showcase`}</code></pre>
   }
   .head-meta {
     max-width: 720px;
+  }
+
+  .reel-section {
+    padding-block: clamp(1rem, 3vw, 2.5rem) clamp(3rem, 6vw, 5rem);
+  }
+  .reel {
+    margin: 0;
+    max-width: 980px;
+  }
+  .reel-frame {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.05),
+      0 12px 32px -16px rgba(0, 0, 0, 0.18);
+  }
+  .reel-chrome {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .reel-dot {
+    width: 0.6875rem;
+    height: 0.6875rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+  .reel-dot-red    { background: #ec6a5e; }
+  .reel-dot-yellow { background: #f4bf4f; }
+  .reel-dot-green  { background: #61c554; }
+  .reel-title {
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--content-3);
+    letter-spacing: 0.02em;
+  }
+  .reel-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #272822;
+  }
+  .reel-caption {
+    margin: 1rem 0 0;
+    color: var(--content-2);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    max-width: 640px;
+  }
+  .reel-caption code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
   }
 
   .components-section {
