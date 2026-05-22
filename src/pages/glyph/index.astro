@@ -163,6 +163,16 @@ tray = tray.Push(notificationtoast.Toast{
     {Key: "q",   Desc: "quit"},
   })`,
   },
+  {
+    slug: "text-input",
+    title: "Text input",
+    blurb: "Multi-line text input with 2D cursor, placeholder, focus. Alt+Left/Right jump words. Ctrl-U kills to cursor, Ctrl-K kills to end of line. Enter inserts a newline; Ctrl-D accepts.",
+    snippet: `t := textinput.New(theme.Default).
+  WithPlaceholder("Commit message…").
+  WithWidth(72).
+  WithHeight(6).
+  Focus()`,
+  },
 ];
 
 const principles = [
