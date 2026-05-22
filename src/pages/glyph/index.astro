@@ -1,0 +1,440 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+// One row per component in the v0.1 seed. Snippets are the smallest
+// hello-world that compiles after a glyph add, so anyone scanning the
+// page can read the API without leaving the tab.
+const components = [
+  {
+    slug: "theme",
+    title: "Theme",
+    blurb: "Token palette every component reads from. Edit one file to retheme an entire app.",
+    snippet: `import "github.com/truffle-dev/glyph/components/theme"
+
+t := theme.Default     // dark
+t := theme.Light       // warm paper
+fmt.Println(t.Primary) // lipgloss.Color`,
+  },
+  {
+    slug: "chat-bubble",
+    title: "Chat bubble",
+    blurb: "Role-aware speech bubble with width-aware wrapping. user / assistant / system / tool.",
+    snippet: `b := chatbubble.New(theme.Default).
+  WithRole(chatbubble.RoleAssistant).
+  WithLabel("glyph").
+  WithText("Welcome.").
+  WithWidth(72)
+fmt.Println(b.View())`,
+  },
+  {
+    slug: "chat-input",
+    title: "Chat input",
+    blurb: "Single-line chat prompt with placeholder, cursor, focus state, submit and cancel bindings.",
+    snippet: `i := chatinput.New(theme.Default).
+  WithPlaceholder("Type a message…").
+  WithPrompt("you › ").
+  WithWidth(72).
+  Focus()`,
+  },
+  {
+    slug: "chat-thread",
+    title: "Chat thread",
+    blurb: "Vertically scrolling conversation surface. Composes chat-bubble. Arrow keys, PgUp/PgDn, Home/End.",
+    snippet: `t := chatthread.New(theme.Default).WithSize(72, 12)
+t = t.Append(chatthread.Message{
+  Role: chatbubble.RoleAssistant,
+  Label: "glyph", Text: "Welcome.",
+})`,
+  },
+  {
+    slug: "command-palette",
+    title: "Command palette",
+    blurb: "Filterable modal command picker. Substring matcher by default; swap in your own.",
+    snippet: `p := commandpalette.New(theme.Default).
+  WithCommands([]commandpalette.Command{
+    {ID: "save", Title: "Save file", Keybinding: "ctrl+s"},
+  }).
+  WithSize(72, 14)`,
+  },
+  {
+    slug: "markdown-viewer",
+    title: "Markdown viewer",
+    blurb: "Scrollable terminal markdown. Headings, paragraphs, bullets, blockquotes, code, links.",
+    snippet: `md := markdownviewer.New(theme.Default).
+  WithSize(80, 18).
+  WithSource(source)`,
+  },
+  {
+    slug: "log-stream",
+    title: "Log stream",
+    blurb: "Bounded color-coded log view that tails like tail -f. Level filter, capacity ring.",
+    snippet: `s := logstream.New(theme.Default).
+  WithSize(96, 16).
+  WithMinLevel(logstream.LevelInfo)
+s = s.Append(logstream.Entry{
+  Level: logstream.LevelWarn, Source: "auth",
+  Message: "deprecated token format",
+})`,
+  },
+  {
+    slug: "diff-view",
+    title: "Diff view",
+    blurb: "Unified-diff renderer with line numbers, color-coded additions and removals.",
+    snippet: `lines := diffview.ParseUnified(rawDiff)
+d := diffview.New(theme.Default).
+  WithSize(96, 18).
+  WithLines(lines)`,
+  },
+  {
+    slug: "notification-toast",
+    title: "Notification toast",
+    blurb: "Stacked dismissible notifications with level-aware coloring and per-toast TTLs.",
+    snippet: `tray := notificationtoast.New(theme.Default).
+  WithWidth(48).WithMaxItems(3)
+tray = tray.Push(notificationtoast.Toast{
+  ID: "build-1", Level: notificationtoast.LevelSuccess,
+  Title: "Success", Message: "Build complete.",
+  ExpiresAt: time.Now().Add(6 * time.Second),
+})`,
+  },
+  {
+    slug: "status-bar",
+    title: "Status bar",
+    blurb: "Single-line three-segment status bar. Left fills from left, right anchors right, truncates left first under pressure.",
+    snippet: `bar := statusbar.New(theme.Default).
+  WithWidth(80).
+  WithLeft(statusbar.Item{Text: "glyph"}).
+  WithCenter(statusbar.Item{Text: "main"}).
+  WithRight(statusbar.Item{Text: "OK",
+    Style: statusbar.StyleSuccess})`,
+  },
+];
+
+const principles = [
+  {
+    n: "01",
+    h: "Copy, don't depend.",
+    p: "Every component is downloadable as source. No glyph runtime dependency. Delete glyph after install and your app still works.",
+  },
+  {
+    n: "02",
+    h: "One framework at a time.",
+    p: "v0.1 is Bubble Tea. Adapters for ratatui, Textual, and Ink follow. The launch will not dilute itself across three frameworks.",
+  },
+  {
+    n: "03",
+    h: "Tokens, not hardcoded colors.",
+    p: "Every component references theme.Default. Theming a whole app is one file change.",
+  },
+  {
+    n: "04",
+    h: "Stories are tests are screenshots.",
+    p: "A component without a story file doesn't ship. Stories drive the screenshot pipeline and the demo equally.",
+  },
+];
+---
+<BaseLayout
+  title="glyph · components for the terminal"
+  description="A copy-paste component library for terminal UIs. Install the CLI, run glyph add chat-thread, and a chat surface drops into your repo as plain Go source you own."
+>
+  <article class="glyph">
+    <header class="glyph-head">
+      <div class="container-page">
+        <p class="eyebrow">An open-source project by Truffle</p>
+        <h1 class="display text-balance">
+          glyph. Components for the <em>terminal.</em>
+        </h1>
+        <p class="lede text-balance">
+          Beautifully designed components for terminal UIs. Yours to copy, paste, own. Install the CLI, run <code class="mono">glyph add chat-thread</code>, and a chat surface drops into your repo as plain Go source you own. No glyph runtime dependency. No version pinning. No magic.
+        </p>
+
+        <div class="install-box">
+          <pre class="install-pre mono"><code>{`go install github.com/truffle-dev/glyph/cmd/glyph@latest
+cd path/to/your/project
+glyph init
+glyph add chat-thread`}</code></pre>
+        </div>
+
+        <p class="meta head-meta">
+          v0.1 is <a href="https://github.com/charmbracelet/bubbletea">Bubble Tea</a>. Adapters for ratatui, Textual, and Ink follow.
+        </p>
+      </div>
+    </header>
+
+    <section class="components-section">
+      <div class="container-page">
+        <div class="components-head">
+          <p class="eyebrow">v0.1 · ten components</p>
+          <h2 class="editorial text-balance">
+            Ten <em>opinionated</em> surfaces, one design language.
+          </h2>
+          <p class="prose-truffle components-intro">
+            Each card shows the smallest hello-world that compiles after a <code class="mono">glyph add</code>. Click through for the full source, the JSON manifest, and the install command.
+          </p>
+        </div>
+
+        <div class="components-grid">
+          {components.map((c) => (
+            <article class="component-card">
+              <header class="component-head">
+                <h3 class="component-title">{c.title}</h3>
+                <code class="component-slug mono">{c.slug}</code>
+              </header>
+              <p class="component-blurb">{c.blurb}</p>
+              <pre class="component-snippet mono"><code>{c.snippet}</code></pre>
+              <div class="component-actions">
+                <code class="component-install mono">glyph add {c.slug}</code>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="principles-section">
+      <div class="container-page">
+        <div class="principles-head">
+          <p class="eyebrow">Design principles</p>
+          <h2 class="editorial text-balance">
+            Four sentences that <em>shape</em> every component.
+          </h2>
+        </div>
+        <ol class="principles-list">
+          {principles.map((p) => (
+            <li class="principle">
+              <span class="principle-n mono">{p.n}</span>
+              <div class="principle-body">
+                <h3 class="principle-h">{p.h}</h3>
+                <p class="prose-truffle">{p.p}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="runlocal-section">
+      <div class="container-prose">
+        <p class="eyebrow">See it move</p>
+        <h2 class="editorial text-balance">
+          One <em>binary</em>. Every component, on stage.
+        </h2>
+        <p class="prose-truffle">
+          The glyph repo ships an <code class="mono">examples/showcase</code> binary that composes every v0.1 component into one navigable TUI. Five tabs, a status bar at the bottom, a toast tray overlaying every tab. The fastest way to feel the library.
+        </p>
+        <pre class="install-pre mono"><code>{`git clone https://github.com/truffle-dev/glyph
+cd glyph
+go run ./examples/showcase`}</code></pre>
+        <p class="meta">Tab cycles tabs forward, Shift-Tab cycles back. On any non-chat tab, <code class="mono">t</code> fires a toast and <code class="mono">l</code> appends a log entry.</p>
+      </div>
+    </section>
+
+    <section class="credits-section">
+      <div class="container-prose">
+        <p class="eyebrow">Credits</p>
+        <p class="prose-truffle">
+          The shape of glyph is borrowed from <a href="https://ui.shadcn.com">shadcn/ui</a>, which solved this distribution problem for React. The terminal needed the same answer. Built on <a href="https://github.com/charmbracelet/bubbletea">Bubble Tea</a> by Charm. Open source under MIT.
+        </p>
+        <p class="prose-truffle">
+          The repo lives at <a href="https://github.com/truffle-dev/glyph">github.com/truffle-dev/glyph</a>. The fastest first contribution is a new component: copy <code class="mono">components/chat-bubble/</code> as a template, replace the body, add a story file, open a PR.
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .glyph { padding-top: clamp(2rem, 5vw, 4rem); }
+
+  .glyph-head { padding-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .glyph-head .eyebrow { display: inline-block; margin-bottom: 1.5rem; }
+  .glyph-head h1 { margin: 0 0 1.5rem; max-width: 900px; }
+  .glyph-head em { color: var(--accent); }
+  .glyph-head .lede {
+    max-width: 720px;
+    margin: 0 0 2.25rem;
+  }
+  .glyph-head code {
+    background: var(--surface-2);
+    padding: 0.1em 0.4em;
+    border-radius: 0.25em;
+    font-size: 0.95em;
+  }
+
+  .install-box {
+    margin: 0 0 1.25rem;
+    max-width: 720px;
+  }
+  .install-pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .head-meta {
+    max-width: 720px;
+  }
+
+  .components-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .components-head {
+    max-width: 760px;
+    margin: 0 0 clamp(2rem, 4vw, 3rem);
+  }
+  .components-head .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .components-head h2 { margin: 0 0 1.25rem; }
+  .components-head em { color: var(--accent); }
+  .components-intro { max-width: 640px; margin: 0; }
+  .components-intro code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+  }
+
+  .components-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .component-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: border-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+  }
+  .component-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .component-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .component-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 1.375rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .component-slug {
+    color: var(--content-3);
+    font-size: 0.8125rem;
+  }
+  .component-blurb {
+    margin: 0;
+    color: var(--content-2);
+    line-height: 1.55;
+    font-size: 0.9375rem;
+  }
+  .component-snippet {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem 1.125rem;
+    overflow-x: auto;
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--content);
+  }
+  .component-actions {
+    margin-top: auto;
+  }
+  .component-install {
+    background: var(--surface-2);
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: var(--content);
+    border: 1px solid var(--border);
+  }
+
+  .principles-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .principles-head {
+    max-width: 760px;
+    margin: 0 0 clamp(2rem, 4vw, 3rem);
+  }
+  .principles-head .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .principles-head h2 { margin: 0; }
+  .principles-head em { color: var(--accent); }
+
+  .principles-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+  .principle {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+  }
+  .principle-n {
+    color: var(--content-3);
+    font-size: 0.875rem;
+    padding-top: 0.25rem;
+  }
+  .principle-h {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+  .principle-body p { margin: 0; }
+
+  .runlocal-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .runlocal-section .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .runlocal-section h2 { margin: 0 0 1.25rem; }
+  .runlocal-section em { color: var(--accent); }
+  .runlocal-section .prose-truffle { margin-bottom: 1.5rem; }
+  .runlocal-section code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+  }
+  .runlocal-section .meta { margin-top: 1rem; }
+
+  .credits-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .credits-section .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .credits-section .prose-truffle:first-of-type {
+    margin-bottom: 1.25rem;
+  }
+  .credits-section code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+  }
+
+  @media (max-width: 640px) {
+    .component-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+  }
+</style>
