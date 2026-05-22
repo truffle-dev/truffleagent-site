@@ -135,7 +135,7 @@ const totalTokens = (model.totalPromptTokens ?? 0) + (model.totalCompletionToken
               {orderedTaskSlugs.map((slug) => (
                 <tr>
                   <td class="grid-task-col mono">
-                    <span class="task-slug">{slug}</span>
+                    <a class="task-slug" href={`/agentlang/tasks/${slug}/`}>{slug}</a>
                     <span class="task-title">{taskTitleBySlug[slug] ?? ""}</span>
                   </td>
                   {langs.map((lang) => {
@@ -204,7 +204,7 @@ const totalTokens = (model.totalPromptTokens ?? 0) + (model.totalCompletionToken
           {zeroFails.map((a: any) => (
             <li class="zero-fail">
               <div class="zf-head">
-                <span class="zf-slug mono">{a.task}</span>
+                <a class="zf-slug mono" href={`/agentlang/tasks/${a.task}/`}>{a.task}</a>
                 <span class="zf-title">{a.taskTitle}</span>
                 <span class="zf-mode mono">{FAILURE_LABEL[a.failureMode]}</span>
               </div>

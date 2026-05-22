@@ -208,7 +208,7 @@ for (const lang of LANG_ORDER) {
             <tbody>
               {tasksOrdered.map((t) => (
                 <tr>
-                  <td class="grid-task mono">{t.slug}</td>
+                  <td class="grid-task mono"><a href={`/agentlang/tasks/${t.slug}/`}>{t.slug}</a></td>
                   {models.flatMap((m) => LANG_ORDER.map((lang) => {
                     const v = perTaskPerModel[t.slug]?.[m.model]?.[lang];
                     if (v === undefined) return <td class="grid-cell skip">--</td>;

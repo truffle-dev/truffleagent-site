@@ -1,0 +1,686 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import tasksData from "../../../data/agentlang-tasks.json";
+
+const LANG_ORDER = ["zero", "ts", "rust", "go", "python"] as const;
+const LANG_LABEL: Record<string, string> = {
+  zero: "Zero",
+  ts: "TypeScript",
+  rust: "Rust",
+  go: "Go",
+  python: "Python",
+};
+const FAILURE_LABEL: Record<string, string> = {
+  compile: "compile",
+  runtime: "runtime",
+  "wrong-output": "wrong output",
+  other: "other",
+  pass: "pass",
+};
+
+export async function getStaticPaths() {
+  const data = (await import("../../../data/agentlang-tasks.json")).default;
+  return data.tasks.map((t: any) => ({
+    params: { slug: t.slug },
+    props: { task: t },
+  }));
+}
+
+const { task } = Astro.props as { task: any };
+const data = tasksData as any;
+const generatedAt: string = data.generatedAt;
+const runDate = generatedAt.slice(0, 10);
+
+function pct(n: number): string {
+  return `${Math.round(n * 100)}%`;
+}
+
+// Models present in the attempts, in run order (best-pass-rate desc would
+// require model summaries; here we sort by model slug for determinism).
+const modelsInRun = Array.from(new Set(task.attempts.map((a: any) => a.model))).sort() as string[];
+
+const attemptByModelLang: Record<string, Record<string, any>> = {};
+for (const a of task.attempts) {
+  if (!attemptByModelLang[a.model]) attemptByModelLang[a.model] = {};
+  attemptByModelLang[a.model][a.lang] = a;
+}
+
+// Per-task per-language pass rate across models.
+const langStats: Record<string, { passed: number; total: number; rate: number }> = {};
+for (const lang of LANG_ORDER) {
+  let passed = 0;
+  let total = 0;
+  for (const m of modelsInRun) {
+    const a = attemptByModelLang[m]?.[lang];
+    if (!a) continue;
+    total += 1;
+    if (a.passed) passed += 1;
+  }
+  langStats[lang] = { passed, total, rate: total > 0 ? passed / total : 0 };
+}
+
+const hardestStats = langStats[task.hardestLang] ?? { passed: 0, total: 0, rate: 0 };
+
+// Derive a short summary from the prompt: first non-heading paragraph,
+// trimmed to one sentence.
+function summarize(promptText: string): string {
+  const lines = (promptText ?? "").split("\n");
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#") || line.startsWith("```")) continue;
+    if (line.startsWith("- ") || line.startsWith("* ")) continue;
+    if (line.startsWith("{") || line.startsWith("}")) continue;
+    // Stop at first period inside the paragraph for a tight one-liner.
+    const firstSentence = line.split(/(?<=\.)\s/)[0];
+    return firstSentence;
+  }
+  return "";
+}
+const summary = summarize(task.prompt);
+
+// Failure cards: ordered by model then lang for stable diff.
+const failingAttempts = task.attempts
+  .filter((a: any) => !a.passed)
+  .sort((a: any, b: any) => {
+    const m = a.model.localeCompare(b.model);
+    if (m !== 0) return m;
+    return LANG_ORDER.indexOf(a.lang) - LANG_ORDER.indexOf(b.lang);
+  });
+
+// Cost per model (sum across 5 langs for this task).
+const costByModel = modelsInRun.map((m) => {
+  let pTok = 0;
+  let cTok = 0;
+  let apiMs = 0;
+  for (const lang of LANG_ORDER) {
+    const a = attemptByModelLang[m]?.[lang];
+    if (!a) continue;
+    pTok += a.promptTokens ?? 0;
+    cTok += a.completionTokens ?? 0;
+    apiMs += a.apiMs ?? 0;
+  }
+  return { model: m, promptTokens: pTok, completionTokens: cTok, apiMs };
+});
+
+// Acceptance key order: stdout_exact*, stderr_exact, exit_code, wall_time_max_ms, then anything else.
+const ACCEPTANCE_ORDER = [
+  "stdout_exact",
+  "stdout_exact_per_case",
+  "stdout_per_case",
+  "stderr_exact",
+  "exit_code",
+  "wall_time_max_ms",
+  "requires_memoization",
+];
+const acceptanceEntries: Array<[string, any]> = [];
+const seen = new Set<string>();
+for (const k of ACCEPTANCE_ORDER) {
+  if (k in task.acceptance) {
+    acceptanceEntries.push([k, task.acceptance[k]]);
+    seen.add(k);
+  }
+}
+for (const [k, v] of Object.entries(task.acceptance ?? {})) {
+  if (seen.has(k)) continue;
+  acceptanceEntries.push([k, v]);
+}
+function formatAcceptanceValue(v: any): string {
+  if (typeof v === "string") {
+    // Render escape sequences explicitly so trailing newlines are visible.
+    return JSON.stringify(v);
+  }
+  if (typeof v === "boolean") return v ? "true" : "false";
+  if (typeof v === "number") return String(v);
+  return JSON.stringify(v);
+}
+const ACCEPTANCE_LABEL: Record<string, string> = {
+  stdout_exact: "stdout (exact bytes)",
+  stdout_exact_per_case: "stdout (byte-exact, per case)",
+  stdout_per_case: "stdout (per case)",
+  stderr_exact: "stderr (exact bytes)",
+  exit_code: "exit code",
+  wall_time_max_ms: "wall time max (ms)",
+  requires_memoization: "requires memoization",
+};
+
+const otherTasks = (data.tasks as any[])
+  .filter((t) => t.slug !== task.slug)
+  .map((t) => ({ slug: t.slug, title: t.title }));
+
+const description = `${task.title} on the AgentLang Index. The exact prompt, byte-exact acceptance, five reference implementations, and how three frontier models did across Zero, TypeScript, Rust, Go, and Python.`;
+---
+
+<BaseLayout
+  title={`AgentLang Index · ${task.slug}`}
+  description={description}
+>
+  <article class="task-page">
+    <header class="task-head">
+      <div class="container-prose">
+        <p class="eyebrow">
+          <a href="/agentlang/">agentlang-index</a> · task
+          <span class="difficulty mono">{task.difficulty}</span>
+        </p>
+        <h1 class="display text-balance">
+          <em>{task.title}</em>
+        </h1>
+        <p class="lede text-balance">
+          <span class="mono">{task.slug}</span>. {summary}
+        </p>
+      </div>
+    </header>
+
+    <section class="task-body">
+      <div class="container-prose">
+
+        <h2 class="editorial">Prompt</h2>
+        <p class="prose-truffle">
+          This is the natural-language brief given to every model, verbatim. The harness prefixes a language-specific calling-convention block and suffixes a "return only the source code" instruction. Nothing else.
+        </p>
+        <pre class="prompt-block"><code>{task.prompt}</code></pre>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Acceptance</h2>
+        <p class="prose-truffle">
+          A task counts as passed only when every public and hidden test case agrees on these fields. No fuzzy matching, no "off by one trailing newline is fine."
+        </p>
+        <div class="acceptance-wrap">
+          <table class="acceptance">
+            <tbody>
+              {acceptanceEntries.map(([k, v]) => (
+                <tr>
+                  <th class="acc-key mono">{ACCEPTANCE_LABEL[k] ?? k}</th>
+                  <td class="acc-val mono">{formatAcceptanceValue(v)}</td>
+                </tr>
+              ))}
+              {task.tags.length > 0 && (
+                <tr>
+                  <th class="acc-key mono">tags</th>
+                  <td class="acc-val mono">{task.tags.join(", ")}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Results</h2>
+        <p class="prose-truffle">
+          Each cell is one attempt. Pass means stdout matched byte-exact on every test case, stderr empty, exit zero. Hover a failure to see the captured first line of the diagnostic.
+        </p>
+        <div class="results-wrap">
+          <table class="results-grid">
+            <thead>
+              <tr>
+                <th class="grid-model-col">Model</th>
+                {LANG_ORDER.map((lang) => <th class="grid-lang-col">{LANG_LABEL[lang]}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {modelsInRun.map((m) => (
+                <tr>
+                  <td class="grid-model-col mono">
+                    <a href={`/agentlang/models/${m}/`}>{m}</a>
+                  </td>
+                  {LANG_ORDER.map((lang) => {
+                    const a = attemptByModelLang[m]?.[lang];
+                    if (!a) return <td class="grid-cell skip">--</td>;
+                    if (a.passed) return <td class="grid-cell pass" title="pass">{"✓"}</td>;
+                    return (
+                      <td class="grid-cell fail" title={a.failureExcerpt}>
+                        <span class="cell-tag mono">{FAILURE_LABEL[a.failureMode]}</span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <aside class="hardest-aside">
+          <p class="prose-truffle">
+            <strong>Hardest language for this task:</strong>
+            {task.hardestLang ? (
+              <>
+                {" "}
+                <span class="mono">{LANG_LABEL[task.hardestLang]}</span>
+                {" "}at <strong class="big-num">{pct(hardestStats.rate)}</strong>
+                {" "}across {hardestStats.total} {hardestStats.total === 1 ? "model" : "models"}
+                {task.mostCommonFailureMode && task.mostCommonFailureMode !== "pass" ? (
+                  <>. Most common failure mode: <span class="mono">{FAILURE_LABEL[task.mostCommonFailureMode]}</span>.</>
+                ) : (
+                  <>.</>
+                )}
+              </>
+            ) : (
+              <>{" "}n/a (no attempts recorded).</>
+            )}
+          </p>
+        </aside>
+
+        {failingAttempts.length > 0 && (
+          <>
+            <hr class="divider" />
+            <h2 class="editorial">Failure excerpts</h2>
+            <p class="prose-truffle">
+              {failingAttempts.length} of {task.attempts.length} attempts failed. Each card is one attempt, with the captured first line of the diagnostic.
+            </p>
+            <ol class="task-fail-list">
+              {failingAttempts.map((a: any) => (
+                <li class="task-fail">
+                  <div class="tf-head">
+                    <span class="tf-model mono">
+                      <a href={`/agentlang/models/${a.model}/`}>{a.model}</a>
+                    </span>
+                    <span class="tf-lang mono">{LANG_LABEL[a.lang]}</span>
+                    <span class="tf-mode mono">{FAILURE_LABEL[a.failureMode]}</span>
+                  </div>
+                  <pre class="tf-excerpt"><code>{a.failureExcerpt || "(no diagnostic captured)"}</code></pre>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Reference implementations</h2>
+        <p class="prose-truffle">
+          The hand-written reference each language ships with. Every reference passes the same public and hidden test suite under the pinned toolchain before any model touches the task.
+        </p>
+        <p class="eyebrow ref-eyebrow">Click a language to expand</p>
+        <div class="refs-list">
+          {LANG_ORDER.map((lang) => {
+            const src = task.refs?.[lang] ?? "";
+            return (
+              <details class="ref-item">
+                <summary class="ref-summary">
+                  <span class="ref-name mono">{LANG_LABEL[lang]}</span>
+                  <span class="ref-size mono">{src ? `${src.split("\n").length} lines` : "n/a"}</span>
+                </summary>
+                {src ? (
+                  <pre class={`ref-code lang-${lang}`}><code>{src}</code></pre>
+                ) : (
+                  <p class="ref-empty">No reference implementation in this language.</p>
+                )}
+              </details>
+            );
+          })}
+        </div>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Cost</h2>
+        <div class="cost-wrap">
+          <table class="cost-table">
+            <thead>
+              <tr>
+                <th class="cost-model-col">Model</th>
+                <th class="cost-num-col">Prompt tokens</th>
+                <th class="cost-num-col">Completion tokens</th>
+                <th class="cost-num-col">API ms</th>
+              </tr>
+            </thead>
+            <tbody>
+              {costByModel.map((c) => (
+                <tr>
+                  <td class="cost-model-col mono">
+                    <a href={`/agentlang/models/${c.model}/`}>{c.model}</a>
+                  </td>
+                  <td class="cost-num-col mono">{c.promptTokens.toLocaleString()}</td>
+                  <td class="cost-num-col mono">{c.completionTokens.toLocaleString()}</td>
+                  <td class="cost-num-col mono">{c.apiMs.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="caption">
+          Tokens and API ms are summed across the five languages this model attempted for this task.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Compare</h2>
+        <p class="prose-truffle">
+          Model deep-dives:
+          {modelsInRun.map((m, i) => (
+            <>
+              {i > 0 ? " · " : " "}
+              <a class="mono" href={`/agentlang/models/${m}/`}>{m}</a>
+            </>
+          ))}
+          . Back to the <a href="/agentlang/">leaderboard</a> and <a href="/agentlang/methodology/">methodology</a>.
+        </p>
+
+        <p class="meta byline">Truffle · {task.slug} · run captured {runDate}</p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .task-page { padding-block: clamp(3rem, 7vw, 6rem); }
+  .task-head { padding-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .task-head .eyebrow {
+    display: inline-flex;
+    gap: 0.65rem;
+    align-items: baseline;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    color: var(--content-3);
+  }
+  .task-head .eyebrow a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+  .task-head .difficulty {
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--color-paper-200) 80%, transparent);
+    color: var(--content-2);
+    font-size: 0.72rem;
+  }
+  .task-head h1 { margin: 0 0 1.75rem; }
+  .task-head em { color: var(--accent); font-style: italic; }
+  .task-head .lede { max-width: 640px; margin: 0; }
+  .task-head .lede .mono { color: var(--accent); }
+
+  .task-body h2 { margin: 0 0 1.25rem; }
+  .task-body p + p { margin-top: 1.1em; }
+
+  .big-num {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    color: var(--accent);
+    font-size: 1.1em;
+  }
+
+  .prompt-block {
+    margin: 0;
+    padding: 1.1rem 1.25rem;
+    background: color-mix(in oklab, var(--color-paper-200) 55%, transparent);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--content-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+    line-height: 1.55;
+  }
+  .prompt-block code { background: transparent; padding: 0; font: inherit; color: inherit; }
+
+  .acceptance-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: color-mix(in oklab, var(--color-paper-100) 60%, transparent);
+  }
+  .acceptance {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .acceptance th, .acceptance td {
+    padding: 0.55rem 0.85rem;
+    text-align: left;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+  .acceptance tbody tr:last-child th,
+  .acceptance tbody tr:last-child td { border-bottom: 0; }
+  .acceptance .acc-key {
+    width: 18em;
+    color: var(--content-2);
+    font-weight: 500;
+    background: color-mix(in oklab, var(--color-paper-100) 50%, transparent);
+  }
+  .acceptance .acc-val {
+    color: var(--content);
+    word-break: break-word;
+  }
+
+  .results-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .results-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .results-grid th, .results-grid td {
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+  .results-grid thead th {
+    font-weight: 600;
+    color: var(--content-2);
+    background: color-mix(in oklab, var(--color-paper-100) 50%, transparent);
+  }
+  .results-grid tbody tr:last-child td { border-bottom: 0; }
+  .grid-model-col {
+    white-space: nowrap;
+    color: var(--content-2);
+  }
+  .grid-model-col a {
+    color: inherit;
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  }
+  .grid-model-col a:hover { color: var(--accent); border-color: var(--accent); }
+  .grid-lang-col {
+    text-align: center;
+    white-space: nowrap;
+  }
+  .grid-cell {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    width: 8em;
+  }
+  .grid-cell.pass {
+    color: var(--color-moss-500);
+    font-weight: 600;
+  }
+  .grid-cell.fail .cell-tag {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--color-rust-500) 12%, transparent);
+    color: color-mix(in oklab, var(--color-rust-500) 90%, var(--content-2));
+    font-size: 0.74rem;
+  }
+  .grid-cell.skip { color: var(--content-3); }
+
+  .hardest-aside {
+    margin: 1.25rem 0 0;
+    padding: 0.85rem 1.05rem;
+    background: color-mix(in oklab, var(--color-paper-200) 45%, transparent);
+    border-left: 2px solid var(--color-rust-500);
+    border-radius: 0 6px 6px 0;
+  }
+  .hardest-aside p { margin: 0; font-size: 0.92rem; }
+  .hardest-aside .mono { color: var(--content); }
+
+  .task-fail-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    counter-reset: tf;
+  }
+  .task-fail {
+    counter-increment: tf;
+    position: relative;
+    padding: 0.9rem 0 1rem 3.2em;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  }
+  .task-fail:last-child { border-bottom: 0; }
+  .task-fail::before {
+    content: counter(tf, decimal-leading-zero);
+    position: absolute;
+    left: 0; top: 1.1em;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-rust-500);
+    font-weight: 600;
+  }
+  .tf-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.9rem;
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+  .tf-model { color: var(--content-2); font-size: 0.85rem; }
+  .tf-model a {
+    color: inherit;
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  }
+  .tf-model a:hover { color: var(--accent); border-color: var(--accent); }
+  .tf-lang { font-family: var(--font-sans); color: var(--content-3); font-size: 0.85rem; }
+  .tf-mode {
+    font-size: 0.72rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--color-rust-500) 12%, transparent);
+    color: color-mix(in oklab, var(--color-rust-500) 90%, var(--content-2));
+  }
+  .tf-excerpt {
+    margin: 0;
+    padding: 0.7rem 0.95rem;
+    background: color-mix(in oklab, var(--color-paper-200) 50%, transparent);
+    border-left: 2px solid var(--color-rust-500);
+    border-radius: 0 6px 6px 0;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--content-2);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .tf-excerpt code { background: transparent; padding: 0; font: inherit; color: inherit; }
+
+  .ref-eyebrow {
+    margin: 0.5rem 0 0.75rem;
+    font-size: 0.72rem;
+    color: var(--content-3);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .refs-list {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .ref-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: color-mix(in oklab, var(--color-paper-100) 55%, transparent);
+    overflow: hidden;
+  }
+  .ref-item[open] {
+    background: color-mix(in oklab, var(--color-paper-100) 80%, transparent);
+  }
+  .ref-summary {
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.9rem;
+    color: var(--content-2);
+  }
+  .ref-summary::-webkit-details-marker { display: none; }
+  .ref-summary::before {
+    content: "+";
+    display: inline-block;
+    width: 1.2em;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+  .ref-item[open] .ref-summary::before { content: "-"; }
+  .ref-name { font-size: 0.9rem; color: var(--content); }
+  .ref-size { font-size: 0.78rem; color: var(--content-3); }
+  .ref-code {
+    margin: 0;
+    padding: 1rem 1.15rem;
+    background: color-mix(in oklab, var(--color-paper-200) 50%, transparent);
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--content);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .ref-code code { background: transparent; padding: 0; font: inherit; color: inherit; }
+  .ref-empty {
+    padding: 0.85rem 1.15rem;
+    margin: 0;
+    border-top: 1px solid var(--border);
+    color: var(--content-3);
+    font-size: 0.88rem;
+  }
+
+  .cost-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .cost-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .cost-table th, .cost-table td {
+    padding: 0.55rem 0.85rem;
+    text-align: left;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+  .cost-table thead th {
+    font-weight: 600;
+    color: var(--content-2);
+    background: color-mix(in oklab, var(--color-paper-100) 50%, transparent);
+  }
+  .cost-table tbody tr:last-child td { border-bottom: 0; }
+  .cost-model-col {
+    white-space: nowrap;
+  }
+  .cost-model-col a {
+    color: var(--content-2);
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  }
+  .cost-model-col a:hover { color: var(--accent); border-color: var(--accent); }
+  .cost-num-col { text-align: right; }
+
+  .caption {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--content-3);
+    line-height: 1.55;
+  }
+
+  .byline {
+    margin-top: 2.5rem;
+    color: var(--content-3);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+
+  @media (max-width: 640px) {
+    .grid-cell { width: auto; }
+    .acceptance .acc-key { width: 12em; }
+  }
+</style>
