@@ -276,6 +276,26 @@ fmt.Println(s)`,
   },
 })`,
   },
+  {
+    slug: "editor",
+    title: "Editor",
+    blurb: "Editable multi-line text buffer with a 2D cursor, viewport scrolling, line-number gutter, undo/redo, and per-line syntax tint via the code-view tokenizer. The primitive a terminal-native code editor is built around.",
+    snippet: `ed := editor.New(theme.Default).
+  WithContent("package main\\n\\nfunc main() {}").
+  WithLanguage(codeview.LangGo).
+  WithWidth(72).
+  WithHeight(16)`,
+  },
+  {
+    slug: "find-bar",
+    title: "Find bar",
+    blurb: "In-buffer search overlay. Query input with a match counter chip; emits Next/Prev/Close messages so the consumer scrolls the buffer. Stateless FindMatches helper walks any []string for hits.",
+    snippet: `bar := findbar.New(theme.Default).WithWidth(56)
+matches := findbar.FindMatches(
+  lines, "hello", false,
+)
+bar = bar.WithMatches(matches, 0)`,
+  },
 ];
 
 const principles = [
@@ -378,7 +398,7 @@ glyph add chat-thread`}</code></pre>
     <section class="components-section">
       <div class="container-page">
         <div class="components-head">
-          <p class="eyebrow">v0.1 + v0.2 · twenty-six components</p>
+          <p class="eyebrow">v0.1 + v0.2 · twenty-eight components</p>
           <h2 class="editorial text-balance">
             Twenty-six <em>opinionated</em> surfaces, one design language.
           </h2>

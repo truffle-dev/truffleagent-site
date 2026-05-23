@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
-// Four runnable examples in the glyph repo. Each one composes many
+// Five runnable examples in the glyph repo. Each one composes many
 // components into a single coherent surface — not a tabbed parade. The
 // GIFs are recorded under a `glyph_demo_snap` build tag that drives the
 // model through a scripted tour; the interactive binary is unaffected.
@@ -106,12 +106,34 @@ go run ./examples/dashboard`,
     height: 1033,
     run: `go run ./examples/file-explorer`,
   },
+  {
+    slug: "code-editor",
+    title: "Code editor",
+    eyebrow: "Proto-IDE · 8 components",
+    blurb:
+      "A working terminal-native code editor composed from eight glyph components. File-tree on the left, tab row above an editable buffer on the right, find-bar overlay you can pop with Ctrl-F, status-bar with path and Ln/Col, key-hints pinned below. Type into the buffer, undo, switch tabs, search across the active file — every interaction every editor on the planet supports.",
+    components: [
+      "file-tree",
+      "tabs",
+      "editor",
+      "find-bar",
+      "panel",
+      "status-bar",
+      "key-hints",
+      "code-view",
+    ],
+    bindings:
+      "Ctrl-L tree · Ctrl-E edit · Tab next tab · Ctrl-F find · Ctrl-W close · q quit",
+    width: 1317,
+    height: 932,
+    run: `go run ./examples/code-editor`,
+  },
 ];
 ---
 
 <BaseLayout
   title="glyph · demos"
-  description="Four runnable examples composed from glyph components — an operator dashboard, a chat REPL, a live log viewer, and an IDE-style file explorer. Every pixel is real."
+  description="Five runnable examples composed from glyph components — an operator dashboard, a chat REPL, a live log viewer, an IDE-style file explorer, and a working terminal-native code editor. Every pixel is real."
   ogImage="/img/glyph/og.png"
 >
   <article class="glyph-demo">
@@ -121,7 +143,7 @@ go run ./examples/dashboard`,
         Four surfaces, <em>nothing</em> mocked.
       </h1>
       <p class="lede prose-truffle">
-        The glyph repo ships four runnable examples. Not tabbed showcases — each one composes a real surface from many components and earns its keystrokes. The animations below are recorded directly from the binaries running in the repo. Source links land on the real files; the run commands work in a fresh clone.
+        The glyph repo ships five runnable examples. Not tabbed showcases — each one composes a real surface from many components and earns its keystrokes. The animations below are recorded directly from the binaries running in the repo. Source links land on the real files; the run commands work in a fresh clone.
       </p>
       <p class="head-meta meta">
         Recorded with asciinema · rendered with agg · captured at 140×36 cells.

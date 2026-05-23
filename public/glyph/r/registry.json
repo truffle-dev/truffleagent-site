@@ -138,6 +138,23 @@
       }
     },
     {
+      "name": "editor",
+      "type": "glyph:component",
+      "title": "Editor",
+      "description": "Editable multi-line text buffer with a 2D cursor, viewport scrolling, line-number gutter, undo/redo, and optional per-line syntax tint via codeview's tokenizer. The primitive a terminal-native code editor is built around.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "input",
+        "code",
+        "form"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "file-tree",
       "type": "glyph:component",
       "title": "File tree",
@@ -147,6 +164,23 @@
       "categories": [
         "navigation",
         "input"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "find-bar",
+      "type": "glyph:component",
+      "title": "Find Bar",
+      "description": "In-buffer search overlay: a narrow query input with a match counter chip and Next/Prev/Close messages. Pair with editor for Ctrl-F search, or with any buffer-like component that owns text rows.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "input",
+        "search",
+        "overlay"
       ],
       "meta": {
         "added": "2026-05-23",
