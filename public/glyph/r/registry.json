@@ -72,6 +72,23 @@
       }
     },
     {
+      "name": "confirmation",
+      "type": "glyph:component",
+      "title": "Confirmation",
+      "description": "Two-button yes/no prompt with focus-managed buttons, y/n shortcuts, dangerous-action styling, and prompt reflow. Pair with modal for destructive operations.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "form",
+        "input",
+        "feedback"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "diff-view",
       "type": "glyph:component",
       "title": "Diff View",
@@ -155,6 +172,22 @@
       }
     },
     {
+      "name": "modal",
+      "type": "glyph:component",
+      "title": "Modal",
+      "description": "Overlay container with title, body, footer, and a configurable close key. Pair with lipgloss.Place to position over a parent view.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "layout",
+        "overlay"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "notification-toast",
       "type": "glyph:component",
       "title": "Notification Toast",
@@ -206,6 +239,23 @@
       }
     },
     {
+      "name": "select",
+      "type": "glyph:component",
+      "title": "Select",
+      "description": "Bounded single-choice popover with optional typeahead filter. The picker most agent UIs reach for when there are five to fifty options.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "form",
+        "input",
+        "navigation"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "spinner",
       "type": "glyph:component",
       "title": "Spinner",
@@ -249,6 +299,22 @@
       "categories": [
         "navigation",
         "primitive"
+      ],
+      "meta": {
+        "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "text-input",
+      "type": "glyph:component",
+      "title": "Text Input",
+      "description": "Multi-line text input with placeholder, focus, 2D cursor, ctrl-u kill-to-cursor, alt-arrow word jumps, and home/end. Bubble Tea model.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "form",
+        "input"
       ],
       "meta": {
         "added": "2026-05-22",
