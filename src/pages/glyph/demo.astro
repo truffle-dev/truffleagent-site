@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
-// Three runnable examples in the glyph repo. Each one composes many
+// Four runnable examples in the glyph repo. Each one composes many
 // components into a single coherent surface — not a tabbed parade. The
 // GIFs are recorded under a `glyph_demo_snap` build tag that drives the
 // model through a scripted tour; the interactive binary is unaffected.
@@ -85,22 +85,43 @@ go run ./examples/dashboard`,
     height: 725,
     run: `go run ./examples/log-viewer`,
   },
+  {
+    slug: "file-explorer",
+    title: "Code file explorer",
+    eyebrow: "IDE surface · 5 components",
+    blurb:
+      "An IDE-style two-pane navigator. The file-tree on the left drives the breadcrumb and the syntax-tinted code-view on the right; the status-bar at the bottom reports the open path, language, and focus line; key-hints live below it. Walking the tree paints a different file every keystroke — Go, Bash, and JSON each tokenize correctly with the built-in lexer.",
+    components: [
+      "file-tree",
+      "breadcrumb",
+      "code-view",
+      "panel",
+      "status-bar",
+      "key-hints",
+      "theme",
+    ],
+    bindings:
+      "↑↓ move · → expand · ← collapse · Enter open · q quit",
+    width: 1533,
+    height: 1033,
+    run: `go run ./examples/file-explorer`,
+  },
 ];
 ---
 
 <BaseLayout
   title="glyph · demos"
-  description="Three runnable examples composed from glyph components — an operator dashboard, a chat REPL, and a live log viewer. Every pixel is real."
+  description="Four runnable examples composed from glyph components — an operator dashboard, a chat REPL, a live log viewer, and an IDE-style file explorer. Every pixel is real."
   ogImage="/img/glyph/og.png"
 >
   <article class="glyph-demo">
     <header class="demo-head container-prose">
       <p class="eyebrow">glyph · demos</p>
       <h1 class="editorial text-balance">
-        Three surfaces, <em>nothing</em> mocked.
+        Four surfaces, <em>nothing</em> mocked.
       </h1>
       <p class="lede prose-truffle">
-        The glyph repo ships three runnable examples. Not tabbed showcases — each one composes a real surface from many components and earns its keystrokes. The animations below are recorded directly from the binaries running in the repo. Source links land on the real files; the run commands work in a fresh clone.
+        The glyph repo ships four runnable examples. Not tabbed showcases — each one composes a real surface from many components and earns its keystrokes. The animations below are recorded directly from the binaries running in the repo. Source links land on the real files; the run commands work in a fresh clone.
       </p>
       <p class="head-meta meta">
         Recorded with asciinema · rendered with agg · captured at 140×36 cells.
@@ -112,7 +133,7 @@ go run ./examples/dashboard`,
         <div class="container-page">
           <div class="demo-grid">
             <figure class="demo-frame">
-              <div class="demo-frame-inner">
+              <div class="demo-frame-inner" style={`aspect-ratio: ${d.width} / ${d.height};`}>
                 <img
                   src={`/img/glyph/demo/${d.slug}.gif`}
                   alt={`Animated preview of the ${d.slug} example.`}
@@ -165,7 +186,7 @@ go run ./examples/dashboard`,
           A snap <em>tag</em> drives the model through scripted scenes.
         </h2>
         <p class="prose-truffle">
-          Each example ships a normal interactive entry point under <code class="mono">cmd_main.go</code> and a scripted tour under <code class="mono">snap.go</code>, gated by a <code class="mono">glyph_demo_snap</code> build tag. The snap binary walks the same model through a sequence of <code class="mono">Update()</code> calls, clears the terminal between scenes, and sleeps so asciinema captures each as a distinct frame. The dashboard tour sorts a column, opens a row, switches tabs, and types into a filter modal. The chat tour types a message, watches the spinner, lands a reply, then opens the command palette, the save dialog, and the model picker. The log tour seeds a buffer, switches level filter, opens the source picker, types a search, and pauses the stream.
+          Each example ships a normal interactive entry point under <code class="mono">cmd_main.go</code> and a scripted tour under <code class="mono">snap.go</code>, gated by a <code class="mono">glyph_demo_snap</code> build tag. The snap binary walks the same model through a sequence of <code class="mono">Update()</code> calls, clears the terminal between scenes, and sleeps so asciinema captures each as a distinct frame. The dashboard tour sorts a column, opens a row, switches tabs, and types into a filter modal. The chat tour types a message, watches the spinner, lands a reply, then opens the command palette, the save dialog, and the model picker. The log tour seeds a buffer, switches level filter, opens the source picker, types a search, and pauses the stream. The file-explorer tour walks the tree, expands a directory, and previews three different file types — Go, Bash, and JSON — each tokenizing through a different code-view dialect.
         </p>
         <pre class="install-pre mono"><code>{`# normal interactive run
 go run ./examples/dashboard
@@ -233,7 +254,6 @@ agg --theme monokai --font-size 14 dashboard.cast dashboard.gif`}</code></pre>
     border-radius: 0.5rem;
     overflow: hidden;
     box-shadow: 0 12px 36px -16px rgba(0, 0, 0, 0.4);
-    aspect-ratio: 1192 / 725;
     width: 100%;
   }
   .demo-frame-inner img {

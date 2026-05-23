@@ -239,6 +239,43 @@ seq := kbd.Sequence(
   WithSublabel("vs prior 7d").
   WithEmphasis(true)`,
   },
+  {
+    slug: "file-tree",
+    title: "File tree",
+    blurb: "Interactive directory navigator. Arrow keys, expand/collapse, multi-select, parent-jump, file icons, meta tags. The data shape is yours.",
+    snippet: `t := filetree.New(filetree.Node{
+  Name: "project",
+  Children: []filetree.Node{
+    {Name: "cmd", Children: []filetree.Node{
+      {Name: "main.go", Meta: "1.4 kB"},
+    }},
+    {Name: "README.md"},
+  },
+}).WithTitle("project/")`,
+  },
+  {
+    slug: "breadcrumb",
+    title: "Breadcrumb",
+    blurb: "Path-style trail with custom separators, optional icons, middle-collapse when the trail outgrows MaxItems. Stateless render primitive.",
+    snippet: `s := breadcrumb.RenderPath(
+  "project/src/cmd/main.go",
+  breadcrumb.Options{MaxItems: 4},
+)
+fmt.Println(s)`,
+  },
+  {
+    slug: "code-view",
+    title: "Code view",
+    blurb: "Stateless syntax-tinted code block. Built-in tokenizer for Go, JS/TS, Python, Rust, JSON, Bash. Line numbers, gutter highlights for diff hunks, current line, or stack frames.",
+    snippet: `c := codeview.Render(codeview.Block{
+  Source:     src,
+  Language:   codeview.LangGo,
+  ShowGutter: true,
+  Marks: map[int]codeview.LineMark{
+    11: codeview.MarkHighlight,
+  },
+})`,
+  },
 ];
 
 const principles = [
@@ -341,9 +378,9 @@ glyph add chat-thread`}</code></pre>
     <section class="components-section">
       <div class="container-page">
         <div class="components-head">
-          <p class="eyebrow">v0.1 + v0.2 · twenty-three components</p>
+          <p class="eyebrow">v0.1 + v0.2 · twenty-six components</p>
           <h2 class="editorial text-balance">
-            Twenty-three <em>opinionated</em> surfaces, one design language.
+            Twenty-six <em>opinionated</em> surfaces, one design language.
           </h2>
           <p class="prose-truffle components-intro">
             Each card shows the smallest hello-world that compiles after a <code class="mono">glyph add</code>. Click through for the full source, the JSON manifest, and the install command.

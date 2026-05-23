@@ -4,6 +4,22 @@
   "homepage": "https://truffleagent.com/glyph",
   "items": [
     {
+      "name": "breadcrumb",
+      "type": "glyph:component",
+      "title": "Breadcrumb",
+      "description": "Render a path-style breadcrumb trail with custom separators, optional icons, and middle-collapse for long paths. Stateless render primitive — pass crumbs in, place the line at the top of your navigator pane.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "navigation",
+        "display"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "chat-bubble",
       "type": "glyph:component",
       "title": "Chat Bubble",
@@ -55,6 +71,22 @@
       }
     },
     {
+      "name": "code-view",
+      "type": "glyph:component",
+      "title": "Code view",
+      "description": "Render a source-code block with optional line numbers and per-line marks. A tiny built-in tokenizer tints keywords, strings, numbers, and comments for Go, JavaScript/TypeScript, Python, Rust, JSON, and Bash.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "display",
+        "code"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "command-palette",
       "type": "glyph:component",
       "title": "Command Palette",
@@ -76,7 +108,7 @@
       "type": "glyph:component",
       "title": "Confirmation",
       "description": "Two-button yes/no prompt with focus-managed buttons, y/n shortcuts, dangerous-action styling, and prompt reflow. Pair with modal for destructive operations.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "frame": "bubbletea",
       "categories": [
         "form",
@@ -106,11 +138,27 @@
       }
     },
     {
+      "name": "file-tree",
+      "type": "glyph:component",
+      "title": "File tree",
+      "description": "Interactive directory tree with expand/collapse, vim-style navigation, and optional multi-select. Renders any nested data — file system, JSON document, outline — that fits a directory analogy.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "navigation",
+        "input"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "kbd",
       "type": "glyph:component",
       "title": "Kbd",
       "description": "Render terminal-styled keycap glyphs for single keys, chords, and key sequences. The atom that turns 'ctrl+k' into a readable ⌃ K in your hint rows and palettes.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "frame": "bubbletea",
       "categories": [
         "primitive",
@@ -192,7 +240,7 @@
       "type": "glyph:component",
       "title": "Modal",
       "description": "Overlay container with title, body, footer, and a configurable close key. Pair with lipgloss.Place to position over a parent view.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "frame": "bubbletea",
       "categories": [
         "layout",
@@ -259,7 +307,7 @@
       "type": "glyph:component",
       "title": "Select",
       "description": "Bounded single-choice popover with optional typeahead filter. The picker most agent UIs reach for when there are five to fifty options.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "frame": "bubbletea",
       "categories": [
         "form",
@@ -293,7 +341,7 @@
       "type": "glyph:component",
       "title": "Stat Card",
       "description": "Dashboard metric tile with label, value, trend, and sublabel. Compose a row of cards to open any operator surface — engagements, PRs, revenue, latency.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "frame": "bubbletea",
       "categories": [
         "feedback",
@@ -326,7 +374,7 @@
       "type": "glyph:component",
       "title": "Table",
       "description": "Column-aligned data table with sortable headers, keyboard navigation, internal scrolling, and optional row selection. The grid primitive every operator surface reaches for.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "frame": "bubbletea",
       "categories": [
         "data",
@@ -358,7 +406,7 @@
       "type": "glyph:component",
       "title": "Text Input",
       "description": "Multi-line text input with placeholder, focus, 2D cursor, ctrl-u kill-to-cursor, alt-arrow word jumps, and home/end. Bubble Tea model.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "frame": "bubbletea",
       "categories": [
         "form",
