@@ -1,0 +1,558 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import runsData from "../../../data/agentlang-runs.json";
+
+const LANG_ORDER = ["zero", "ts", "rust", "go", "python"] as const;
+const LANG_LABEL: Record<string, string> = {
+  zero: "Zero",
+  ts: "TypeScript",
+  rust: "Rust",
+  go: "Go",
+  python: "Python",
+};
+const FAILURE_LABEL: Record<string, string> = {
+  compile: "compile",
+  runtime: "runtime",
+  "wrong-output": "wrong output",
+  other: "other",
+  pass: "pass",
+};
+
+export async function getStaticPaths() {
+  const data = (await import("../../../data/agentlang-runs.json")).default;
+  return data.runs.map((r: any) => ({ params: { id: r.runId } }));
+}
+
+const { id } = Astro.params;
+const data = runsData as any;
+const run = data.runs.find((r: any) => r.runId === id);
+
+if (!run) {
+  throw new Error(`Unknown run id: ${id}`);
+}
+
+const generatedAt: string = data.generatedAt;
+
+function pct(n: number): string {
+  return `${Math.round(n * 100)}%`;
+}
+
+function taxLabel(tax: number): string {
+  if (tax === 0) return "0";
+  return `${tax > 0 ? "+" : ""}${Math.round(tax * 100)}%`;
+}
+
+function formatCost(usd: number | null, notAvailable: boolean): string {
+  if (notAvailable || usd === null) return "not priced";
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  return `$${usd.toFixed(2)}`;
+}
+
+function formatMs(ms: number): string {
+  if (ms < 1000) return `${ms} ms`;
+  return `${(ms / 1000).toFixed(1)} s`;
+}
+
+const langs = LANG_ORDER as readonly string[];
+
+const taxValues = ["ts", "rust", "go", "python"].map(
+  (l) => (run.langTax?.[l] ?? 0) as number,
+);
+const avgTax = taxValues.reduce((a, b) => a + b, 0) / taxValues.length;
+
+const attemptsByTaskLang: Record<string, Record<string, any>> = {};
+for (const a of run.attempts) {
+  if (!attemptsByTaskLang[a.task]) attemptsByTaskLang[a.task] = {};
+  attemptsByTaskLang[a.task][a.lang] = a;
+}
+
+const orderedTaskSlugs = Object.keys(attemptsByTaskLang).sort();
+const taskTitleBySlug: Record<string, string> = {};
+for (const a of run.attempts) {
+  if (a.taskTitle) taskTitleBySlug[a.task] = a.taskTitle;
+}
+
+const totalTokens = (run.totalPromptTokens ?? 0) + (run.totalCompletionTokens ?? 0);
+const totalWallMs = (run.totalApiMs ?? 0) + (run.totalBuildMs ?? 0) + (run.totalExecMs ?? 0);
+
+const runDate = (run.timestamp ?? generatedAt).slice(0, 10);
+const runTimestamp = (run.timestamp ?? generatedAt).replace("T", " ").slice(0, 19);
+
+// Failing attempts grouped for the callouts section.
+const failingAttempts = run.attempts
+  .filter((a: any) => !a.passed)
+  .sort((a: any, b: any) => {
+    const t = a.task.localeCompare(b.task);
+    if (t !== 0) return t;
+    return LANG_ORDER.indexOf(a.lang as any) - LANG_ORDER.indexOf(b.lang as any);
+  });
+
+const otherRunIds = data.runs
+  .filter((r: any) => r.runId !== id)
+  .map((r: any) => ({ runId: r.runId, model: r.model }));
+
+const description = `Reproduce run ${run.runId}. Exact harness commit, Zero version, corpus state, and the runner command that produced these results for ${run.model}.`;
+---
+
+<BaseLayout
+  title={`AgentLang Index · run ${run.runId}`}
+  description={description}
+>
+  <article class="run-page">
+    <header class="run-head">
+      <div class="container-prose">
+        <p class="eyebrow"><a href="/agentlang/">agentlang-index</a> · run reproducibility</p>
+        <h1 class="display text-balance">
+          <em>{run.runId}</em>
+        </h1>
+        <p class="lede text-balance">
+          Run of {run.model} against the {run.corpusSize}-task corpus at harness commit <span class="mono">{run.harnessSha}</span>, captured {runDate}. Below is the exact invocation, the toolchain pins, and every attempt. Drop it into a shell and it should reproduce.
+        </p>
+      </div>
+    </header>
+
+    <section class="run-body">
+      <div class="container-prose">
+        <h2 class="editorial">Reproduce this run</h2>
+        <p class="prose-truffle">
+          Three commands and an API key. The repo at <span class="mono">{run.harnessSha}</span> pins the corpus, the Zero compiler, the per-language scaffold, and the prompt. The runner re-issues the same chat-completions request the original run made.
+        </p>
+        <pre class="reproduce-block"><code>{`git clone https://github.com/truffle-dev/agentlang-index
+cd agentlang-index
+git checkout ${run.harnessSha}
+export OPENAI_API_KEY=...
+${run.command}`}</code></pre>
+        <p class="prose-truffle">
+          Then aggregate the per-model summaries into the dashboard JSON the site reads:
+        </p>
+        <pre class="reproduce-block"><code>{`bun run bench/aggregate.ts --site`}</code></pre>
+        <p class="caption">
+          Each <span class="mono">(model, task, language)</span> attempt is deterministic where the model accepts <span class="mono">temperature=0</span>. <span class="mono">gpt-5</span> and o-series models use default sampling; their text may vary across re-runs but the byte-exact scoring is unchanged.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Run environment</h2>
+        <dl class="env-list">
+          <div class="env-row">
+            <dt>Harness SHA</dt>
+            <dd class="mono">{run.harnessSha}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Zero version</dt>
+            <dd class="mono">{run.zeroVersion}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Corpus size</dt>
+            <dd class="mono">{run.corpusSize} tasks × {LANG_ORDER.length} languages</dd>
+          </div>
+          <div class="env-row">
+            <dt>Model</dt>
+            <dd class="mono">{run.model}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Model provider</dt>
+            <dd class="mono">{run.modelProvider}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Run timestamp</dt>
+            <dd class="mono">{runTimestamp} UTC</dd>
+          </div>
+          <div class="env-row">
+            <dt>Total wall-clock</dt>
+            <dd class="mono">{totalWallMs > 0 ? formatMs(totalWallMs) : "not summed"}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Prompt tokens</dt>
+            <dd class="mono">{(run.totalPromptTokens ?? 0).toLocaleString()}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Completion tokens</dt>
+            <dd class="mono">{(run.totalCompletionTokens ?? 0).toLocaleString()}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Total tokens</dt>
+            <dd class="mono">{totalTokens.toLocaleString()}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Cost (USD)</dt>
+            <dd class="mono">{formatCost(run.costUSD, run.pricingNotAvailable)}</dd>
+          </div>
+          <div class="env-row">
+            <dt>Runner command</dt>
+            <dd class="mono">{run.command}</dd>
+          </div>
+        </dl>
+        <p class="caption">
+          Cost uses published OpenAI per-million-token prices at run time: gpt-5 $5/$15 (prompt/completion), gpt-4o $2.50/$10, gpt-4o-mini $0.15/$0.60. If the model is not in the pricing table, this row reads <em>not priced</em>.
+        </p>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Per-language pass rate</h2>
+        <figure class="lang-bars" aria-label={`Per-language pass rate for ${run.model}`}>
+          <div class="chart-bars">
+            {langs.map((lang) => {
+              const pl = run.perLang?.[lang];
+              const rate = pl?.rate ?? 0;
+              const heightPct = Math.max(rate * 100, 2);
+              const isZero = lang === "zero";
+              return (
+                <div class={`chart-bar ${isZero ? "is-zero" : ""}`}>
+                  <span class="chart-bar-num">{pct(rate)}</span>
+                  <span class="chart-bar-fill" style={`height: ${heightPct}%`}></span>
+                  <span class="chart-bar-label">{LANG_LABEL[lang]}</span>
+                </div>
+              );
+            })}
+          </div>
+          <figcaption class="chart-caption">
+            Pass rate per language. Overall {pct(run.passRate)} ({run.totalPassed}/{run.totalAttempts}). Average tax versus the other four languages is {taxLabel(avgTax)}.
+          </figcaption>
+        </figure>
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Per-task results</h2>
+        <p class="prose-truffle">
+          Every cell is one attempt from this run. Pass means stdout matched byte-exact on every public and hidden test case, stderr empty, exit zero. Click a task to view its prompt, acceptance, references, and per-model breakdown.
+        </p>
+        <div class="task-grid-wrap">
+          <table class="task-grid">
+            <thead>
+              <tr>
+                <th class="grid-task-col">Task</th>
+                {langs.map((lang) => <th class="grid-lang-col">{LANG_LABEL[lang]}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {orderedTaskSlugs.map((slug) => (
+                <tr>
+                  <td class="grid-task-col mono">
+                    <a class="task-slug" href={`/agentlang/tasks/${slug}/`}>{slug}</a>
+                    <span class="task-title">{taskTitleBySlug[slug] ?? ""}</span>
+                  </td>
+                  {langs.map((lang) => {
+                    const a = attemptsByTaskLang[slug]?.[lang];
+                    if (!a) return <td class="grid-cell skip">--</td>;
+                    if (a.passed) return <td class="grid-cell pass" title="pass">{"✓"}</td>;
+                    return (
+                      <td class="grid-cell fail" title={a.failureExcerpt}>
+                        <span class="cell-tag mono">{FAILURE_LABEL[a.failureMode]}</span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {failingAttempts.length > 0 && (
+          <>
+            <hr class="divider" />
+            <h2 class="editorial">Failure callouts</h2>
+            <p class="prose-truffle">
+              {failingAttempts.length} of {run.totalAttempts} attempts failed. Each card is one (task, language), with the captured first line of the diagnostic.
+            </p>
+            <ol class="run-fail-list">
+              {failingAttempts.map((a: any) => (
+                <li class="run-fail">
+                  <div class="rf-head">
+                    <a class="rf-slug mono" href={`/agentlang/tasks/${a.task}/`}>{a.task}</a>
+                    <span class="rf-title">{a.taskTitle}</span>
+                    <span class="rf-lang mono">{LANG_LABEL[a.lang]}</span>
+                    <span class="rf-mode mono">{FAILURE_LABEL[a.failureMode]}</span>
+                  </div>
+                  <pre class="rf-excerpt"><code>{a.failureExcerpt || "(no diagnostic captured)"}</code></pre>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+
+        <hr class="divider" />
+
+        <h2 class="editorial">Compare</h2>
+        <p class="prose-truffle">
+          Model deep-dive: <a class="mono" href={`/agentlang/models/${run.model}/`}>{run.model}</a>.
+          {otherRunIds.length > 0 && (
+            <>
+              {" "}Other runs at this harness commit:
+              {otherRunIds.map((r: any, i: number) => (
+                <>
+                  {i > 0 ? ", " : " "}
+                  <a class="mono" href={`/agentlang/runs/${r.runId}/`}>{r.model}</a>
+                </>
+              ))}
+              .
+            </>
+          )}
+        </p>
+        <p class="prose-truffle">
+          Browse the <a href="/agentlang/">leaderboard</a>, the <a href="https://github.com/truffle-dev/agentlang-index/tree/main/corpus" target="_blank" rel="noopener">corpus on GitHub</a>, or the <a href="/agentlang/methodology/">methodology page</a>.
+        </p>
+
+        <p class="meta byline">Truffle · run {run.runId} · captured {runDate}</p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .run-page { padding-block: clamp(3rem, 7vw, 6rem); }
+  .run-head { padding-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .run-head .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    color: var(--content-3);
+  }
+  .run-head .eyebrow a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+  .run-head h1 { margin: 0 0 1.75rem; word-break: break-all; }
+  .run-head em { color: var(--accent); font-family: var(--font-mono); font-style: normal; font-size: 0.85em; }
+  .run-head .lede { max-width: 640px; margin: 0; }
+  .run-head .lede .mono { color: var(--accent); }
+
+  .run-body h2 { margin: 0 0 1.25rem; }
+  .run-body p + p { margin-top: 1.1em; }
+
+  .reproduce-block {
+    margin: 0 0 1.1em;
+    padding: 1.1rem 1.25rem;
+    background: color-mix(in oklab, var(--color-paper-200) 55%, transparent);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--content);
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  .reproduce-block code { background: transparent; padding: 0; font: inherit; color: inherit; }
+
+  .env-list {
+    margin: 0;
+    padding: 0.25rem 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in oklab, var(--color-paper-100) 60%, transparent);
+  }
+  .env-row {
+    display: grid;
+    grid-template-columns: 14em 1fr;
+    gap: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+    font-size: 0.88rem;
+  }
+  .env-row:last-child { border-bottom: 0; }
+  .env-row dt {
+    color: var(--content-2);
+    font-weight: 500;
+  }
+  .env-row dd {
+    margin: 0;
+    color: var(--content);
+    word-break: break-word;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lang-bars {
+    margin: 0 0 1.5rem;
+    padding: 1.75rem 1.75rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--color-paper-100) 60%, transparent);
+  }
+  .chart-bars {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    align-items: end;
+    height: 200px;
+  }
+  .chart-bar {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    text-align: center;
+  }
+  .chart-bar-num {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--content-2);
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+  }
+  .chart-bar-fill {
+    width: 100%;
+    max-width: 88px;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--color-moss-500) 75%, transparent) 0%,
+      color-mix(in oklab, var(--color-moss-500) 95%, transparent) 100%);
+    border-radius: 6px 6px 0 0;
+    min-height: 4px;
+  }
+  .chart-bar.is-zero .chart-bar-fill {
+    background: color-mix(in oklab, var(--color-rust-500) 35%, transparent);
+  }
+  .chart-bar-label {
+    margin-top: 0.6rem;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--content-2);
+    font-weight: 500;
+  }
+  .chart-caption {
+    margin: 1rem 0 0;
+    font-size: 0.85rem;
+    color: var(--content-3);
+    text-align: center;
+  }
+
+  .task-grid-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .task-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .task-grid th, .task-grid td {
+    padding: 0.55rem 0.7rem;
+    text-align: left;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+  .task-grid thead th {
+    font-weight: 600;
+    color: var(--content-2);
+    background: color-mix(in oklab, var(--color-paper-100) 50%, transparent);
+  }
+  .task-grid tbody tr:last-child td { border-bottom: 0; }
+  .grid-task-col {
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .task-slug {
+    font-family: var(--font-mono);
+    color: var(--content-2);
+    font-size: 0.82rem;
+  }
+  .task-title {
+    font-family: var(--font-sans);
+    color: var(--content-3);
+    font-size: 0.78rem;
+  }
+  .grid-lang-col {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .grid-cell {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    width: 8.5em;
+  }
+  .grid-cell.pass {
+    color: var(--color-moss-500);
+    font-weight: 600;
+  }
+  .grid-cell.fail .cell-tag {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--color-rust-500) 12%, transparent);
+    color: color-mix(in oklab, var(--color-rust-500) 90%, var(--content-2));
+    font-size: 0.74rem;
+  }
+  .grid-cell.skip {
+    color: var(--content-3);
+  }
+
+  .run-fail-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    counter-reset: rf;
+  }
+  .run-fail {
+    counter-increment: rf;
+    position: relative;
+    padding: 0.9rem 0 1rem 3.2em;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  }
+  .run-fail:last-child { border-bottom: 0; }
+  .run-fail::before {
+    content: counter(rf, decimal-leading-zero);
+    position: absolute;
+    left: 0; top: 1.1em;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-rust-500);
+    font-weight: 600;
+  }
+  .rf-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.9rem;
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+  .rf-slug { color: var(--content-2); font-size: 0.85rem; }
+  .rf-title { font-family: var(--font-sans); color: var(--content-3); font-size: 0.85rem; }
+  .rf-lang { font-family: var(--font-sans); color: var(--content-3); font-size: 0.85rem; }
+  .rf-mode {
+    font-size: 0.72rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--color-rust-500) 12%, transparent);
+    color: color-mix(in oklab, var(--color-rust-500) 90%, var(--content-2));
+  }
+  .rf-excerpt {
+    margin: 0;
+    padding: 0.7rem 0.95rem;
+    background: color-mix(in oklab, var(--color-paper-200) 50%, transparent);
+    border-left: 2px solid var(--color-rust-500);
+    border-radius: 0 6px 6px 0;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--content-2);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .rf-excerpt code { background: transparent; padding: 0; font: inherit; color: inherit; }
+
+  .caption {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--content-3);
+    line-height: 1.55;
+  }
+
+  .byline {
+    margin-top: 2.5rem;
+    color: var(--content-3);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 640px) {
+    .env-row { grid-template-columns: 1fr; gap: 0.1rem; }
+    .grid-cell { width: auto; }
+  }
+</style>

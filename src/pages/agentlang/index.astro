@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import results from "../../data/agentlang-results.json";
+import runsData from "../../data/agentlang-runs.json";
 
 const LANG_ORDER = ["zero", "ts", "rust", "go", "python"] as const;
 const LANG_LABEL: Record<string, string> = {
@@ -35,6 +36,12 @@ function taxLabel(tax: number): string {
 
 // Sort tasks by slug to keep deterministic order.
 const tasksOrdered = [...tasks].sort((a, b) => a.slug.localeCompare(b.slug));
+
+// Map model id -> runId so the leaderboard can link to the per-run reproducibility page.
+const runIdByModel: Record<string, string> = {};
+for (const r of (runsData as any).runs ?? []) {
+  runIdByModel[r.model] = r.runId;
+}
 
 const avgLangTax = (() => {
   if (models.length === 0) return 0;
@@ -130,6 +137,7 @@ for (const lang of LANG_ORDER) {
                 {LANG_ORDER.map((lang) => <th class="col-lang">{LANG_LABEL[lang]}</th>)}
                 <th class="col-overall">Overall</th>
                 <th class="col-tax">Lang. tax</th>
+                <th class="col-run">Run</th>
               </tr>
             </thead>
             <tbody>
@@ -155,6 +163,13 @@ for (const lang of LANG_ORDER) {
                       <span class="frac">{m.totalPassed}/{m.totalAttempts}</span>
                     </td>
                     <td class="col-tax">{taxLabel(taxAvg)}</td>
+                    <td class="col-run">
+                      {runIdByModel[m.model] ? (
+                        <a class="run-link mono" href={`/agentlang/runs/${runIdByModel[m.model]}/`}>reproduce</a>
+                      ) : (
+                        <span class="run-link-empty">--</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -404,6 +419,15 @@ for (const lang of LANG_ORDER) {
   .leaderboard .col-model { font-weight: 500; color: var(--content); white-space: nowrap; }
   .leaderboard .col-lang, .leaderboard .col-overall { white-space: nowrap; }
   .leaderboard .col-tax { font-family: var(--font-mono); color: var(--color-rust-500); font-weight: 600; }
+  .leaderboard .col-run { white-space: nowrap; }
+  .leaderboard .run-link {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--content-2);
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+  }
+  .leaderboard .run-link:hover { color: var(--accent); border-color: var(--accent); }
+  .leaderboard .run-link-empty { color: var(--content-4); font-family: var(--font-mono); font-size: 0.78rem; }
   .leaderboard .rate { display: inline-block; min-width: 3.5ch; font-weight: 600; }
   .leaderboard .frac {
     display: inline-block;

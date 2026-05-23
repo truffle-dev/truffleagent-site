@@ -1,9 +1,18 @@
 {
-  "generatedAt": "2026-05-23T22:29:44.425Z",
-  "models": [
+  "generatedAt": "2026-05-23T22:29:44.482Z",
+  "harnessSha": "8286655",
+  "zeroVersion": "0.1.2",
+  "corpusSize": 20,
+  "runs": [
     {
+      "runId": "8286655-gpt-5",
+      "harnessSha": "8286655",
       "model": "gpt-5",
+      "modelProvider": "OpenAI",
       "timestamp": "2026-05-19T01:32:49.245Z",
+      "zeroVersion": "0.1.2",
+      "corpusSize": 20,
+      "command": "bun run bench/runner.ts --model gpt-5",
       "perLang": {
         "zero": {
           "passed": 0,
@@ -36,6 +45,11 @@
       "totalAttempts": 100,
       "totalPromptTokens": 64510,
       "totalCompletionTokens": 348714,
+      "totalApiMs": 3472715,
+      "totalBuildMs": 7164,
+      "totalExecMs": 32403,
+      "costUSD": 5.55326,
+      "pricingNotAvailable": false,
       "langTax": {
         "ts": 1,
         "rust": 0.95,
@@ -1483,8 +1497,14 @@
       ]
     },
     {
+      "runId": "8286655-gpt-4o",
+      "harnessSha": "8286655",
       "model": "gpt-4o",
+      "modelProvider": "OpenAI",
       "timestamp": "2026-05-19T00:39:58.638Z",
+      "zeroVersion": "0.1.2",
+      "corpusSize": 20,
+      "command": "bun run bench/runner.ts --model gpt-4o",
       "perLang": {
         "zero": {
           "passed": 0,
@@ -1517,6 +1537,11 @@
       "totalAttempts": 100,
       "totalPromptTokens": 64610,
       "totalCompletionTokens": 22803,
+      "totalApiMs": 222551,
+      "totalBuildMs": 6922,
+      "totalExecMs": 33024,
+      "costUSD": 0.389555,
+      "pricingNotAvailable": false,
       "langTax": {
         "ts": 0.95,
         "rust": 0.75,
@@ -2964,8 +2989,14 @@
       ]
     },
     {
+      "runId": "8286655-gpt-4o-mini",
+      "harnessSha": "8286655",
       "model": "gpt-4o-mini",
+      "modelProvider": "OpenAI",
       "timestamp": "2026-05-19T00:31:37.832Z",
+      "zeroVersion": "0.1.2",
+      "corpusSize": 20,
+      "command": "bun run bench/runner.ts --model gpt-4o-mini",
       "perLang": {
         "zero": {
           "passed": 0,
@@ -2998,6 +3029,11 @@
       "totalAttempts": 100,
       "totalPromptTokens": 64610,
       "totalCompletionTokens": 21038,
+      "totalApiMs": 441485,
+      "totalBuildMs": 6450,
+      "totalExecMs": 31650,
+      "costUSD": 0.022314300000000002,
+      "pricingNotAvailable": false,
       "langTax": {
         "ts": 0.7,
         "rust": 0.65,

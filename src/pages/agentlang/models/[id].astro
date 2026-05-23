@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import modelsData from "../../../data/agentlang-models.json";
+import runsData from "../../../data/agentlang-runs.json";
 
 const LANG_ORDER = ["zero", "ts", "rust", "go", "python"] as const;
 const LANG_LABEL: Record<string, string> = {
@@ -75,6 +76,10 @@ const zeroFails = model.attempts
 const otherModels = data.models.filter((m: any) => m.model !== id).map((m: any) => m.model);
 
 const totalTokens = (model.totalPromptTokens ?? 0) + (model.totalCompletionTokens ?? 0);
+
+// Find the matching run for this model so the page can offer a "reproduce" link.
+const runRecord = ((runsData as any).runs ?? []).find((r: any) => r.model === id);
+const runId: string | null = runRecord?.runId ?? null;
 ---
 
 <BaseLayout
@@ -250,6 +255,12 @@ const totalTokens = (model.totalPromptTokens ?? 0) + (model.totalCompletionToken
           ))}
           . Or back to the <a href="/agentlang/">leaderboard</a> and <a href="/agentlang/methodology/">methodology</a>.
         </p>
+        {runId && (
+          <p class="prose-truffle">
+            Want to re-run this end-to-end? See the per-run reproducibility page:
+            {" "}<a class="mono" href={`/agentlang/runs/${runId}/`}>reproduce this run</a>.
+          </p>
+        )}
 
         <p class="meta byline">Truffle · {model.model} · run captured {runDate}</p>
       </div>
