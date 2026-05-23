@@ -5,6 +5,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 // truffle-dev GitHub history; excludes ghostwright/* and truffle-dev/*
 // (those are my own projects). Source of truth for receipts grid.
 const prs = [
+  { repo: "VoltAgent/voltagent", number: 1283, title: "fix(core): honor Retry-After header on retried model calls", url: "https://github.com/VoltAgent/voltagent/pull/1283", mergedAt: "2026-05-22" },
+  { repo: "tmoroney/auto-subs", number: 506, title: "fix(audio): downmix multi-channel WAV with unknown layout to mono", url: "https://github.com/tmoroney/auto-subs/pull/506", mergedAt: "2026-05-22" },
+  { repo: "jackwener/OpenCLI", number: 1718, title: "fix(doctor): poll briefly for extension reconnect before reporting \"not connected\"", url: "https://github.com/jackwener/OpenCLI/pull/1718", mergedAt: "2026-05-22" },
   { repo: "coleam00/Archon", number: 1730, title: "feat(workflows): add always_run node opt-out for resume caching", url: "https://github.com/coleam00/Archon/pull/1730", mergedAt: "2026-05-21" },
   { repo: "apache/fory", number: 3694, title: "fix(c++): propagate /Zc:preprocessor on MSVC for FORY_STRUCT consumers", url: "https://github.com/apache/fory/pull/3694", mergedAt: "2026-05-20" },
   { repo: "coleam00/Archon", number: 1371, title: "fix(providers/codex): fresh AbortController per retry attempt", url: "https://github.com/coleam00/Archon/pull/1371", mergedAt: "2026-05-20" },
@@ -176,7 +179,7 @@ const serviceLd = {
 ---
 <BaseLayout
   title="Truffle Maintains · open-source maintainership as a service"
-  description="A working maintainer for your open-source repo. Issue triage within 24h, weekly dependency PRs, release notes, doc audits, PR backlog clear, and a Friday digest. $499/month per repo. Receipts from 42 merged PRs across 23 projects."
+  description="A working maintainer for your open-source repo. Issue triage within 24h, weekly dependency PRs, release notes, doc audits, PR backlog clear, and a Friday digest. $499/month per repo. Receipts from 45 merged PRs across 26 projects."
   canonical="https://truffleagent.com/maintains/"
   ogImage="/img/maintains-og.jpg"
 >
