@@ -1,0 +1,523 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+// Each wedge is a Cursor keybinding ported to the terminal, pinned to the
+// model that matches its latency/intelligence budget.
+const wedges = [
+  {
+    key: "Ctrl+K",
+    title: "Inline edit",
+    model: "Haiku 4.5",
+    blurb:
+      "Cursor's signature wedge. Highlight a line, hit Ctrl+K, type an instruction. Haiku streams a one-line replacement; Enter accepts, r retries.",
+    detail:
+      "Stop sequences fence the apply step so the replacement is exactly one line. Preview is a floating overlay, the replace operation goes through the editor's SetLine with indent recovery.",
+  },
+  {
+    key: "Ctrl+L",
+    title: "Composer",
+    model: "Sonnet 4.6",
+    blurb:
+      "Right-pane multi-file editor. Describe the change in plain English; Sonnet returns a planned diff against the open workspace.",
+    detail:
+      "Per-file accept/reject. An incremental parser reparses the stream on every chunk against an === path === fenced block format, so the file list updates as the model is still typing.",
+  },
+  {
+    key: "Tab",
+    title: "Ghost text",
+    model: "Haiku 4.5",
+    blurb:
+      "Inline autocomplete. Idle past 400ms, Haiku returns a single-line continuation as dim text after the cursor. Tab merges, Esc dismisses.",
+    detail:
+      "Stale generations are discarded by tag so a fast typist never sees a suggestion for a prefix they already abandoned. Demo recordings bypass the API entirely with NOOK_GHOST_DEMO.",
+  },
+  {
+    key: "● gutter",
+    title: "LSP diagnostics",
+    model: "gopls",
+    blurb:
+      "Open a .go file and gopls starts under the project root. Errors render as red ● in the gutter, warnings yellow, info/hints blue.",
+    detail:
+      "The status bar shows a worst-row-wins summary like ●1E 0W. Mutating keystrokes fire didChange so the markers stay live as you type. The internal/lsp wrapper is server-agnostic — reuse it for ts-server, pyright, rust-analyzer.",
+  },
+];
+
+const principles = [
+  {
+    n: "01",
+    h: "No electron.",
+    p: "nook is a single Go binary that runs anywhere a terminal runs. Over SSH, in tmux, inside a Docker container. The whole IDE is the size of three Cursor's-electron-blobs.",
+  },
+  {
+    n: "02",
+    h: "No API key to manage.",
+    p: "nook spawns the user's existing claude CLI in stream-json mode. Whatever auth claude already has (OAuth session or ANTHROPIC_API_KEY) is what nook uses. There is no separate setup.",
+  },
+  {
+    n: "03",
+    h: "Built from glyph primitives.",
+    p: "Every surface in nook — picker, file tree, diff view, status bar, modal, editor — is a glyph component. Reading nook's source is reading glyph in production.",
+  },
+  {
+    n: "04",
+    h: "Stays useful when AI is off.",
+    p: "Picker, project search, git pane, embedded terminal, LSP diagnostics all run without claude on PATH. Only the AI wedges go dark — everything else stays alive.",
+  },
+];
+---
+<BaseLayout
+  title="nook · a terminal-native AI IDE"
+  description="nook is a terminal-native AI IDE built from glyph components. Cursor's wedges, Helix's picker, aider's git ergonomics, gopls diagnostics. Single Go binary. Spawns your existing claude CLI for AI — no extra API key."
+>
+  <article class="nook">
+    <header class="nook-head">
+      <div class="container-page">
+        <p class="eyebrow">An open-source project by Truffle</p>
+        <h1 class="display text-balance">
+          nook. A terminal-native <em>AI IDE.</em>
+        </h1>
+        <p class="lede text-balance">
+          Cursor's AI wedges, Helix's picker, aider's git ergonomics, gopls diagnostics, all rendered in a terminal. Single Go binary. Runs anywhere a shell runs, including SSH, tmux, and inside containers.
+        </p>
+
+        <div class="install-box">
+          <pre class="install-pre mono"><code>{`npm install -g @anthropic-ai/claude-code
+claude /login
+go install github.com/truffle-dev/glyph/cmd/nook@latest
+nook .`}</code></pre>
+        </div>
+
+        <p class="meta head-meta">
+          nook drives its AI wedges by spawning the <code class="mono">claude</code> CLI you already have. No separate API key to manage, no direct HTTP to api.anthropic.com.
+        </p>
+
+        <div class="head-chips">
+          <a class="head-chip" href="https://github.com/truffle-dev/glyph/tree/main/cmd/nook">
+            <span class="head-chip-label mono">repo</span>
+            <span class="head-chip-value mono">cmd/nook</span>
+          </a>
+          <a class="head-chip" href="https://github.com/truffle-dev/glyph/tree/main/docs/nook">
+            <span class="head-chip-label mono">docs</span>
+            <span class="head-chip-value mono">docs/nook</span>
+          </a>
+          <a class="head-chip" href="https://github.com/truffle-dev/glyph/blob/main/docs/nook/spec.md">
+            <span class="head-chip-label mono">spec</span>
+            <span class="head-chip-value mono">spec.md</span>
+          </a>
+          <a class="head-chip" href="/glyph/">
+            <span class="head-chip-label mono">built on</span>
+            <span class="head-chip-value mono">glyph</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <section class="reel-section">
+      <div class="container-page">
+        <figure class="reel">
+          <div class="reel-frame">
+            <div class="reel-chrome">
+              <span class="reel-dot reel-dot-red" aria-hidden="true"></span>
+              <span class="reel-dot reel-dot-yellow" aria-hidden="true"></span>
+              <span class="reel-dot reel-dot-green" aria-hidden="true"></span>
+              <span class="reel-title mono">nook · lsp diagnostics</span>
+            </div>
+            <img
+              src="/img/nook/lsp.gif"
+              alt="A terminal screen recording: open a Go file with an undeclared name, gopls runs under the project root, a red bullet appears in the gutter on the broken line, and the status bar reads bullet 1E 0W."
+              width="979"
+              height="694"
+              loading="lazy"
+              decoding="async"
+              class="reel-img"
+            />
+          </div>
+          <figcaption class="reel-caption">
+            Live gopls diagnostics. The red bullet in the gutter is published the instant the file changes; the <code class="mono">●1E 0W</code> in the status bar is a worst-row-wins summary.
+          </figcaption>
+        </figure>
+
+        <figure class="reel reel-secondary">
+          <div class="reel-frame">
+            <div class="reel-chrome">
+              <span class="reel-dot reel-dot-red" aria-hidden="true"></span>
+              <span class="reel-dot reel-dot-yellow" aria-hidden="true"></span>
+              <span class="reel-dot reel-dot-green" aria-hidden="true"></span>
+              <span class="reel-title mono">nook · ghost text</span>
+            </div>
+            <img
+              src="/img/nook/tour.gif"
+              alt="A terminal screen recording: open the picker with Ctrl+P, find a Go file, type a prefix in the editor, idle for 400ms, dim ghost text appears after the cursor, Tab merges it into the line."
+              width="979"
+              height="694"
+              loading="lazy"
+              decoding="async"
+              class="reel-img"
+            />
+          </div>
+          <figcaption class="reel-caption">
+            Ghost text. The clip uses <code class="mono">NOOK_GHOST_DEMO</code> so the recording costs no tokens; the real wedge calls Haiku via the claude CLI on the same trigger.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="wedges-section">
+      <div class="container-page">
+        <div class="wedges-head">
+          <p class="eyebrow">The wedges</p>
+          <h2 class="editorial text-balance">
+            Four <em>keybindings</em>, four jobs to do.
+          </h2>
+          <p class="prose-truffle wedges-intro">
+            Each wedge is pinned to the model that matches the job's latency budget. Haiku for inline, Sonnet for multi-file, gopls for diagnostics.
+          </p>
+        </div>
+
+        <div class="wedges-grid">
+          {wedges.map((w) => (
+            <article class="wedge-card">
+              <header class="wedge-head">
+                <span class="wedge-key mono">{w.key}</span>
+                <span class="wedge-model mono">{w.model}</span>
+              </header>
+              <h3 class="wedge-title">{w.title}</h3>
+              <p class="wedge-blurb">{w.blurb}</p>
+              <p class="wedge-detail">{w.detail}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="principles-section">
+      <div class="container-page">
+        <div class="principles-head">
+          <p class="eyebrow">Why nook</p>
+          <h2 class="editorial text-balance">
+            Cursor is electron. Helix has no AI. <br/>
+            <em>nook</em> is the unfilled corner.
+          </h2>
+        </div>
+        <ol class="principles-list">
+          {principles.map((p) => (
+            <li class="principle">
+              <span class="principle-n mono">{p.n}</span>
+              <div class="principle-body">
+                <h3 class="principle-h">{p.h}</h3>
+                <p class="prose-truffle">{p.p}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="runlocal-section">
+      <div class="container-prose">
+        <p class="eyebrow">Run it</p>
+        <h2 class="editorial text-balance">
+          Three commands. <em>One binary.</em>
+        </h2>
+        <p class="prose-truffle">
+          Install the claude CLI once, install nook once, point it at any project. The AI wedges share whatever session claude is logged into; the editor, picker, search, git pane, terminal, and LSP all run with or without it.
+        </p>
+        <pre class="install-pre mono"><code>{`npm install -g @anthropic-ai/claude-code
+claude /login                                # opens browser, one-time OAuth
+go install github.com/truffle-dev/glyph/cmd/nook@latest
+nook ~/code/project`}</code></pre>
+        <p class="meta">
+          Don't have a Claude subscription? Set <code class="mono">ANTHROPIC_API_KEY</code> in your shell — the claude CLI picks it up automatically and so does nook. Either path works.
+        </p>
+      </div>
+    </section>
+
+    <section class="credits-section">
+      <div class="container-prose">
+        <p class="eyebrow">Credits</p>
+        <p class="prose-truffle">
+          nook is shaped by <a href="https://www.cursor.com">Cursor</a> (the wedges), <a href="https://helix-editor.com">Helix</a> (the picker), <a href="https://aider.chat">aider</a> (the git ergonomics), and <a href="https://zed.dev">Zed</a> (the multibuffer ambition). Built on <a href="https://github.com/charmbracelet/bubbletea">Bubble Tea</a> + <a href="/glyph/">glyph</a>. AI driven by the <a href="https://docs.claude.com/en/docs/claude-code/overview">Claude Code CLI</a>. LSP via <a href="https://pkg.go.dev/go.lsp.dev/protocol">go.lsp.dev</a>. Default language server is <a href="https://pkg.go.dev/golang.org/x/tools/gopls">gopls</a>.
+        </p>
+        <p class="prose-truffle">
+          Open source under MIT. The repo lives in glyph at <a href="https://github.com/truffle-dev/glyph/tree/main/cmd/nook">github.com/truffle-dev/glyph/cmd/nook</a>. Spec and research notes under <a href="https://github.com/truffle-dev/glyph/tree/main/docs/nook">docs/nook</a>.
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .nook { padding-top: clamp(2rem, 5vw, 4rem); }
+
+  .nook-head { padding-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .nook-head .eyebrow { display: inline-block; margin-bottom: 1.5rem; }
+  .nook-head h1 { margin: 0 0 1.5rem; max-width: 900px; }
+  .nook-head em { color: var(--accent); }
+  .nook-head .lede {
+    max-width: 720px;
+    margin: 0 0 2.25rem;
+  }
+  .nook-head code {
+    background: var(--surface-2);
+    padding: 0.1em 0.4em;
+    border-radius: 0.25em;
+    font-size: 0.95em;
+  }
+
+  .install-box {
+    margin: 0 0 1.25rem;
+    max-width: 720px;
+  }
+  .install-pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .head-meta { max-width: 720px; }
+  .head-meta code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+  }
+  .head-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-top: 1.25rem;
+  }
+  .head-chip {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    overflow: hidden;
+    background: var(--surface);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    color: var(--content);
+    transition: border-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+  }
+  .head-chip:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .head-chip-label {
+    background: var(--surface-2);
+    color: var(--content-3);
+    padding: 0.35rem 0.625rem;
+    border-right: 1px solid var(--border);
+  }
+  .head-chip-value { padding: 0.35rem 0.75rem; }
+
+  .reel-section {
+    padding-block: clamp(1rem, 3vw, 2.5rem) clamp(3rem, 6vw, 5rem);
+  }
+  .reel {
+    margin: 0 0 2.5rem;
+    max-width: 980px;
+  }
+  .reel-secondary { margin-bottom: 0; }
+  .reel-frame {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.05),
+      0 12px 32px -16px rgba(0, 0, 0, 0.18);
+  }
+  .reel-chrome {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .reel-dot {
+    width: 0.6875rem;
+    height: 0.6875rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+  .reel-dot-red    { background: #ec6a5e; }
+  .reel-dot-yellow { background: #f4bf4f; }
+  .reel-dot-green  { background: #61c554; }
+  .reel-title {
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--content-3);
+    letter-spacing: 0.02em;
+  }
+  .reel-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #272822;
+  }
+  .reel-caption {
+    margin: 1rem 0 0;
+    color: var(--content-2);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    max-width: 640px;
+  }
+  .reel-caption code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+  }
+
+  .wedges-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .wedges-head {
+    max-width: 760px;
+    margin: 0 0 clamp(2rem, 4vw, 3rem);
+  }
+  .wedges-head .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .wedges-head h2 { margin: 0 0 1.25rem; }
+  .wedges-head em { color: var(--accent); }
+  .wedges-intro { max-width: 640px; margin: 0; }
+
+  .wedges-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  @media (max-width: 720px) {
+    .wedges-grid { grid-template-columns: 1fr; }
+  }
+
+  .wedge-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    transition: border-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+  }
+  .wedge-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .wedge-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .wedge-key {
+    background: var(--surface-2);
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    border: 1px solid var(--border);
+  }
+  .wedge-model {
+    color: var(--content-3);
+    font-size: 0.8125rem;
+  }
+  .wedge-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .wedge-blurb {
+    margin: 0;
+    color: var(--content);
+    line-height: 1.55;
+    font-size: 0.9375rem;
+  }
+  .wedge-detail {
+    margin: 0;
+    color: var(--content-2);
+    line-height: 1.55;
+    font-size: 0.875rem;
+  }
+
+  .principles-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .principles-head {
+    max-width: 760px;
+    margin: 0 0 clamp(2rem, 4vw, 3rem);
+  }
+  .principles-head .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .principles-head h2 { margin: 0; }
+  .principles-head em { color: var(--accent); }
+
+  .principles-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+  .principle {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+  }
+  .principle-n {
+    color: var(--content-3);
+    font-size: 0.875rem;
+    padding-top: 0.25rem;
+  }
+  .principle-h {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+  .principle-body p { margin: 0; }
+
+  .runlocal-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .runlocal-section .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .runlocal-section h2 { margin: 0 0 1.25rem; }
+  .runlocal-section em { color: var(--accent); }
+  .runlocal-section .prose-truffle { margin-bottom: 1.5rem; }
+  .runlocal-section code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+  }
+  .runlocal-section .meta { margin-top: 1rem; }
+
+  .credits-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .credits-section .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .credits-section .prose-truffle:first-of-type {
+    margin-bottom: 1.25rem;
+  }
+  .credits-section code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+  }
+
+  @media (max-width: 640px) {
+    .wedge-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+  }
+</style>
