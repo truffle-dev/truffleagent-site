@@ -1,0 +1,390 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Newsletter from "../../../components/Newsletter.astro";
+import canonical from "../../../data/banned-repos-canonical-v1.0.0.json";
+
+type Entry = {
+  id: string;
+  repo: string;
+  org: string;
+  language: string;
+  stars: number;
+  status: string;
+  policy_url: string;
+  last_verified_at: string;
+};
+
+const entries = (canonical.entries ?? []) as Entry[];
+const totalEntries = canonical.total_entries ?? entries.length;
+const lastMerged = canonical.last_merged_at ?? "";
+const version = canonical.version ?? "1.0.0";
+
+// Group the 16-code status taxonomy into four readable tiers.
+const TIER_BAN = new Set([
+  "banned",
+  "banned-by-maintainer-ask",
+  "banned-by-maintainer-signal",
+  "restricted-community-sentiment",
+]);
+const TIER_STRICT = new Set([
+  "restricted-strict",
+  "restricted-bans-autonomous-agents",
+  "restricted-by-scope",
+  "restricted-human-required",
+  "restricted-review-required",
+]);
+const TIER_DISCLOSE = new Set([
+  "restricted-disclosure-required",
+  "restricted-disclosure-required-strict",
+]);
+const TIER_ALLOW = new Set([
+  "allowed",
+  "allowed-with-comprehension-required",
+  "allowed-with-disclosure",
+  "allowed-with-disclosure-strict",
+  "allowed-with-ownership",
+]);
+
+function tierOf(status: string): "ban" | "strict" | "disclose" | "allow" | "other" {
+  if (TIER_BAN.has(status)) return "ban";
+  if (TIER_STRICT.has(status)) return "strict";
+  if (TIER_DISCLOSE.has(status)) return "disclose";
+  if (TIER_ALLOW.has(status)) return "allow";
+  return "other";
+}
+
+const TIER_RANK: Record<string, number> = {
+  ban: 0,
+  strict: 1,
+  disclose: 2,
+  allow: 3,
+  other: 4,
+};
+
+const TIER_LABEL: Record<string, string> = {
+  ban: "Banned",
+  strict: "Restricted",
+  disclose: "Disclosure required",
+  allow: "Welcomed",
+};
+
+const rows = [...entries]
+  .map((e) => ({
+    ...e,
+    tier: tierOf(e.status),
+    starsLabel: e.stars.toLocaleString("en-US"),
+  }))
+  .sort((a, b) => {
+    const t = TIER_RANK[a.tier] - TIER_RANK[b.tier];
+    if (t !== 0) return t;
+    return b.stars - a.stars;
+  });
+
+const tierCounts = {
+  ban: rows.filter((r) => r.tier === "ban").length,
+  strict: rows.filter((r) => r.tier === "strict").length,
+  disclose: rows.filter((r) => r.tier === "disclose").length,
+  allow: rows.filter((r) => r.tier === "allow").length,
+};
+
+const verifiedDate = lastMerged.slice(0, 10);
+const titleCount = `${totalEntries} entries`;
+---
+<BaseLayout
+  title="The Catalog · Banned-Repos Report · Truffle Co."
+  description="The public catalog: 75 open-source projects, their AI-contribution policy status, language, star count, and the canonical policy URL. The full report adds verbatim quotes, carve-outs, enforcement language, and analysis."
+>
+  <article class="catalog">
+    <header class="catalog-head">
+      <div class="container-page">
+        <a href="/products/banned-repos-report/" class="back-link"><span aria-hidden="true">←</span> Back to the report</a>
+        <p class="eyebrow">Truffle Co. · Banned-Repos Report · Public catalog</p>
+        <h1 class="display text-balance">
+          The <em>Catalog.</em>
+        </h1>
+        <p class="lede text-balance">
+          {titleCount}. Where each project sits on the AI-contribution spectrum, the language, the star count, and the canonical policy URL. Free to read. The verbatim policy quotes, carve-outs, enforcement language, and analysis ship in the full report.
+        </p>
+        <p class="meta">
+          Catalog v{version}. Last merged <time datetime={lastMerged}>{verifiedDate}</time>. Each entry's policy URL is a permalink the project itself maintains; the catalog status reflects the policy as confirmed on the last_verified date.
+        </p>
+      </div>
+    </header>
+
+    <section class="tier-overview">
+      <div class="container-page">
+        <div class="tier-grid">
+          <div class="tier tier-ban">
+            <span class="tier-count">{tierCounts.ban}</span>
+            <span class="tier-label">Banned</span>
+            <span class="tier-note">Written ban or maintainer-signal close.</span>
+          </div>
+          <div class="tier tier-strict">
+            <span class="tier-count">{tierCounts.strict}</span>
+            <span class="tier-label">Restricted</span>
+            <span class="tier-note">Autonomous agents banned, scope narrowed, or human review required.</span>
+          </div>
+          <div class="tier tier-disclose">
+            <span class="tier-count">{tierCounts.disclose}</span>
+            <span class="tier-label">Disclosure required</span>
+            <span class="tier-note">Trailer, checkbox, or PR-template flag mandatory.</span>
+          </div>
+          <div class="tier tier-allow">
+            <span class="tier-count">{tierCounts.allow}</span>
+            <span class="tier-label">Welcomed</span>
+            <span class="tier-note">Accepted, often with attribution or owner accountability.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="catalog-body">
+      <div class="container-page">
+        <div class="table-wrap">
+          <table class="catalog-table">
+            <thead>
+              <tr>
+                <th scope="col" class="col-repo">Repo</th>
+                <th scope="col" class="col-lang">Language</th>
+                <th scope="col" class="col-stars">Stars</th>
+                <th scope="col" class="col-status">Status</th>
+                <th scope="col" class="col-policy">Policy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr id={r.id}>
+                  <td class="col-repo">
+                    <a href={`https://github.com/${r.repo}`} class="repo-link mono" rel="noopener">{r.repo}</a>
+                  </td>
+                  <td class="col-lang">{r.language}</td>
+                  <td class="col-stars">{r.starsLabel}</td>
+                  <td class="col-status">
+                    <span class={`status-pill tier-${r.tier}`} title={r.status}>{TIER_LABEL[r.tier] ?? r.tier}</span>
+                    <span class="status-code mono">{r.status}</span>
+                  </td>
+                  <td class="col-policy">
+                    <a href={r.policy_url} rel="noopener" class="policy-link">Source</a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p class="catalog-foot">
+          What the catalog does not include, because it is the product: the verbatim policy quote for each entry, the scope (PR / issue / comment / review / RFC / docs), the named carve-outs, the enforcement language, the maintainer-signal evidence trail for ban-by-signal entries, and the structural-patterns analysis across the corpus. Those ship in the 96-page PDF and JSON dataset.
+        </p>
+
+        <div class="catalog-cta">
+          <a class="btn btn-primary" href="/products/banned-repos-report/">See the full report</a>
+          <span class="pill">$99 on Gumroad at launch</span>
+        </div>
+      </div>
+    </section>
+  </article>
+
+  <section id="notify" class="notify-cta">
+    <Newsletter source="banned-repos-report-catalog" />
+  </section>
+</BaseLayout>
+
+<style>
+  .catalog { padding-top: clamp(2rem, 5vw, 4rem); }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    color: var(--content-3);
+    margin-bottom: 2rem;
+    transition: color 150ms var(--ease-out);
+  }
+  .back-link:hover { color: var(--content); }
+
+  .catalog-head { padding-bottom: clamp(1.5rem, 4vw, 2.5rem); }
+  .catalog-head .eyebrow { display: inline-block; margin-bottom: 1.5rem; }
+  .catalog-head h1 { margin: 0 0 1.5rem; max-width: 880px; }
+  .catalog-head em { color: var(--accent); }
+  .catalog-head .lede { max-width: 720px; margin: 0 0 1.5rem; }
+  .catalog-head .meta {
+    max-width: 720px;
+    color: var(--content-3);
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+
+  .tier-overview {
+    padding-block: clamp(1.5rem, 3vw, 2.25rem);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .tier-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.85rem;
+  }
+  .tier {
+    display: grid;
+    gap: 0.4rem;
+    padding: 1.05rem 1.2rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .tier-count {
+    font-family: var(--font-display, "Fraunces", serif);
+    font-style: italic;
+    font-size: 2.2rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .tier-ban .tier-count { color: #b9302a; }
+  .tier-strict .tier-count { color: #c46a1d; }
+  .tier-disclose .tier-count { color: #b08600; }
+  .tier-allow .tier-count { color: #4a8a3a; }
+  .tier-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--content);
+  }
+  .tier-note {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--content-3);
+  }
+
+  .catalog-body { padding-block: clamp(2rem, 4vw, 3.5rem); }
+
+  .table-wrap {
+    overflow-x: auto;
+    margin: 0 0 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+  }
+  .catalog-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 720px;
+  }
+  .catalog-table thead th {
+    text-align: left;
+    padding: 0.85rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--content-3);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-1);
+    position: sticky;
+    top: 0;
+  }
+  .catalog-table tbody tr {
+    border-bottom: 1px solid var(--border);
+  }
+  .catalog-table tbody tr:last-child { border-bottom: none; }
+  .catalog-table tbody tr:hover {
+    background: color-mix(in oklab, var(--accent) 4%, transparent);
+  }
+  .catalog-table td {
+    padding: 0.7rem 1rem;
+    vertical-align: middle;
+    line-height: 1.45;
+  }
+  .col-repo { width: 28%; min-width: 220px; }
+  .col-lang { width: 12%; min-width: 90px; color: var(--content-2); }
+  .col-stars {
+    width: 12%;
+    min-width: 80px;
+    color: var(--content-2);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    padding-right: 1.6rem;
+  }
+  .col-status { width: 36%; min-width: 240px; }
+  .col-policy { width: 12%; min-width: 90px; }
+
+  .repo-link {
+    color: var(--accent);
+    font-size: 0.875rem;
+    word-break: break-word;
+  }
+  .repo-link:hover { text-decoration: underline; }
+
+  .status-pill {
+    display: inline-block;
+    padding: 0.18rem 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: var(--radius-pill, 9999px);
+    border: 1px solid;
+    margin-right: 0.55rem;
+    white-space: nowrap;
+  }
+  .status-pill.tier-ban {
+    color: #b9302a;
+    border-color: color-mix(in oklab, #b9302a 32%, transparent);
+    background: color-mix(in oklab, #b9302a 8%, transparent);
+  }
+  .status-pill.tier-strict {
+    color: #c46a1d;
+    border-color: color-mix(in oklab, #c46a1d 32%, transparent);
+    background: color-mix(in oklab, #c46a1d 8%, transparent);
+  }
+  .status-pill.tier-disclose {
+    color: #8c6a00;
+    border-color: color-mix(in oklab, #b08600 32%, transparent);
+    background: color-mix(in oklab, #b08600 8%, transparent);
+  }
+  .status-pill.tier-allow {
+    color: #3a7530;
+    border-color: color-mix(in oklab, #4a8a3a 36%, transparent);
+    background: color-mix(in oklab, #4a8a3a 8%, transparent);
+  }
+
+  .status-code {
+    color: var(--content-3);
+    font-size: 0.7rem;
+    letter-spacing: 0.01em;
+  }
+
+  .policy-link {
+    color: var(--content-2);
+    font-size: 0.85rem;
+    text-decoration: underline;
+    text-decoration-color: var(--border);
+    text-underline-offset: 3px;
+  }
+  .policy-link:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+
+  .catalog-foot {
+    margin: 1.5rem 0 2rem;
+    padding: 1.1rem 1.25rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--content-2);
+  }
+
+  .catalog-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  @media (max-width: 720px) {
+    .col-status { min-width: 200px; }
+    .status-code { display: none; }
+    .col-stars { padding-right: 1rem; }
+  }
+</style>
