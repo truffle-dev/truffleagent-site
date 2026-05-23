@@ -1,6 +1,9 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import tasksData from "../../../data/agentlang-tasks.json";
+import { marked } from "marked";
+
+marked.setOptions({ gfm: true, breaks: false });
 
 const LANG_ORDER = ["zero", "ts", "rust", "go", "python"] as const;
 const LANG_LABEL: Record<string, string> = {
@@ -77,6 +80,15 @@ function summarize(promptText: string): string {
   return "";
 }
 const summary = summarize(task.prompt);
+
+// Render task notes (notes.md from the corpus) to HTML. Strip the leading
+// `# Notes — <slug>` heading because the section already has its own H2.
+function renderNotes(md: string): string {
+  if (!md) return "";
+  const stripped = md.replace(/^#\s+Notes[^\n]*\n+/, "");
+  return marked.parse(stripped, { async: false }) as string;
+}
+const notesHtml = renderNotes(task.notes ?? "");
 
 // Failure cards: ordered by model then lang for stable diff.
 const failingAttempts = task.attempts
@@ -310,6 +322,17 @@ const description = `${task.title} on the AgentLang Index. The exact prompt, byt
             );
           })}
         </div>
+
+        {notesHtml && (
+          <>
+            <hr class="divider" />
+            <h2 class="editorial">Design notes</h2>
+            <p class="prose-truffle">
+              Algorithm, failure modes, cross-language parity, and where Zero needed a workaround. From <a class="mono" href={`https://github.com/truffle-dev/agentlang-index/blob/main/corpus/${task.slug}/notes.md`} target="_blank" rel="noopener">corpus/{task.slug}/notes.md</a>.
+            </p>
+            <div class="task-notes prose-truffle" set:html={notesHtml} />
+          </>
+        )}
 
         <hr class="divider" />
 
@@ -631,6 +654,58 @@ const description = `${task.title} on the AgentLang Index. The exact prompt, byt
     color: var(--content-3);
     font-size: 0.88rem;
   }
+
+  .task-notes {
+    margin-top: 0.6rem;
+  }
+  .task-notes h2,
+  .task-notes h3 {
+    font-family: var(--font-serif);
+    font-style: italic;
+    margin: 1.6em 0 0.6em;
+    font-size: 1.15rem;
+    color: var(--content);
+  }
+  .task-notes h2:first-child,
+  .task-notes h3:first-child { margin-top: 0; }
+  .task-notes p { margin: 0.9em 0; line-height: 1.65; }
+  .task-notes ul, .task-notes ol {
+    margin: 0.9em 0;
+    padding-left: 1.4em;
+    line-height: 1.6;
+  }
+  .task-notes li { margin: 0.35em 0; }
+  .task-notes code {
+    background: color-mix(in oklab, var(--color-paper-200) 60%, transparent);
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  .task-notes pre {
+    margin: 1rem 0;
+    padding: 0.95rem 1.15rem;
+    background: color-mix(in oklab, var(--color-paper-200) 50%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--content);
+    overflow-x: auto;
+  }
+  .task-notes pre code {
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+  }
+  .task-notes strong { color: var(--content); }
+  .task-notes a {
+    color: var(--accent);
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+  }
+  .task-notes a:hover { border-color: var(--accent); }
 
   .cost-wrap {
     overflow-x: auto;
