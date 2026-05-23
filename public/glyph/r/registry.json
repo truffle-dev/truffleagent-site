@@ -106,6 +106,22 @@
       }
     },
     {
+      "name": "kbd",
+      "type": "glyph:component",
+      "title": "Kbd",
+      "description": "Render terminal-styled keycap glyphs for single keys, chords, and key sequences. The atom that turns 'ctrl+k' into a readable ⌃ K in your hint rows and palettes.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "primitive",
+        "feedback"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "key-hints",
       "type": "glyph:component",
       "title": "Key hints",
@@ -273,6 +289,22 @@
       }
     },
     {
+      "name": "stat-card",
+      "type": "glyph:component",
+      "title": "Stat Card",
+      "description": "Dashboard metric tile with label, value, trend, and sublabel. Compose a row of cards to open any operator surface — engagements, PRs, revenue, latency.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "feedback",
+        "data"
+      ],
+      "meta": {
+        "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "status-bar",
       "type": "glyph:component",
       "title": "Status Bar",
@@ -286,6 +318,22 @@
       ],
       "meta": {
         "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "table",
+      "type": "glyph:component",
+      "title": "Table",
+      "description": "Column-aligned data table with sortable headers, keyboard navigation, internal scrolling, and optional row selection. The grid primitive every operator surface reaches for.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "data",
+        "navigation"
+      ],
+      "meta": {
+        "added": "2026-05-23",
         "frame": "bubbletea"
       }
     },

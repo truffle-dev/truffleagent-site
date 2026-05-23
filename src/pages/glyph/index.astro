@@ -173,6 +173,72 @@ tray = tray.Push(notificationtoast.Toast{
   WithHeight(6).
   Focus()`,
   },
+  {
+    slug: "select",
+    title: "Select",
+    blurb: "Bounded single-choice popover with optional substring typeahead, scroll window, hint column, and inlaid title. Emits SelectMsg on commit and CancelMsg on Esc.",
+    snippet: `s := selectinput.New(theme.Default).
+  WithTitle("Pick a region").
+  WithOptions([]selectinput.Option{
+    {Label: "us-east", Hint: "Virginia"},
+    {Label: "us-west", Hint: "Oregon"},
+  }).
+  WithTypeahead(true)`,
+  },
+  {
+    slug: "modal",
+    title: "Modal",
+    blurb: "Border-with-title overlay container with body, footer, and a configurable close key. Pairs with lipgloss.Place to position over a parent view; emits CloseMsg on Esc.",
+    snippet: `m := modal.New(theme.Default).
+  WithTitle("Confirm action").
+  WithBody("This cannot be undone.").
+  WithFooter("Enter to confirm · Esc to cancel").
+  WithSize(60, 8)`,
+  },
+  {
+    slug: "confirmation",
+    title: "Confirmation",
+    blurb: "Two-button yes/no prompt with focus-managed buttons, single-keystroke y/n shortcuts, dangerous-action styling, and prompt reflow.",
+    snippet: `c := confirmation.New(theme.Default).
+  WithPrompt("Delete this engagement?").
+  WithDangerous(true).
+  WithYesLabel("Delete").
+  WithNoLabel("Keep")`,
+  },
+  {
+    slug: "kbd",
+    title: "Kbd",
+    blurb: "Stateless keycap atom. Renders single keys and chords as Unicode-cap glyphs (ctrl+k → ⌃ + K, enter → ⏎). No Model. Drop inside hint rows, command palettes, modals.",
+    snippet: `import "github.com/truffle-dev/glyph/components/kbd"
+
+cap := kbd.Render("ctrl")        // ⌃
+chord := kbd.Chord("ctrl", "k")  // ⌃ + K
+seq := kbd.Sequence(
+  kbd.Chord("g"), kbd.Chord("g")) // g , g`,
+  },
+  {
+    slug: "table",
+    title: "Table",
+    blurb: "Sortable, scrollable data grid with column alignment, numeric-aware sort, cursor highlight, optional row selection, PgUp/PgDn/Home/End, and ←→ to move the active sort column.",
+    snippet: `tbl := table.New().
+  WithColumns(
+    table.Column{Key: "repo",  Title: "Repo",  Sortable: true},
+    table.Column{Key: "stars", Title: "Stars", Align: table.AlignRight, Sortable: true},
+  ).
+  WithRowSelection(true)`,
+  },
+  {
+    slug: "stat-card",
+    title: "Stat card",
+    blurb: "Dashboard metric tile with label, value, trend glyph (▲/▼/—), delta, sublabel, and an optional emphasis treatment that swaps the border + surface tokens.",
+    snippet: `c := statcard.New().
+  WithLabel("Merged this week").
+  WithValue("30").
+  WithDelta("+8").
+  WithTrend(statcard.TrendUp).
+  WithSublabel("vs prior 7d").
+  WithEmphasis(true)`,
+  },
 ];
 
 const principles = [
@@ -271,9 +337,9 @@ glyph add chat-thread`}</code></pre>
     <section class="components-section">
       <div class="container-page">
         <div class="components-head">
-          <p class="eyebrow">v0.1 · sixteen components</p>
+          <p class="eyebrow">v0.1 + v0.2 · twenty-three components</p>
           <h2 class="editorial text-balance">
-            Ten <em>opinionated</em> surfaces, one design language.
+            Twenty-three <em>opinionated</em> surfaces, one design language.
           </h2>
           <p class="prose-truffle components-intro">
             Each card shows the smallest hello-world that compiles after a <code class="mono">glyph add</code>. Click through for the full source, the JSON manifest, and the install command.
