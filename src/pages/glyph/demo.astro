@@ -1,0 +1,373 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+// Three runnable examples in the glyph repo. Each one composes many
+// components into a single coherent surface — not a tabbed parade. The
+// GIFs are recorded under a `glyph_demo_snap` build tag that drives the
+// model through a scripted tour; the interactive binary is unaffected.
+const demos = [
+  {
+    slug: "dashboard",
+    title: "Operator dashboard",
+    eyebrow: "Operator surface · 13 components",
+    blurb:
+      "A revenue-and-throughput dashboard built from stat-card, table, tabs, status-bar, modal, key-hints, notification-toast, and friends. Sortable columns, three pivot views, a filter modal opened with /, and a row-detail panel that surfaces full engagement context on Enter.",
+    components: [
+      "stat-card",
+      "table",
+      "tabs",
+      "modal",
+      "panel",
+      "status-bar",
+      "key-hints",
+      "notification-toast",
+      "progress-bar",
+      "kbd",
+      "select",
+      "spinner",
+      "theme",
+    ],
+    bindings:
+      "Tab/Shift-Tab switch views · ↑↓ row · ←→ column · s sort · / filter · Enter open · q quit",
+    width: 1192,
+    height: 725,
+    run: `git clone https://github.com/truffle-dev/glyph
+cd glyph
+go run ./examples/dashboard`,
+  },
+  {
+    slug: "chat-cli",
+    title: "Chat REPL",
+    eyebrow: "Agent surface · 13 components",
+    blurb:
+      "An agent-style chat REPL — every component on screen earns its place. Status-bar at the top, chat-thread in the middle, chat-input + key-hints at the bottom, notification-toast tray floating top-right. Open the command palette with ⌃P; save the conversation through a modal + text-input; clear it through a modal + confirmation; switch models through a select.",
+    components: [
+      "chat-bubble",
+      "chat-thread",
+      "chat-input",
+      "spinner",
+      "status-bar",
+      "key-hints",
+      "notification-toast",
+      "command-palette",
+      "modal",
+      "text-input",
+      "confirmation",
+      "select",
+      "theme",
+    ],
+    bindings:
+      "Enter send · ⌃P palette · ⌃S save · ⌃L clear · ⌃R switch model · ⌃C quit",
+    width: 1192,
+    height: 725,
+    run: `go run ./examples/chat-cli`,
+  },
+  {
+    slug: "log-viewer",
+    title: "Live log viewer",
+    eyebrow: "Operator surface · 9 components",
+    blurb:
+      "A journalctl-style live feed across four synthetic sources. Tabs filter by level, ⌃F opens a source picker, / opens a substring search prompt, Space pauses, ⌃L clears. The bar at the top reads live/paused, active filter, and entry count — all wired through one model.",
+    components: [
+      "log-stream",
+      "tabs",
+      "status-bar",
+      "key-hints",
+      "select",
+      "notification-toast",
+      "text-input",
+      "panel",
+      "theme",
+    ],
+    bindings:
+      "Tab level · ⌃F source · / search · Space pause · ⌃L clear · q quit",
+    width: 1192,
+    height: 725,
+    run: `go run ./examples/log-viewer`,
+  },
+];
+---
+
+<BaseLayout
+  title="glyph · demos"
+  description="Three runnable examples composed from glyph components — an operator dashboard, a chat REPL, and a live log viewer. Every pixel is real."
+  ogImage="/img/glyph/og.png"
+>
+  <article class="glyph-demo">
+    <header class="demo-head container-prose">
+      <p class="eyebrow">glyph · demos</p>
+      <h1 class="editorial text-balance">
+        Three surfaces, <em>nothing</em> mocked.
+      </h1>
+      <p class="lede prose-truffle">
+        The glyph repo ships three runnable examples. Not tabbed showcases — each one composes a real surface from many components and earns its keystrokes. The animations below are recorded directly from the binaries running in the repo. Source links land on the real files; the run commands work in a fresh clone.
+      </p>
+      <p class="head-meta meta">
+        Recorded with asciinema · rendered with agg · captured at 140×36 cells.
+      </p>
+    </header>
+
+    {demos.map((d, i) => (
+      <section class={`demo-section demo-${d.slug}`}>
+        <div class="container-page">
+          <div class="demo-grid">
+            <figure class="demo-frame">
+              <div class="demo-frame-inner">
+                <img
+                  src={`/img/glyph/demo/${d.slug}.gif`}
+                  alt={`Animated preview of the ${d.slug} example.`}
+                  width={d.width}
+                  height={d.height}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                />
+              </div>
+              <figcaption class="demo-caption mono">{`examples/${d.slug}`}</figcaption>
+            </figure>
+
+            <div class="demo-meta">
+              <p class="eyebrow">{d.eyebrow}</p>
+              <h2 class="editorial text-balance demo-title">{d.title}</h2>
+              <p class="prose-truffle demo-blurb">{d.blurb}</p>
+
+              <p class="demo-sub mono">Composed from</p>
+              <ul class="demo-chips">
+                {d.components.map((c) => (
+                  <li class="demo-chip mono">
+                    <a href={`https://github.com/truffle-dev/glyph/tree/main/components/${c}`} rel="noopener">
+                      {c}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+
+              <p class="demo-sub mono">Bindings</p>
+              <p class="demo-bindings mono">{d.bindings}</p>
+
+              <p class="demo-sub mono">Run it</p>
+              <pre class="demo-run mono"><code>{d.run}</code></pre>
+
+              <p class="demo-actions">
+                <a class="demo-source mono" href={`https://github.com/truffle-dev/glyph/tree/main/examples/${d.slug}`} rel="noopener">
+                  source ↗
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    ))}
+
+    <section class="recipe-section">
+      <div class="container-prose">
+        <p class="eyebrow">How the GIFs were recorded</p>
+        <h2 class="editorial text-balance">
+          A snap <em>tag</em> drives the model through scripted scenes.
+        </h2>
+        <p class="prose-truffle">
+          Each example ships a normal interactive entry point under <code class="mono">cmd_main.go</code> and a scripted tour under <code class="mono">snap.go</code>, gated by a <code class="mono">glyph_demo_snap</code> build tag. The snap binary walks the same model through a sequence of <code class="mono">Update()</code> calls, clears the terminal between scenes, and sleeps so asciinema captures each as a distinct frame. The dashboard tour sorts a column, opens a row, switches tabs, and types into a filter modal. The chat tour types a message, watches the spinner, lands a reply, then opens the command palette, the save dialog, and the model picker. The log tour seeds a buffer, switches level filter, opens the source picker, types a search, and pauses the stream.
+        </p>
+        <pre class="install-pre mono"><code>{`# normal interactive run
+go run ./examples/dashboard
+
+# scripted scene tour for recording
+go build -tags glyph_demo_snap -o /tmp/dashboard-snap ./examples/dashboard
+asciinema rec -c /tmp/dashboard-snap --rows 36 --cols 140 dashboard.cast
+agg --theme monokai --font-size 14 dashboard.cast dashboard.gif`}</code></pre>
+        <p class="meta">
+          No screenshot retouching. The pixels in the GIF are the pixels the program emitted.
+        </p>
+      </div>
+    </section>
+
+    <section class="back-section">
+      <div class="container-prose">
+        <p class="prose-truffle">
+          <a href="/glyph/">← back to the component gallery</a>
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .glyph-demo {
+    padding-top: clamp(2rem, 5vw, 4rem);
+  }
+
+  .demo-head {
+    padding-bottom: clamp(2rem, 4vw, 3rem);
+  }
+  .demo-head .eyebrow { display: inline-block; margin-bottom: 1.25rem; }
+  .demo-head h1 { margin: 0 0 1.5rem; max-width: 900px; }
+  .demo-head em { color: var(--accent); }
+  .demo-head .lede { max-width: 720px; margin: 0 0 1.5rem; }
+
+  .demo-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+
+  .demo-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+  @media (max-width: 960px) {
+    .demo-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+
+  .demo-frame {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .demo-frame-inner {
+    background: #272822;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 12px 36px -16px rgba(0, 0, 0, 0.4);
+    aspect-ratio: 1192 / 725;
+    width: 100%;
+  }
+  .demo-frame-inner img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .demo-caption {
+    color: var(--content-3);
+    font-size: 0.8125rem;
+    text-align: right;
+  }
+
+  .demo-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .demo-meta .eyebrow {
+    margin: 0;
+  }
+  .demo-title {
+    margin: 0 0 0.25rem;
+    font-size: clamp(1.875rem, 3vw, 2.5rem);
+    line-height: 1.1;
+  }
+  .demo-meta em { color: var(--accent); }
+  .demo-blurb {
+    margin: 0 0 1rem;
+    color: var(--content-2);
+    line-height: 1.55;
+  }
+
+  .demo-sub {
+    margin: 0.5rem 0 0.25rem;
+    color: var(--content-3);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .demo-chips {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .demo-chip {
+    font-size: 0.8125rem;
+  }
+  .demo-chip a {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--content-2);
+    text-decoration: none;
+    transition: border-color 150ms var(--ease-out), color 150ms var(--ease-out);
+  }
+  .demo-chip a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .demo-bindings {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--content-2);
+    line-height: 1.6;
+  }
+
+  .demo-run {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1.1rem;
+    overflow-x: auto;
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--content);
+  }
+
+  .demo-actions { margin: 0.75rem 0 0; }
+  .demo-source {
+    color: var(--content-2);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+  }
+  .demo-source:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .recipe-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .recipe-section .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .recipe-section h2 { margin: 0 0 1.25rem; }
+  .recipe-section em { color: var(--accent); }
+  .recipe-section code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+  }
+  .install-pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin: 1rem 0;
+  }
+  .recipe-section .meta { margin-top: 1rem; }
+
+  .back-section {
+    padding-block: clamp(2rem, 4vw, 3rem);
+    border-top: 1px solid var(--border);
+  }
+  .back-section a {
+    color: var(--content-2);
+    text-decoration: none;
+    transition: color 150ms var(--ease-out);
+  }
+  .back-section a:hover {
+    color: var(--accent);
+  }
+</style>
