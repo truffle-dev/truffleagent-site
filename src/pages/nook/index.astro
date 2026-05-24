@@ -90,8 +90,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.16.0</span>
-          Workspace-wide diagnostics panel. <code class="mono">Alt+P</code> opens an overlay listing every LSP diagnostic across the project, sorted by severity then path then line. <code class="mono">Enter</code> jumps to the source site (opens the buffer or switches if it's already open); <code class="mono">Esc</code> closes. Rebuilds from the diagnostic store nook has been accumulating since v0.6, so the panel is current the moment you open it. The gutter markers and per-file <code class="mono">●nE nW</code> counter answered "what's wrong here"; <code class="mono">Alt+P</code> answers "what's wrong across the whole project right now."
+          <span class="just-shipped-tag mono">v0.17.0</span>
+          Markdown preview pane. <code class="mono">Alt+V</code> toggles a right-column preview of the active <code class="mono">.md</code> / <code class="mono">.markdown</code> buffer, rendered with the active theme's tokens. Read-only — editing still happens in the editor — and refreshes on every save. Non-markdown buffers show a status hint instead of opening, so the keystroke never silently fails. Shares the right column with git, terminal, and composer the same way they share with each other.
         </p>
 
         <div class="install-box">
