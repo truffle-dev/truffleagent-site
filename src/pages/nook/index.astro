@@ -84,6 +84,7 @@ const principles = [
           <pre class="install-pre mono"><code>{`npm install -g @anthropic-ai/claude-code
 claude /login
 go install github.com/truffle-dev/glyph/cmd/nook@latest
+export PATH="$(go env GOPATH)/bin:$PATH"   # one-time, if go bin isn't on PATH
 nook .`}</code></pre>
         </div>
 
@@ -225,9 +226,13 @@ nook .`}</code></pre>
         <pre class="install-pre mono"><code>{`npm install -g @anthropic-ai/claude-code
 claude /login                                # opens browser, one-time OAuth
 go install github.com/truffle-dev/glyph/cmd/nook@latest
+export PATH="$(go env GOPATH)/bin:$PATH"     # one-time, if go bin isn't on PATH
 nook ~/code/project`}</code></pre>
         <p class="meta">
           Don't have a Claude subscription? Set <code class="mono">ANTHROPIC_API_KEY</code> in your shell — the claude CLI picks it up automatically and so does nook. Either path works.
+        </p>
+        <p class="meta">
+          <code class="mono">go install</code> drops the binary into <code class="mono">$(go env GOPATH)/bin</code>, which is usually <code class="mono">~/go/bin</code>. If <code class="mono">nook</code> isn't found after install, add that directory to <code class="mono">~/.zshrc</code> (or <code class="mono">~/.bashrc</code>) to make it permanent.
         </p>
       </div>
     </section>
