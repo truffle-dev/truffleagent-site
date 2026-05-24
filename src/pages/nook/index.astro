@@ -49,6 +49,15 @@ const wedges = [
     detail:
       "Driven by textDocument/inlayHint via raw jsonrpc2 (go.lsp.dev/protocol v0.12.0 doesn't export the type). Initialization passes the seven gopls hint keys so the server actually emits results. Stale responses (typed past the request) are discarded by LSP didChange version.",
   },
+  {
+    key: "Alt+B",
+    title: "Inline blame",
+    model: "git blame",
+    blurb:
+      "GitLens-style. Cursor row shows a dim italic strip after the end of the line: Author • 3 days ago • commit summary. Uncommitted lines render as (uncommitted).",
+    detail:
+      "Driven by git blame --porcelain shelled out once per file and cached on the editor pane. Refreshed on open, save, and buffer switch; visibility is a separate switch from data so the toggle never re-shells git for buffers already open. Width-aware: the strip is elided when the line of code fills the budget; long summaries truncate at rune boundaries with an ellipsis.",
+  },
 ];
 
 const principles = [
@@ -90,8 +99,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.20.0</span>
-          Per-file conversation history for the <code class="mono">Ctrl+L</code> composer. Re-open Ctrl+L on a file you've already asked about and the new instruction is sent as a follow-up; the system prompt folds in the prior turns under "Prior turns on this file (oldest first):" so "now wire them together" lands without re-pasting. Eight turns stored per path, six replayed. <code class="mono">Alt+H</code> clears the active file's history.
+          <span class="just-shipped-tag mono">v0.21.0</span>
+          GitLens-style inline blame on the cursor row. <code class="mono">Alt+B</code> toggles a dim italic strip after the end of the active line: <code class="mono">Author • 3 days ago • fix: handle empty inputs</code>. Lines you haven't committed yet render as <code class="mono">(uncommitted)</code>. Blame data is cached per file and refreshed on save, so toggling never re-shells <code class="mono">git blame</code> for buffers already open.
         </p>
 
         <div class="install-box">
