@@ -81,8 +81,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.11.0</span>
-          Per-line git gutter. Every editor row now carries a two-character marker column: the leading char shows the working-tree diff state (added / modified / deleted-above), the trailing char keeps its LSP diagnostic sigil. Both signals show at once. Markers come from <code class="mono">git diff --no-color --unified=0</code> against the index, refreshed on every file open and save.
+          <span class="just-shipped-tag mono">v0.12.0</span>
+          Multi-cursor and column editing. <code class="mono">Ctrl+D</code> adds a cursor at the next whole-word match of the identifier under the primary; <code class="mono">Ctrl+↑</code> / <code class="mono">Ctrl+↓</code> stack cursors vertically at the primary's column for column edits. Every edit primitive fans out across all cursors in sorted order, dedups overlaps, and keeps later positions consistent. Esc clears extras; any movement collapses back to the primary.
         </p>
 
         <div class="install-box">
