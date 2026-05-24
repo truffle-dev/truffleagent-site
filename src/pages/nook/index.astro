@@ -67,6 +67,15 @@ const wedges = [
     detail:
       "Driven by textDocument/references with IncludeDeclaration: true. Hits that fall close together on the same file merge into one continuous fragment so a method called twice on lines 7 and 9 reads as a single 4-12 strip. Hit rows carry the diff loader's Added highlight; context rows render in the normal foreground. Unreadable files produce a single-line placeholder fragment with the error text so the hit list never silently drops a site.",
   },
+  {
+    key: "Ctrl+T",
+    title: "Workspace symbol search",
+    model: "gopls",
+    blurb:
+      "A small prompt opens at center. Type a name (function, type, field, method), Enter, and every matching site in the workspace streams into the multibuffer overlay.",
+    detail:
+      "Driven by workspace/symbol. Each fragment carries a short suffix like func Foo, method User.Hello, struct Server, so the overview reads at a glance. The prompt accepts any printable rune so language-server-specific syntax (gopls T.M, rust-analyzer fmt#print, path-style http/handler) passes through. lastSymQuery is preserved between opens, so refining a search is Ctrl+T then editing.",
+  },
 ];
 
 const principles = [
@@ -108,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.22.0</span>
-          Find references via LSP into the multibuffer overlay. Press <code class="mono">Alt+U</code> on any identifier and gopls returns every workspace site that mentions it, with three lines of context above and below each hit. Overlapping or touching windows on the same file merge into one fragment. Enter jumps to the site, Esc closes.
+          <span class="just-shipped-tag mono">v0.23.0</span>
+          Workspace symbol search via <code class="mono">Ctrl+T</code>. A small prompt opens at center; type a function, type, field, or method and Enter, and gopls returns every match in the workspace. Hits stream into the same multibuffer overlay the diff and find-references loaders use, with three lines of context above and below each hit and a short suffix like <code class="mono">func Foo</code> or <code class="mono">method User.Hello</code> so the overview reads at a glance.
         </p>
 
         <div class="install-box">
@@ -223,10 +232,10 @@ nook .`}</code></pre>
         <div class="wedges-head">
           <p class="eyebrow">The wedges</p>
           <h2 class="editorial text-balance">
-            Four <em>keybindings</em>, four jobs to do.
+            Eight <em>keybindings</em>, eight jobs to do.
           </h2>
           <p class="prose-truffle wedges-intro">
-            Each wedge is pinned to the model that matches the job's latency budget. Haiku for inline, Sonnet for multi-file, gopls for diagnostics.
+            Each wedge is pinned to the model or server that matches the job's latency budget. Haiku for inline, Sonnet for multi-file, gopls for diagnostics, references, symbol search, and inlay hints, git for blame.
           </p>
         </div>
 
