@@ -81,8 +81,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.12.0</span>
-          Multi-cursor and column editing. <code class="mono">Ctrl+D</code> adds a cursor at the next whole-word match of the identifier under the primary; <code class="mono">Ctrl+↑</code> / <code class="mono">Ctrl+↓</code> stack cursors vertically at the primary's column for column edits. Every edit primitive fans out across all cursors in sorted order, dedups overlaps, and keeps later positions consistent. Esc clears extras; any movement collapses back to the primary.
+          <span class="just-shipped-tag mono">v0.13.0</span>
+          Multibuffer view. <code class="mono">Alt+M</code> opens a scrollable list of every changed hunk in the working tree, parsed from <code class="mono">git diff --unified=3 HEAD</code>. Each fragment shows path, line range, and the function suffix git stamps on the hunk header, followed by the new-file lines. Enter on any row jumps to that file at that line and focuses the editor. Read-only first slice; the same shape will load workspace symbol references and find-all-results next.
         </p>
 
         <div class="install-box">
