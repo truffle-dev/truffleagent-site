@@ -58,6 +58,15 @@ const wedges = [
     detail:
       "Driven by git blame --porcelain shelled out once per file and cached on the editor pane. Refreshed on open, save, and buffer switch; visibility is a separate switch from data so the toggle never re-shells git for buffers already open. Width-aware: the strip is elided when the line of code fills the budget; long summaries truncate at rune boundaries with an ellipsis.",
   },
+  {
+    key: "Alt+U",
+    title: "Find references",
+    model: "gopls",
+    blurb:
+      "Press on any identifier and every workspace site that mentions it opens in the multibuffer overlay, three lines of context above and below each hit, Enter to jump.",
+    detail:
+      "Driven by textDocument/references with IncludeDeclaration: true. Hits that fall close together on the same file merge into one continuous fragment so a method called twice on lines 7 and 9 reads as a single 4-12 strip. Hit rows carry the diff loader's Added highlight; context rows render in the normal foreground. Unreadable files produce a single-line placeholder fragment with the error text so the hit list never silently drops a site.",
+  },
 ];
 
 const principles = [
@@ -99,8 +108,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.21.0</span>
-          GitLens-style inline blame on the cursor row. <code class="mono">Alt+B</code> toggles a dim italic strip after the end of the active line: <code class="mono">Author • 3 days ago • fix: handle empty inputs</code>. Lines you haven't committed yet render as <code class="mono">(uncommitted)</code>. Blame data is cached per file and refreshed on save, so toggling never re-shells <code class="mono">git blame</code> for buffers already open.
+          <span class="just-shipped-tag mono">v0.22.0</span>
+          Find references via LSP into the multibuffer overlay. Press <code class="mono">Alt+U</code> on any identifier and gopls returns every workspace site that mentions it, with three lines of context above and below each hit. Overlapping or touching windows on the same file merge into one fragment. Enter jumps to the site, Esc closes.
         </p>
 
         <div class="install-box">
