@@ -90,8 +90,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.18.0</span>
-          VSCode-format snippets. Type a prefix in any buffer, hit <code class="mono">Alt+J</code>, and the prefix expands into a templated body. Tab and Shift+Tab cycle the tabstops; Esc exits. The shipped library covers Go, TypeScript / JavaScript, Python, Markdown, Rust, and a global scope (todo, fixme), keyed off the buffer's file extension. Drop your own VSCode snippet JSON files under <code class="mono">~/.config/nook/snippets/&lt;scope&gt;.json</code> to overlay them on the defaults.
+          <span class="just-shipped-tag mono">v0.19.0</span>
+          Tasks. <code class="mono">Alt+T</code> pops a picker over <code class="mono">.nook/tasks.toml</code> (a VSCode <code class="mono">tasks.json</code> analog in TOML); Enter runs the selected task and flips the pane into a streaming output viewport tagged with stdout / stderr per-line. <code class="mono">Ctrl+C</code> kills the running process; Esc closes (kills if still live). Go projects get four defaults out of the box — <code class="mono">go test ./...</code>, <code class="mono">go build ./...</code>, <code class="mono">go vet ./...</code>, <code class="mono">go mod tidy</code> — so the first run on a fresh repo just works.
         </p>
 
         <div class="install-box">
