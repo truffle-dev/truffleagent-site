@@ -80,6 +80,11 @@ const principles = [
           Cursor's AI wedges, Helix's picker, aider's git ergonomics, gopls diagnostics, all rendered in a terminal. Single Go binary. Runs anywhere a shell runs, including SSH, tmux, and inside containers.
         </p>
 
+        <p class="head-just-shipped">
+          <span class="just-shipped-tag mono">v0.4.0</span>
+          Multiple open buffers with a tab bar. <code class="mono">alt+]</code> / <code class="mono">alt+[</code> cycle, <code class="mono">ctrl+w</code> closes, basename collisions show parent dirs, dirty buffers get a <code class="mono">●</code>. Close the last one and the welcome card comes back.
+        </p>
+
         <div class="install-box">
           <pre class="install-pre mono"><code>{`npm install -g @anthropic-ai/claude-code
 claude /login
@@ -305,6 +310,34 @@ nook ~/code/project`}</code></pre>
     font-size: 0.9375rem;
     line-height: 1.6;
     margin: 0;
+  }
+  .head-just-shipped {
+    max-width: 720px;
+    margin: 0 0 1.25rem;
+    padding: 0.875rem 1.125rem;
+    background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+    border: 1px solid color-mix(in oklab, var(--accent) 25%, var(--border));
+    border-radius: 0.5rem;
+    color: var(--content);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+  .head-just-shipped code {
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+    font-size: 0.95em;
+  }
+  .just-shipped-tag {
+    display: inline-block;
+    margin-right: 0.5rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.25rem;
+    background: var(--accent);
+    color: var(--surface);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    vertical-align: 0.1em;
   }
   .head-meta { max-width: 720px; }
   .head-meta code {
