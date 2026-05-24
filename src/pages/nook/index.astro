@@ -81,8 +81,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.9.0</span>
-          File tree pane. <code class="mono">ctrl+b</code> toggles a persistent left-side tree that walks the project root with the same ignore rules as the picker. Open a file from anywhere — picker, project search, go-to-definition, alt+]/alt+[ buffer cycle — and the cursor in the tree reveals the file so the side panel always tracks the active editor.
+          <span class="just-shipped-tag mono">v0.10.0</span>
+          Code actions and rename. <code class="mono">alt+enter</code> asks the language server for the actions available at the cursor (quickfix, refactor, source-organize) and applies the chosen <code class="mono">WorkspaceEdit</code> across every file it touches. <code class="mono">f2</code> opens a rename prompt seeded with the symbol under cursor, runs prepareRename, then rewrites the workspace — open buffers and on-disk files alike.
         </p>
 
         <div class="install-box">
