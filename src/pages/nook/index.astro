@@ -40,6 +40,15 @@ const wedges = [
     detail:
       "The status bar shows a worst-row-wins summary like ●1E 0W. Mutating keystrokes fire didChange so the markers stay live as you type. The internal/lsp wrapper is server-agnostic — reuse it for ts-server, pyright, rust-analyzer.",
   },
+  {
+    key: "Alt+Y",
+    title: "Inlay hints",
+    model: "gopls",
+    blurb:
+      "Type annotations and parameter names appear as faint italic glyphs woven into the source. Decorative — never changes file bytes. Alt+Y toggles.",
+    detail:
+      "Driven by textDocument/inlayHint via raw jsonrpc2 (go.lsp.dev/protocol v0.12.0 doesn't export the type). Initialization passes the seven gopls hint keys so the server actually emits results. Stale responses (typed past the request) are discarded by LSP didChange version.",
+  },
 ];
 
 const principles = [
@@ -81,8 +90,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.13.0</span>
-          Multibuffer view. <code class="mono">Alt+M</code> opens a scrollable list of every changed hunk in the working tree, parsed from <code class="mono">git diff --unified=3 HEAD</code>. Each fragment shows path, line range, and the function suffix git stamps on the hunk header, followed by the new-file lines. Enter on any row jumps to that file at that line and focuses the editor. Read-only first slice; the same shape will load workspace symbol references and find-all-results next.
+          <span class="just-shipped-tag mono">v0.14.0</span>
+          Inlay hints. gopls type annotations and parameter names appear as faint italic glyphs woven into the source: <code class="mono">x := 42</code> reads <code class="mono">x</code><em class="mono"> : int</em><code class="mono"> := 42</code>; <code class="mono">f(name, count)</code> reads <code class="mono">f(</code><em class="mono">name=</em><code class="mono">name, </code><em class="mono">count=</em><code class="mono">count)</code>. Decorative — never changes the file. <code class="mono">Alt+Y</code> toggles the layer; stale responses (typed past the request) are discarded by LSP version.
         </p>
 
         <div class="install-box">
