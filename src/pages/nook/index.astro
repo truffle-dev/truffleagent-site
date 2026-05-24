@@ -20,7 +20,7 @@ const wedges = [
     blurb:
       "Right-pane multi-file editor. Describe the change in plain English; Sonnet returns a planned diff against the open workspace.",
     detail:
-      "Per-file accept/reject. An incremental parser reparses the stream on every chunk against an === path === fenced block format, so the file list updates as the model is still typing.",
+      "Per-file accept/reject and per-file conversation history: re-opening Ctrl+L on the same file folds the prior turns into the system prompt, so the next instruction is a follow-up, not a cold ask. Alt+H clears the active file's transcript.",
   },
   {
     key: "Tab",
@@ -90,8 +90,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.19.0</span>
-          Tasks. <code class="mono">Alt+T</code> pops a picker over <code class="mono">.nook/tasks.toml</code> (a VSCode <code class="mono">tasks.json</code> analog in TOML); Enter runs the selected task and flips the pane into a streaming output viewport tagged with stdout / stderr per-line. <code class="mono">Ctrl+C</code> kills the running process; Esc closes (kills if still live). Go projects get four defaults out of the box — <code class="mono">go test ./...</code>, <code class="mono">go build ./...</code>, <code class="mono">go vet ./...</code>, <code class="mono">go mod tidy</code> — so the first run on a fresh repo just works.
+          <span class="just-shipped-tag mono">v0.20.0</span>
+          Per-file conversation history for the <code class="mono">Ctrl+L</code> composer. Re-open Ctrl+L on a file you've already asked about and the new instruction is sent as a follow-up; the system prompt folds in the prior turns under "Prior turns on this file (oldest first):" so "now wire them together" lands without re-pasting. Eight turns stored per path, six replayed. <code class="mono">Alt+H</code> clears the active file's history.
         </p>
 
         <div class="install-box">
