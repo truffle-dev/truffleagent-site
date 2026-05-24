@@ -81,8 +81,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.10.0</span>
-          Code actions and rename. <code class="mono">alt+enter</code> asks the language server for the actions available at the cursor (quickfix, refactor, source-organize) and applies the chosen <code class="mono">WorkspaceEdit</code> across every file it touches. <code class="mono">f2</code> opens a rename prompt seeded with the symbol under cursor, runs prepareRename, then rewrites the workspace — open buffers and on-disk files alike.
+          <span class="just-shipped-tag mono">v0.11.0</span>
+          Per-line git gutter. Every editor row now carries a two-character marker column: the leading char shows the working-tree diff state (added / modified / deleted-above), the trailing char keeps its LSP diagnostic sigil. Both signals show at once. Markers come from <code class="mono">git diff --no-color --unified=0</code> against the index, refreshed on every file open and save.
         </p>
 
         <div class="install-box">
