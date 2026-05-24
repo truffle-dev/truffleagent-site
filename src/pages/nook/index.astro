@@ -90,8 +90,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.15.0</span>
-          Settings file plus three new themes. <code class="mono">~/.config/nook/config.toml</code> carries five editor knobs (<code class="mono">tab_width</code>, <code class="mono">format_on_save</code>, <code class="mono">line_numbers</code>, <code class="mono">inlay_hints</code>, <code class="mono">theme</code>); <code class="mono">Alt+,</code> reloads from disk without restarting. Themes ship as <code class="mono">default</code>, <code class="mono">light</code>, <code class="mono">tokyo-night</code>, <code class="mono">catppuccin-mocha</code>, <code class="mono">rose-pine</code>. The LSP formatter now respects the configured tab width.
+          <span class="just-shipped-tag mono">v0.16.0</span>
+          Workspace-wide diagnostics panel. <code class="mono">Alt+P</code> opens an overlay listing every LSP diagnostic across the project, sorted by severity then path then line. <code class="mono">Enter</code> jumps to the source site (opens the buffer or switches if it's already open); <code class="mono">Esc</code> closes. Rebuilds from the diagnostic store nook has been accumulating since v0.6, so the panel is current the moment you open it. The gutter markers and per-file <code class="mono">●nE nW</code> counter answered "what's wrong here"; <code class="mono">Alt+P</code> answers "what's wrong across the whole project right now."
         </p>
 
         <div class="install-box">
