@@ -81,8 +81,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.7.0</span>
-          In-buffer find and replace. <code class="mono">ctrl+f</code> opens a bottom-bar search scoped to the active buffer, <code class="mono">ctrl+h</code> flips it into replace mode, matches highlight in the editor with the active one boosted, and <code class="mono">alt+x</code> / <code class="mono">alt+c</code> toggle regex and case sensitivity. <code class="mono">ctrl+r</code> replaces the current match, <code class="mono">alt+r</code> replaces every match. Project-wide search moves to <code class="mono">alt+f</code>.
+          <span class="just-shipped-tag mono">v0.8.0</span>
+          Format-on-save. <code class="mono">ctrl+s</code> now runs the LSP's <code class="mono">textDocument/formatting</code> request before writing the buffer when a language server is attached, so saving a <code class="mono">.go</code> file with gopls produces the same output as <code class="mono">gofmt -w</code>. <code class="mono">alt+s</code> saves without formatting; <code class="mono">alt+shift+s</code> toggles the behavior for the session.
         </p>
 
         <div class="install-box">
