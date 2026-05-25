@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.24.0</span>
-          Drop-in compatibility with Cursor's <code class="mono">.cursorrules</code> (and nook's own <code class="mono">.nookrules</code>). Drop one of those files at the workspace root and every AI wedge — ghost-text autocomplete, <code class="mono">Cmd+K</code> inline edits, <code class="mono">Ctrl+L</code> multi-file composer — picks up your project's prose conventions. A Cursor user can <code class="mono">nook .</code> in their existing repo and feel at home without porting a single config file. A small <code class="mono">rules:nookrules</code> chip appears on the status bar when a rules file is loaded.
+          <span class="just-shipped-tag mono">v0.25.0</span>
+          File outline modal. Press <code class="mono">Ctrl+\</code> inside any file and a floating modal lists every document symbol gopls reports for the active buffer: functions, methods, structs, constants, interfaces, the whole hierarchical tree. Type to filter, arrow keys to navigate, Enter jumps to the symbol's row, Esc closes. The cursor pre-positions on whichever symbol encloses the current editor row, so the second keystroke is already useful. Per-file symbol tree is cached after the first fetch and invalidated on save. The single-file companion to workspace symbol search (<code class="mono">Ctrl+T</code>, v0.23.0).
         </p>
 
         <div class="install-box">
