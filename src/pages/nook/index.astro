@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.25.0</span>
-          File outline modal. Press <code class="mono">Ctrl+\</code> inside any file and a floating modal lists every document symbol gopls reports for the active buffer: functions, methods, structs, constants, interfaces, the whole hierarchical tree. Type to filter, arrow keys to navigate, Enter jumps to the symbol's row, Esc closes. The cursor pre-positions on whichever symbol encloses the current editor row, so the second keystroke is already useful. Per-file symbol tree is cached after the first fetch and invalidated on save. The single-file companion to workspace symbol search (<code class="mono">Ctrl+T</code>, v0.23.0).
+          <span class="just-shipped-tag mono">v0.26.0</span>
+          Signature help on <code class="mono">(</code>. Type an opening paren inside a function call and a small bordered footer overlay shows the call's signature with the parameter you're about to fill bolded and reverse-styled. Type <code class="mono">,</code> and the highlight slides to the next parameter. Type <code class="mono">)</code> or press <code class="mono">Esc</code> and the overlay vanishes. Both LSP parameter-label shapes work: gopls's plain-string form (substring search of the parent signature) and rust-analyzer / typescript-language-server's <code class="mono">[start, end]</code> offset pair (advertised via <code class="mono">labelOffsetSupport</code>, tried first). Overloads honored via the server's <code class="mono">activeSignature</code> index with a small italic "n of m" counter; parameter and signature docs render under the label, wrapped, four-line cap.
         </p>
 
         <div class="install-box">
