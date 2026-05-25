@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.23.0</span>
-          Workspace symbol search via <code class="mono">Ctrl+T</code>. A small prompt opens at center; type a function, type, field, or method and Enter, and gopls returns every match in the workspace. Hits stream into the same multibuffer overlay the diff and find-references loaders use, with three lines of context above and below each hit and a short suffix like <code class="mono">func Foo</code> or <code class="mono">method User.Hello</code> so the overview reads at a glance.
+          <span class="just-shipped-tag mono">v0.24.0</span>
+          Drop-in compatibility with Cursor's <code class="mono">.cursorrules</code> (and nook's own <code class="mono">.nookrules</code>). Drop one of those files at the workspace root and every AI wedge — ghost-text autocomplete, <code class="mono">Cmd+K</code> inline edits, <code class="mono">Ctrl+L</code> multi-file composer — picks up your project's prose conventions. A Cursor user can <code class="mono">nook .</code> in their existing repo and feel at home without porting a single config file. A small <code class="mono">rules:nookrules</code> chip appears on the status bar when a rules file is loaded.
         </p>
 
         <div class="install-box">
@@ -251,6 +251,35 @@ nook .`}</code></pre>
               <p class="wedge-detail">{w.detail}</p>
             </article>
           ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="rules-section">
+      <div class="container-page">
+        <div class="rules-head">
+          <p class="eyebrow">Drop-in compatibility</p>
+          <h2 class="editorial text-balance">
+            Bring your <em>.cursorrules</em>. Skip the re-onboarding.
+          </h2>
+          <p class="prose-truffle rules-intro">
+            nook reads <code class="mono">.nookrules</code> at the workspace root, and falls back to <code class="mono">.cursorrules</code> when the nook-native file is absent. The contents — your project's prose conventions, indentation rules, error-handling style, anything you've already written for the model — get appended to every AI wedge's system prompt. Ghost-text, Cmd+K inline edits, and Ctrl+L multi-file composer all inherit the same constraints, on top of their own task-specific prompts.
+          </p>
+        </div>
+
+        <div class="rules-grid">
+          <article class="rules-card">
+            <h3 class="rules-card-h">A file is enough.</h3>
+            <p class="rules-card-p">No config schema, no JSON, no comment syntax. Drop your existing <code class="mono">.cursorrules</code> at the repo root and every wedge picks it up on the next nook launch. A whitespace-only file is treated as absent so an empty <code class="mono">touch</code> doesn't register a useless indicator.</p>
+          </article>
+          <article class="rules-card">
+            <h3 class="rules-card-h">Both filenames work.</h3>
+            <p class="rules-card-p"><code class="mono">.nookrules</code> takes precedence, <code class="mono">.cursorrules</code> is the fallback. Teams that already use Cursor get drop-in behavior; teams that want nook-native naming get the same loader with the file they prefer. Both missing is the common no-op case.</p>
+          </article>
+          <article class="rules-card">
+            <h3 class="rules-card-h">Visible when active.</h3>
+            <p class="rules-card-p">When a rules file is loaded, the status bar gains a small <code class="mono">rules:nookrules</code> or <code class="mono">rules:cursorrules</code> chip next to the diagnostic counts. The chip disappears when no file is present, so the indicator stays informative and never noisy.</p>
+          </article>
         </div>
       </div>
     </section>
@@ -541,6 +570,53 @@ nook ~/code/project`}</code></pre>
     color: var(--content-2);
     line-height: 1.55;
     font-size: 0.875rem;
+  }
+
+  .rules-section {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .rules-head {
+    max-width: 760px;
+    margin: 0 0 clamp(2rem, 4vw, 3rem);
+  }
+  .rules-head .eyebrow { display: inline-block; margin-bottom: 1rem; }
+  .rules-head h2 { margin: 0 0 1.25rem; }
+  .rules-head em { color: var(--accent); }
+  .rules-intro { max-width: 640px; margin: 0; }
+
+  .rules-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  @media (max-width: 880px) {
+    .rules-grid { grid-template-columns: 1fr; }
+  }
+
+  .rules-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 150ms var(--ease-out);
+  }
+  .rules-card:hover { border-color: var(--accent); }
+  .rules-card-h {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+  .rules-card-p {
+    margin: 0;
+    color: var(--content-2);
+    line-height: 1.55;
+    font-size: 0.9375rem;
   }
 
   .principles-section {
