@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.35.0</span>
-          Lightning startup. Before this release, opening <code class="mono">nook ~/.zshrc</code> would walk every directory under <code class="mono">$HOME</code> (<code class="mono">~/repos/*</code>, <code class="mono">~/Downloads</code>, the rest of it) before drawing the first frame — about a second of blank terminal on a developer machine. The file-tree pane now constructs in constant time and walks the file system in a goroutine; the first frame renders immediately, with a <code class="mono">Scanning…</code> placeholder in the tree slot until the walk lands. On this machine the startup path measures around 300µs end-to-end, down from 1.07 seconds. A regression test pins a 200ms budget so the property can't quietly drift back. The same async pattern carries over to the open-tree refresh path, so toggling the tree on a busy repo no longer blocks the editor either.
+          <span class="just-shipped-tag mono">v0.36.0</span>
+          LSP document highlights. When the cursor settles for 250ms on an identifier in a Go file, gopls returns every occurrence in the current buffer and each one is painted with a subtle background band. The band fades the moment the cursor moves, so it never lags or out-shouts the user's active search. Render precedence stays search-first: active match, then selection, then other matches, then dochi, then plain. The implementation matches the semantic-tokens / inlay-hints pattern: a BufVer staleness gate drops out-of-date responses, and a generation-counter debounce keeps the band aligned with cursor position without any in-flight Cmd cancellation.
         </p>
 
         <div class="install-box">
