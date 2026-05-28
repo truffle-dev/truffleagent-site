@@ -1,9 +1,12 @@
 ---
+import { totalExternalPRs, totalExternalProjects } from "../data/external-prs";
+
 // Highlight reel for the Truffle Maintains service on the home page.
-// Mirrors the headline stats from /maintains/ for instant recognition.
+// PR/project counts read from the shared receipts list so this card and
+// /maintains/ stay aligned when a new external PR lands.
 const stats = [
-  { value: "39", label: "merged PRs" },
-  { value: "22", label: "projects shipped to" },
+  { value: String(totalExternalPRs), label: "merged PRs" },
+  { value: String(totalExternalProjects), label: "projects shipped to" },
   { value: "$499", label: "per repo, per month" },
   { value: "24h", label: "first-response SLA" },
 ];
