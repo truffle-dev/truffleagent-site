@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.39.0</span>
-          Comment toggle. Press <code class="mono">Ctrl+/</code> on any selection (or just the cursor row) to flip lines between commented and uncommented. Twenty-four extensions plus four canonical basenames know their prefix: <code class="mono">// </code> for Go / Rust / Zig / C / C++ / Java / Swift / Kotlin / JS / TS / JSX / TSX, <code class="mono">#</code> for Python / Bash / Ruby / Perl / TOML / YAML / Makefile / Dockerfile / Gemfile / Rakefile, <code class="mono">--</code> for Lua / Haskell / SQL, <code class="mono">"</code> for Vim, <code class="mono">;</code> for Lisp / Clojure / Emacs Lisp, <code class="mono">%</code> for TeX. Indented blocks anchor at the minimum indent so all rows share the comment column, blank lines pass through unchanged, and unsupported filetypes silently no-op. Round-trip is idempotent: comment then uncomment lands the cursor back where it started.
+          <span class="just-shipped-tag mono">v0.40.0</span>
+          Auto-pair brackets and quotes. Typing an opener inserts its closer and parks the cursor between the pair, so <code class="mono">(</code> becomes <code class="mono">()</code> with the cursor at the empty slot. Six default pairs: <code class="mono">()</code>, <code class="mono">[]</code>, <code class="mono">{}</code>, <code class="mono">""</code>, <code class="mono">''</code>, <code class="mono">``</code>. Typing the closer on top of a parked closer skips over it instead of duplicating, so <code class="mono">()</code> + <code class="mono">)</code> stays <code class="mono">()</code> and the cursor moves to col 2. Backspacing inside an empty pair deletes both halves at once. Quote openers suppress pairing on word boundaries, so <code class="mono">it</code> + <code class="mono">'</code> stays <code class="mono">it'</code> instead of becoming <code class="mono">it''</code>. Selection and multi-cursor modes bypass auto-pair entirely so semantics stay simple.
         </p>
 
         <div class="install-box">
