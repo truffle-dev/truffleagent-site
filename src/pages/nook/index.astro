@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.37.0</span>
-          LSP call hierarchy. <code class="mono">alt+k</code> turns the identifier under the cursor into an "incoming calls" graph; <code class="mono">alt+K</code> into "outgoing calls." Results land in the multibuffer pane the same way find-references does, but answer a different question: find-refs surfaces every textual mention; call hierarchy surfaces only the call edges. Multi-overload union (Java/C++ method resolution) unions every prepare result into a single FragmentsMsg. The third loader the pane gets after diff and find-refs, keyed by Source so the host router didn't need a single line.
+          <span class="just-shipped-tag mono">v0.38.0</span>
+          Live config + theme reload. Edit <code class="mono">~/.config/nook/config.toml</code> while nook is open and the new settings take effect on the next render. Switch <code class="mono">theme = "tokyo-night"</code> to <code class="mono">theme = "catppuccin-mocha"</code> and every open buffer, the file tree, the welcome card, the markdown preview, the tab bar, and the status row all adopt the new palette together. A 1 Hz poller in <code class="mono">cmd/nook/internal/configwatch</code> fingerprints the file by ModTime + Size + Exists, the host re-arms a tea.Cmd so the loop self-sustains, and a single <code class="mono">applyTheme</code> walks every theme-holding field on the model. No restart. No <code class="mono">alt+,</code> reach.
         </p>
 
         <div class="install-box">
