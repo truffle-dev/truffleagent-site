@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.36.0</span>
-          LSP document highlights. When the cursor settles for 250ms on an identifier in a Go file, gopls returns every occurrence in the current buffer and each one is painted with a subtle background band. The band fades the moment the cursor moves, so it never lags or out-shouts the user's active search. Render precedence stays search-first: active match, then selection, then other matches, then dochi, then plain. The implementation matches the semantic-tokens / inlay-hints pattern: a BufVer staleness gate drops out-of-date responses, and a generation-counter debounce keeps the band aligned with cursor position without any in-flight Cmd cancellation.
+          <span class="just-shipped-tag mono">v0.37.0</span>
+          LSP call hierarchy. <code class="mono">alt+k</code> turns the identifier under the cursor into an "incoming calls" graph; <code class="mono">alt+K</code> into "outgoing calls." Results land in the multibuffer pane the same way find-references does, but answer a different question: find-refs surfaces every textual mention; call hierarchy surfaces only the call edges. Multi-overload union (Java/C++ method resolution) unions every prepare result into a single FragmentsMsg. The third loader the pane gets after diff and find-refs, keyed by Source so the host router didn't need a single line.
         </p>
 
         <div class="install-box">
