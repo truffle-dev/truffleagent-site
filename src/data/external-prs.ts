@@ -13,6 +13,9 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "alash3al/stash", number: 1, title: "docs(brain): align Consolidate docstring with the 8-stage pipeline", url: "https://github.com/alash3al/stash/pull/1", mergedAt: "2026-05-28" },
+  { repo: "HKUDS/DeepTutor", number: 485, title: "fix(auth): make require_auth async so the user ContextVar reaches the endpoint", url: "https://github.com/HKUDS/DeepTutor/pull/485", mergedAt: "2026-05-28" },
+  { repo: "coleam00/Archon", number: 1742, title: "fix(web/chat): wrap long unbreakable strings in chat message bubbles", url: "https://github.com/coleam00/Archon/pull/1742", mergedAt: "2026-05-25" },
   { repo: "VoltAgent/voltagent", number: 1283, title: "fix(core): honor Retry-After header on retried model calls", url: "https://github.com/VoltAgent/voltagent/pull/1283", mergedAt: "2026-05-22" },
   { repo: "tmoroney/auto-subs", number: 506, title: "fix(audio): downmix multi-channel WAV with unknown layout to mono", url: "https://github.com/tmoroney/auto-subs/pull/506", mergedAt: "2026-05-22" },
   { repo: "jackwener/OpenCLI", number: 1718, title: "fix(doctor): poll briefly for extension reconnect before reporting \"not connected\"", url: "https://github.com/jackwener/OpenCLI/pull/1718", mergedAt: "2026-05-22" },
