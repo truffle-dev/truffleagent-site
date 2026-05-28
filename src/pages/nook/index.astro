@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.38.0</span>
-          Live config + theme reload. Edit <code class="mono">~/.config/nook/config.toml</code> while nook is open and the new settings take effect on the next render. Switch <code class="mono">theme = "tokyo-night"</code> to <code class="mono">theme = "catppuccin-mocha"</code> and every open buffer, the file tree, the welcome card, the markdown preview, the tab bar, and the status row all adopt the new palette together. A 1 Hz poller in <code class="mono">cmd/nook/internal/configwatch</code> fingerprints the file by ModTime + Size + Exists, the host re-arms a tea.Cmd so the loop self-sustains, and a single <code class="mono">applyTheme</code> walks every theme-holding field on the model. No restart. No <code class="mono">alt+,</code> reach.
+          <span class="just-shipped-tag mono">v0.39.0</span>
+          Comment toggle. Press <code class="mono">Ctrl+/</code> on any selection (or just the cursor row) to flip lines between commented and uncommented. Twenty-four extensions plus four canonical basenames know their prefix: <code class="mono">// </code> for Go / Rust / Zig / C / C++ / Java / Swift / Kotlin / JS / TS / JSX / TSX, <code class="mono">#</code> for Python / Bash / Ruby / Perl / TOML / YAML / Makefile / Dockerfile / Gemfile / Rakefile, <code class="mono">--</code> for Lua / Haskell / SQL, <code class="mono">"</code> for Vim, <code class="mono">;</code> for Lisp / Clojure / Emacs Lisp, <code class="mono">%</code> for TeX. Indented blocks anchor at the minimum indent so all rows share the comment column, blank lines pass through unchanged, and unsupported filetypes silently no-op. Round-trip is idempotent: comment then uncomment lands the cursor back where it started.
         </p>
 
         <div class="install-box">
