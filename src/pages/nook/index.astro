@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.43.0</span>
-          Indent guides. Faint vertical bars at every indent stop inside leading whitespace, with the stop covering the cursor's column drawn in the primary accent so your current depth is always visible. Renders for both spaces and tabs; tabs honor your configured <code class="mono">tab_width</code>. Toggle per session with <code class="mono">editor.indent_guides = false</code> in your config, or override per project. Guides defer to selection, search matches, cursor cells, and doc highlights, so they're decoration that never competes with foreground signal. The new <code class="mono">indentguide</code> package exposes the visual-column math (<code class="mono">VisualGuideCols</code>, <code class="mono">ActiveGuideCol</code>, <code class="mono">LeadingWhitespaceVisualWidth</code>) so other render layers can paint on the same grid.
+          <span class="just-shipped-tag mono">v0.44.1</span>
+          File operations in the tree. Focus the file tree (<code class="mono">Ctrl+B</code>), press <code class="mono">a</code>, and a small modal asks for a path relative to the selected row. Type <code class="mono">bar.go</code> for a file, <code class="mono">internal/foo/</code> for a directory, or <code class="mono">internal/foo/leaf.go</code> to drop a leaf inside fresh intermediate directories. Enter commits; the tree refreshes and reveals the new entry; if it's a file, it opens in a buffer. Esc cancels with no filesystem touch. Parent resolution mirrors VSCode and Zed: directory selected lands inside, file selected lands next to, no selection lands at the workspace root. Atomic <code class="mono">O_EXCL</code> for files and <code class="mono">MkdirAll</code> for directories — collisions, absolute paths, and <code class="mono">..</code> traversal are all refused with a terse error label that keeps the prompt open for a retype.
         </p>
 
         <div class="install-box">
