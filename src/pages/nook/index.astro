@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.41.0</span>
-          Signature-help overload cycling. When the floating parameter-hint overlay is open and the function has more than one matching overload (any call where the language server returns multiple <code class="mono">Signatures</code>), <code class="mono">alt+↓</code> advances to the next overload and <code class="mono">alt+↑</code> steps back. Both wrap. The status line below the signature already shows an "n of m" counter, so the user can see which overload they're on. Pressing <code class="mono">esc</code> still dismisses the overlay; pressing <code class="mono">)</code> still closes it. A fresh <code class="mono">textDocument/signatureHelp</code> response (typing past the current parameter) resets to whatever the server nominated, so the new request doesn't fight a previous manual selection.
+          <span class="just-shipped-tag mono">v0.42.0</span>
+          Per-project config inheritance. Drop a <code class="mono">.nook/config.toml</code> at the root of any project and its keys override your global <code class="mono">~/.config/nook/config.toml</code> per field. A repo can pin <code class="mono">tab_width = 2</code> and <code class="mono">format_on_save = false</code> without touching the rest of your defaults; absent keys fall through. Both files are watched, so editing either while nook is open reloads the merged result inside a second. The status bar appends a scope hint, <code class="mono">settings reloaded (user + project)</code> when both apply, <code class="mono">(project)</code> alone if you have no user file. A malformed project file surfaces as <code class="mono">project config: …</code> in the status line so the editor never wedges on a typo in a checked-in file.
         </p>
 
         <div class="install-box">
