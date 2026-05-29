@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.45.0</span>
-          Soft wrap. Press <code class="mono">Alt+Z</code> and long lines fold onto multiple visual rows instead of trailing off the right edge. The gutter line number only prints on the first sub-row of each logical line; continuation rows get a quiet <code class="mono">│</code> marker. The cursor, selection, search highlights, diagnostics, document highlights, inlay hints, indent guides, and ghost text all slice cleanly across sub-row boundaries — items at the boundary attach to the next sub-row, end-of-line decorations stick to the last one. Persist it across sessions with <code class="mono">soft_wrap = true</code> in <code class="mono">~/.config/nook/config.toml</code>.
+          <span class="just-shipped-tag mono">v0.46.0</span>
+          Bracket-pair highlight. Park the cursor on or just past a <code class="mono">(</code>, <code class="mono">[</code>, or <code class="mono">&#123;</code> (or its closer) and nook paints both ends with a Primary foreground on the SurfaceStrong band, so the eye finds the match in one beat. Works across lines, across soft-wrap sub-rows, and for all three universal pairs. Anchor selection follows Zed convention — rune at the cursor wins, with rune-before as a fallback for past-line-end positions; the cursor cell stays visible at its own bracket, and the match end always paints. Suppressed during selection (the band would fight a held Shift+motion) and during multi-cursor (a single highlight would be ambiguous). String- and comment-aware exclusion is intentionally deferred — the layer below only paints when both endpoints exist, so the damage stays bounded at "no highlight" rather than "wrong highlight."
         </p>
 
         <div class="install-box">
