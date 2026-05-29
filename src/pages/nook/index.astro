@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.44.1</span>
-          File operations in the tree. Focus the file tree (<code class="mono">Ctrl+B</code>), press <code class="mono">a</code>, and a small modal asks for a path relative to the selected row. Type <code class="mono">bar.go</code> for a file, <code class="mono">internal/foo/</code> for a directory, or <code class="mono">internal/foo/leaf.go</code> to drop a leaf inside fresh intermediate directories. Enter commits; the tree refreshes and reveals the new entry; if it's a file, it opens in a buffer. Esc cancels with no filesystem touch. Parent resolution mirrors VSCode and Zed: directory selected lands inside, file selected lands next to, no selection lands at the workspace root. Atomic <code class="mono">O_EXCL</code> for files and <code class="mono">MkdirAll</code> for directories — collisions, absolute paths, and <code class="mono">..</code> traversal are all refused with a terse error label that keeps the prompt open for a retype.
+          <span class="just-shipped-tag mono">v0.45.0</span>
+          Soft wrap. Press <code class="mono">Alt+Z</code> and long lines fold onto multiple visual rows instead of trailing off the right edge. The gutter line number only prints on the first sub-row of each logical line; continuation rows get a quiet <code class="mono">│</code> marker. The cursor, selection, search highlights, diagnostics, document highlights, inlay hints, indent guides, and ghost text all slice cleanly across sub-row boundaries — items at the boundary attach to the next sub-row, end-of-line decorations stick to the last one. Persist it across sessions with <code class="mono">soft_wrap = true</code> in <code class="mono">~/.config/nook/config.toml</code>.
         </p>
 
         <div class="install-box">
