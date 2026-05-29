@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.42.0</span>
-          Per-project config inheritance. Drop a <code class="mono">.nook/config.toml</code> at the root of any project and its keys override your global <code class="mono">~/.config/nook/config.toml</code> per field. A repo can pin <code class="mono">tab_width = 2</code> and <code class="mono">format_on_save = false</code> without touching the rest of your defaults; absent keys fall through. Both files are watched, so editing either while nook is open reloads the merged result inside a second. The status bar appends a scope hint, <code class="mono">settings reloaded (user + project)</code> when both apply, <code class="mono">(project)</code> alone if you have no user file. A malformed project file surfaces as <code class="mono">project config: …</code> in the status line so the editor never wedges on a typo in a checked-in file.
+          <span class="just-shipped-tag mono">v0.43.0</span>
+          Indent guides. Faint vertical bars at every indent stop inside leading whitespace, with the stop covering the cursor's column drawn in the primary accent so your current depth is always visible. Renders for both spaces and tabs; tabs honor your configured <code class="mono">tab_width</code>. Toggle per session with <code class="mono">editor.indent_guides = false</code> in your config, or override per project. Guides defer to selection, search matches, cursor cells, and doc highlights, so they're decoration that never competes with foreground signal. The new <code class="mono">indentguide</code> package exposes the visual-column math (<code class="mono">VisualGuideCols</code>, <code class="mono">ActiveGuideCol</code>, <code class="mono">LeadingWhitespaceVisualWidth</code>) so other render layers can paint on the same grid.
         </p>
 
         <div class="install-box">
