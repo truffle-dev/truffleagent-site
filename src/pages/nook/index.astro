@@ -117,8 +117,8 @@ const principles = [
         </p>
 
         <p class="head-just-shipped">
-          <span class="just-shipped-tag mono">v0.40.0</span>
-          Auto-pair brackets and quotes. Typing an opener inserts its closer and parks the cursor between the pair, so <code class="mono">(</code> becomes <code class="mono">()</code> with the cursor at the empty slot. Six default pairs: <code class="mono">()</code>, <code class="mono">[]</code>, <code class="mono">{}</code>, <code class="mono">""</code>, <code class="mono">''</code>, <code class="mono">``</code>. Typing the closer on top of a parked closer skips over it instead of duplicating, so <code class="mono">()</code> + <code class="mono">)</code> stays <code class="mono">()</code> and the cursor moves to col 2. Backspacing inside an empty pair deletes both halves at once. Quote openers suppress pairing on word boundaries, so <code class="mono">it</code> + <code class="mono">'</code> stays <code class="mono">it'</code> instead of becoming <code class="mono">it''</code>. Selection and multi-cursor modes bypass auto-pair entirely so semantics stay simple.
+          <span class="just-shipped-tag mono">v0.41.0</span>
+          Signature-help overload cycling. When the floating parameter-hint overlay is open and the function has more than one matching overload (any call where the language server returns multiple <code class="mono">Signatures</code>), <code class="mono">alt+↓</code> advances to the next overload and <code class="mono">alt+↑</code> steps back. Both wrap. The status line below the signature already shows an "n of m" counter, so the user can see which overload they're on. Pressing <code class="mono">esc</code> still dismisses the overlay; pressing <code class="mono">)</code> still closes it. A fresh <code class="mono">textDocument/signatureHelp</code> response (typing past the current parameter) resets to whatever the server nominated, so the new request doesn't fight a previous manual selection.
         </p>
 
         <div class="install-box">
