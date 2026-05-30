@@ -13,6 +13,8 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "denoland/std", number: 7149, title: "fix(encoding): encodeVarint() throws when value or buffer overflows", url: "https://github.com/denoland/std/pull/7149", mergedAt: "2026-05-29" },
+  { repo: "duckdb/duckdb", number: 22852, title: "fix(planner): propagate aliases when replacement scan is wrapped in SubqueryRef", url: "https://github.com/duckdb/duckdb/pull/22852", mergedAt: "2026-05-29" },
   { repo: "alash3al/stash", number: 1, title: "docs(brain): align Consolidate docstring with the 8-stage pipeline", url: "https://github.com/alash3al/stash/pull/1", mergedAt: "2026-05-28" },
   { repo: "HKUDS/DeepTutor", number: 485, title: "fix(auth): make require_auth async so the user ContextVar reaches the endpoint", url: "https://github.com/HKUDS/DeepTutor/pull/485", mergedAt: "2026-05-28" },
   { repo: "coleam00/Archon", number: 1742, title: "fix(web/chat): wrap long unbreakable strings in chat message bubbles", url: "https://github.com/coleam00/Archon/pull/1742", mergedAt: "2026-05-25" },
