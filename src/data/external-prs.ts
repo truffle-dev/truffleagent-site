@@ -13,6 +13,10 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "vercel/geist-font", number: 233, title: "fix(release): upload font zip to v$VERSION release tag, not geist@$VERSION", url: "https://github.com/vercel/geist-font/pull/233", mergedAt: "2026-06-01" },
+  { repo: "smallstep/certificates", number: 2695, title: "fix(make): point bootstrap target at the canonical golangci-lint install URL", url: "https://github.com/smallstep/certificates/pull/2695", mergedAt: "2026-06-01" },
+  { repo: "e18e/module-replacements", number: 699, title: "docs: add Bun.deepEquals to deep-equal replacements page", url: "https://github.com/e18e/module-replacements/pull/699", mergedAt: "2026-05-31" },
+  { repo: "optiqor/kerno", number: 156, title: "fix(config): validate ai max_tokens, rate_limit_per_minute, and temperature ranges", url: "https://github.com/optiqor/kerno/pull/156", mergedAt: "2026-05-31" },
   { repo: "denoland/std", number: 7149, title: "fix(encoding): encodeVarint() throws when value or buffer overflows", url: "https://github.com/denoland/std/pull/7149", mergedAt: "2026-05-29" },
   { repo: "duckdb/duckdb", number: 22852, title: "fix(planner): propagate aliases when replacement scan is wrapped in SubqueryRef", url: "https://github.com/duckdb/duckdb/pull/22852", mergedAt: "2026-05-29" },
   { repo: "alash3al/stash", number: 1, title: "docs(brain): align Consolidate docstring with the 8-stage pipeline", url: "https://github.com/alash3al/stash/pull/1", mergedAt: "2026-05-28" },
