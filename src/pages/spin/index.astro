@@ -72,6 +72,7 @@ const description =
               </div>
             </div>
             <input type="file" id="spin-import-file" accept=".json,application/json" hidden />
+            <input type="color" id="spin-color-picker" hidden aria-hidden="true" tabindex="-1" />
           </div>
           <div class="spin-side-actions">
             <button id="spin-share" type="button" class="spin-icon-btn" title="Copy share link" aria-label="Copy share link">
@@ -501,10 +502,33 @@ const description =
       background: var(--surface-3);
     }
     .spin-list-color {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
       flex-shrink: 0;
+      border: 1px solid rgba(20, 17, 11, 0.18);
+      padding: 0;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .spin-list-color:hover {
+      transform: scale(1.12);
+    }
+    .spin-list-color:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .spin-list-color[data-custom="true"]::after {
+      content: "";
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid currentColor;
     }
     .spin-list-input {
       flex: 1;
@@ -809,7 +833,7 @@ const description =
   </style>
 
   <script>
-    type Entry = { id: string; label: string };
+    type Entry = { id: string; label: string; color?: string };
     type Wheel = { id: string; name: string; entries: Entry[] };
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
     type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean };
@@ -868,6 +892,7 @@ const description =
     const pickerExport = document.getElementById("spin-picker-export");
     const pickerImport = document.getElementById("spin-picker-import");
     const importFileInput = document.getElementById("spin-import-file") as HTMLInputElement | null;
+    const colorPicker = document.getElementById("spin-color-picker") as HTMLInputElement | null;
 
     if (!canvas || !centerBtn || !list || !addForm || !addInput || !modal) {
       console.error("[spin] missing required DOM nodes");
@@ -1161,7 +1186,7 @@ const description =
         ctx.moveTo(cx, cy);
         ctx.arc(cx, cy, r, start, end);
         ctx.closePath();
-        ctx.fillStyle = PALETTE[i % PALETTE.length];
+        ctx.fillStyle = entries[i].color || PALETTE[i % PALETTE.length];
         ctx.fill();
       }
 
@@ -1208,6 +1233,40 @@ const description =
       return text.slice(0, lo) + "…";
     }
 
+    let colorPickerTarget: Entry | null = null;
+    function openColorPicker(entry: Entry, current: string) {
+      if (!colorPicker) return;
+      colorPickerTarget = entry;
+      // <input type="color"> expects #rrggbb
+      colorPicker.value = toColorHex(current);
+      colorPicker.click();
+    }
+    function toColorHex(c: string): string {
+      const v = (c || "").trim().toLowerCase();
+      if (/^#[0-9a-f]{6}$/.test(v)) return v;
+      if (/^#[0-9a-f]{3}$/.test(v)) {
+        return (
+          "#" + v[1] + v[1] + v[2] + v[2] + v[3] + v[3]
+        );
+      }
+      return "#4850c4";
+    }
+    if (colorPicker) {
+      colorPicker.addEventListener("input", () => {
+        if (!colorPickerTarget) return;
+        colorPickerTarget.color = colorPicker.value;
+        drawWheel();
+      });
+      colorPicker.addEventListener("change", () => {
+        if (!colorPickerTarget) return;
+        colorPickerTarget.color = colorPicker.value;
+        renderList();
+        drawWheel();
+        save();
+        colorPickerTarget = null;
+      });
+    }
+
     function renderList() {
       list!.innerHTML = "";
       countEl!.textContent = String(entries.length);
@@ -1215,9 +1274,43 @@ const description =
         const li = document.createElement("li");
         li.className = "spin-list-item";
 
-        const color = document.createElement("span");
+        const color = document.createElement("button");
+        color.type = "button";
         color.className = "spin-list-color";
-        color.style.background = PALETTE[i % PALETTE.length];
+        const auto = PALETTE[i % PALETTE.length];
+        const effective = entry.color || auto;
+        color.style.background = effective;
+        color.style.color = effective;
+        if (entry.color) color.dataset.custom = "true";
+        color.title = entry.color
+          ? "Click to change color · shift-click to reset"
+          : "Click to choose a color";
+        color.setAttribute(
+          "aria-label",
+          entry.color
+            ? `Color for ${entry.label || "entry"}: custom. Shift-click to reset to auto.`
+            : `Color for ${entry.label || "entry"}: auto. Click to choose.`,
+        );
+        color.addEventListener("click", (e) => {
+          if ((e as MouseEvent).shiftKey) {
+            if (entry.color) {
+              entry.color = undefined;
+              renderList();
+              drawWheel();
+              save();
+            }
+            return;
+          }
+          openColorPicker(entry, effective);
+        });
+        color.addEventListener("contextmenu", (e) => {
+          if (!entry.color) return;
+          e.preventDefault();
+          entry.color = undefined;
+          renderList();
+          drawWheel();
+          save();
+        });
         li.appendChild(color);
 
         const input = document.createElement("input");
@@ -1630,10 +1723,14 @@ const description =
     // === Share link ===
     function buildShareUrl(): string {
       const cw = currentWheel();
-      const payload = {
+      const limited = entries.slice(0, 200);
+      const payload: { n: string; e: string[]; c?: (string | null)[] } = {
         n: cw.name.slice(0, MAX_WHEEL_NAME),
-        e: entries.map((x) => x.label).slice(0, 200),
+        e: limited.map((x) => x.label),
       };
+      if (limited.some((x) => x.color)) {
+        payload.c = limited.map((x) => x.color || null);
+      }
       const json = JSON.stringify(payload);
       const b64 = btoa(unescape(encodeURIComponent(json)))
         .replace(/\+/g, "-")
@@ -1652,12 +1749,20 @@ const description =
         const json = decodeURIComponent(escape(atob(b64)));
         const parsed = JSON.parse(json);
         if (!parsed || !Array.isArray(parsed.e)) return null;
-        const out = parsed.e
-          .filter((s: unknown): s is string => typeof s === "string")
-          .map((s: string) => s.trim())
-          .filter((s: string) => s.length > 0 && s.length <= 80)
-          .slice(0, 200)
-          .map((label: string) => ({ id: newId(), label }));
+        const rawColors: unknown[] = Array.isArray(parsed.c) ? parsed.c : [];
+        const out: Entry[] = [];
+        for (let i = 0; i < Math.min(parsed.e.length, 200); i++) {
+          const raw = parsed.e[i];
+          if (typeof raw !== "string") continue;
+          const label = raw.trim();
+          if (label.length === 0 || label.length > 80) continue;
+          const e: Entry = { id: newId(), label };
+          const rc = rawColors[i];
+          if (typeof rc === "string" && /^#[0-9a-fA-F]{6}$/.test(rc)) {
+            e.color = rc.toLowerCase();
+          }
+          out.push(e);
+        }
         if (out.length === 0) return null;
         const rawName = typeof parsed.n === "string" ? parsed.n.trim() : "";
         const name = rawName.slice(0, MAX_WHEEL_NAME) || "Shared wheel";
@@ -1820,7 +1925,9 @@ const description =
         exportedAt: new Date().toISOString(),
         wheels: wheels.map((w) => ({
           name: w.name,
-          entries: w.entries.map((e) => e.label),
+          entries: w.entries.map((e) =>
+            e.color ? { label: e.label, color: e.color } : e.label,
+          ),
         })),
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -1849,32 +1956,45 @@ const description =
         return;
       }
       // Accept either the full export shape or a single wheel
-      const incoming: { name: string; entries: string[] }[] = [];
+      type ImportEntry = { label: string; color?: string };
+      const incoming: { name: string; entries: ImportEntry[] }[] = [];
       const p = parsed as { wheels?: unknown; name?: unknown; entries?: unknown };
+      const normalizeEntries = (raw: unknown[]): ImportEntry[] => {
+        const out: ImportEntry[] = [];
+        for (const e of raw) {
+          let label: string | null = null;
+          let color: string | undefined;
+          if (typeof e === "string") {
+            label = e;
+          } else if (e && typeof e === "object") {
+            const obj = e as { label?: unknown; color?: unknown };
+            if (typeof obj.label === "string") label = obj.label;
+            if (typeof obj.color === "string" && /^#[0-9a-fA-F]{6}$/.test(obj.color)) {
+              color = obj.color.toLowerCase();
+            }
+          }
+          if (label === null) continue;
+          const trimmed = label.trim();
+          if (trimmed.length === 0 || trimmed.length > 80) continue;
+          out.push(color ? { label: trimmed, color } : { label: trimmed });
+          if (out.length >= 200) break;
+        }
+        return out;
+      };
       if (Array.isArray(p?.wheels)) {
         for (const raw of p.wheels) {
           const w = raw as { name?: unknown; entries?: unknown };
           if (!Array.isArray(w?.entries)) continue;
-          const labels = (w.entries as unknown[])
-            .map((e) => (typeof e === "string" ? e : (e as { label?: unknown })?.label))
-            .filter((s): s is string => typeof s === "string")
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0 && s.length <= 80)
-            .slice(0, 200);
-          if (labels.length === 0) continue;
+          const items = normalizeEntries(w.entries as unknown[]);
+          if (items.length === 0) continue;
           const name = typeof w.name === "string" ? w.name.slice(0, MAX_WHEEL_NAME) : "Imported";
-          incoming.push({ name: name || "Imported", entries: labels });
+          incoming.push({ name: name || "Imported", entries: items });
         }
       } else if (Array.isArray(p?.entries)) {
-        const labels = (p.entries as unknown[])
-          .map((e) => (typeof e === "string" ? e : (e as { label?: unknown })?.label))
-          .filter((s): s is string => typeof s === "string")
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0 && s.length <= 80)
-          .slice(0, 200);
-        if (labels.length > 0) {
+        const items = normalizeEntries(p.entries as unknown[]);
+        if (items.length > 0) {
           const name = typeof p.name === "string" ? p.name.slice(0, MAX_WHEEL_NAME) : "Imported";
-          incoming.push({ name: name || "Imported", entries: labels });
+          incoming.push({ name: name || "Imported", entries: items });
         }
       }
       if (incoming.length === 0) {
@@ -1899,7 +2019,9 @@ const description =
         const wheel: Wheel = {
           id: newId(),
           name,
-          entries: w.entries.map((label) => ({ id: newId(), label })),
+          entries: w.entries.map((it) =>
+            it.color ? { id: newId(), label: it.label, color: it.color } : { id: newId(), label: it.label },
+          ),
         };
         wheels.push(wheel);
         last = wheel;
