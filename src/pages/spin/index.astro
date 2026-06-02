@@ -107,6 +107,9 @@ const description =
             <button id="spin-palette-btn" type="button" class="spin-icon-btn" title="Theme palette" aria-label="Theme palette" aria-expanded="false">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2 0-1.5-1.5-2-1.5-3.5 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4 9 9 0 0 0-9-7z"/><circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7" r="1"/><circle cx="15.5" cy="8" r="1"/><circle cx="17.5" cy="12.5" r="1"/></svg>
             </button>
+            <button id="spin-size-btn" type="button" class="spin-icon-btn" title="Wheel size" aria-label="Wheel size" aria-expanded="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
+            </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
             </button>
@@ -156,6 +159,17 @@ const description =
           <span class="spin-palette-cfg-label">Palette</span>
           <div id="spin-palette-chips" class="spin-palette-chips" role="group" aria-label="Palette choice"></div>
           <button id="spin-palette-cancel" type="button" class="spin-palette-cancel" aria-label="Close palette settings">×</button>
+        </div>
+
+        <div id="spin-size-config" class="spin-size-config" hidden role="group" aria-label="Wheel size settings">
+          <span class="spin-size-label">Size</span>
+          <div class="spin-size-chips" role="group" aria-label="Wheel size">
+            <button id="spin-size-s" type="button" class="spin-size-chip" data-size="s" aria-pressed="false">S</button>
+            <button id="spin-size-m" type="button" class="spin-size-chip" data-size="m" aria-pressed="false">M</button>
+            <button id="spin-size-l" type="button" class="spin-size-chip" data-size="l" aria-pressed="true">L</button>
+            <button id="spin-size-full" type="button" class="spin-size-chip" data-size="full" aria-pressed="false">Full</button>
+          </div>
+          <button id="spin-size-cancel" type="button" class="spin-size-cancel" aria-label="Close size settings">×</button>
         </div>
 
         <ul id="spin-list" class="spin-list" aria-label="Entries list"></ul>
@@ -303,7 +317,12 @@ const description =
       width: 100%;
       max-width: 640px;
       aspect-ratio: 1 / 1;
+      transition: max-width var(--motion-base, 150ms) var(--ease-out, cubic-bezier(0.25, 0.46, 0.45, 0.94));
     }
+    .spin-wheel-frame[data-size="s"] { max-width: 360px; }
+    .spin-wheel-frame[data-size="m"] { max-width: 480px; }
+    .spin-wheel-frame[data-size="l"] { max-width: 640px; }
+    .spin-wheel-frame[data-size="full"] { max-width: none; }
 
     #spin-canvas {
       width: 100%;
@@ -1422,6 +1441,72 @@ const description =
       color: var(--content-2);
     }
 
+    .spin-size-config {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.7rem;
+      margin: 0 0 0.85rem;
+      background: color-mix(in oklab, var(--accent) 4%, var(--surface-2));
+      border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border));
+      border-radius: 8px;
+    }
+    .spin-size-label {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-3);
+    }
+    .spin-size-chips {
+      display: inline-flex;
+      gap: 4px;
+    }
+    .spin-size-chip {
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content-2);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+      min-width: 36px;
+    }
+    .spin-size-chip:hover { background: var(--surface-2); }
+    .spin-size-chip:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-size-chip[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .spin-size-cancel {
+      margin-left: auto;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      background: transparent;
+      color: var(--content-4);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0;
+    }
+    .spin-size-cancel:hover {
+      color: var(--content);
+      background: var(--surface);
+    }
+    .spin-size-cancel:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+
     .spin-foot {
       margin-top: 3rem;
       padding-top: 1.5rem;
@@ -1703,8 +1788,9 @@ const description =
     type PointerCfg = { pos: PointerPos; color: PointerColor };
     type LabelRotation = "auto" | "tangent" | "radial";
     type Palette = "paper" | "vibrant" | "pastel" | "mono";
+    type WheelSize = "s" | "m" | "l" | "full";
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
-    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation; palette?: Palette };
+    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation; palette?: Palette; wheelSize?: WheelSize };
     type AnyPersist = PersistV1 | PersistV2;
 
     const STORAGE_KEY = "spinwheel:v1";
@@ -1787,6 +1873,11 @@ const description =
     const AUTO_TANGENT_MIN = 7;
     const AUTO_TANGENT_MAX = 16;
 
+    const DEFAULT_WHEEL_SIZE: WheelSize = "l";
+    function validWheelSize(v: unknown): WheelSize {
+      return v === "s" || v === "m" || v === "l" || v === "full" ? v : DEFAULT_WHEEL_SIZE;
+    }
+
     const canvas = document.getElementById("spin-canvas") as HTMLCanvasElement | null;
     const centerBtn = document.getElementById("spin-center") as HTMLButtonElement | null;
     const list = document.getElementById("spin-list") as HTMLUListElement | null;
@@ -1826,6 +1917,11 @@ const description =
     const paletteConfig = document.getElementById("spin-palette-config") as HTMLDivElement | null;
     const paletteChipsHost = document.getElementById("spin-palette-chips") as HTMLDivElement | null;
     const paletteCancel = document.getElementById("spin-palette-cancel") as HTMLButtonElement | null;
+    const sizeBtn = document.getElementById("spin-size-btn") as HTMLButtonElement | null;
+    const sizeConfig = document.getElementById("spin-size-config") as HTMLDivElement | null;
+    const sizeCancel = document.getElementById("spin-size-cancel") as HTMLButtonElement | null;
+    const sizeChips = document.querySelectorAll<HTMLButtonElement>(".spin-size-chip");
+    const wheelFrame = document.querySelector(".spin-wheel-frame") as HTMLDivElement | null;
     const historyList = document.getElementById("spin-history-list") as HTMLUListElement | null;
     const historyCount = document.getElementById("spin-history-count") as HTMLSpanElement | null;
     const historyClear = document.getElementById("spin-history-clear") as HTMLButtonElement | null;
@@ -1866,6 +1962,7 @@ const description =
     let pointerCfg: PointerCfg = initialState.pointer;
     let labelRotation: LabelRotation = initialState.labelRotation;
     let palette: Palette = initialState.palette;
+    let wheelSize: WheelSize = initialState.wheelSize;
     function activePalette(): string[] { return PALETTES[palette]; }
 
     function currentWheel(): Wheel {
@@ -1949,7 +2046,7 @@ const description =
       return `${month}/${day}`;
     }
 
-    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg; labelRotation: LabelRotation; palette: Palette } {
+    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg; labelRotation: LabelRotation; palette: Palette; wheelSize: WheelSize } {
       const defaultWheel = (): Wheel => ({
         id: newId(),
         name: "My wheel",
@@ -1959,7 +2056,7 @@ const description =
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
           const w = defaultWheel();
-          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE };
+          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE };
         }
         const parsed = JSON.parse(raw) as AnyPersist;
         if (parsed && (parsed as PersistV2).version === 2 && Array.isArray((parsed as PersistV2).wheels)) {
@@ -1994,10 +2091,10 @@ const description =
             .slice(0, MAX_WHEELS);
           if (cleaned.length === 0) {
             const w = defaultWheel();
-            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette) };
+            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize) };
           }
           const cid = cleaned.find((w) => w.id === p.currentId)?.id ?? cleaned[0].id;
-          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette) };
+          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize) };
         }
         // v1 migration
         if (parsed && (parsed as PersistV1).version === 1 && Array.isArray((parsed as PersistV1).entries)) {
@@ -2007,20 +2104,20 @@ const description =
             name: "My wheel",
             entries: p.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
           };
-          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE };
+          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE };
         }
       } catch {
         // fall through
       }
       const w = defaultWheel();
-      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE };
+      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE };
     }
 
     function save() {
       const cw = currentWheel();
       if (cw) cw.entries = entries;
       try {
-        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation, palette };
+        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation, palette, wheelSize };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
         // ignore quota
@@ -2708,6 +2805,7 @@ const description =
       closePointerConfig();
       closeLabelrotConfig();
       closePaletteConfig();
+      closeSizeConfig();
       teamsConfig.hidden = false;
       if (teamsBtn) teamsBtn.setAttribute("aria-expanded", "true");
       setTeamCount(getTeamCount());
@@ -2763,6 +2861,7 @@ const description =
       closeTeamsConfig();
       closeLabelrotConfig();
       closePaletteConfig();
+      closeSizeConfig();
       pointerConfig.hidden = false;
       if (pointerBtn) pointerBtn.setAttribute("aria-expanded", "true");
       (pointerPosTop as HTMLButtonElement | null)?.focus();
@@ -2793,6 +2892,7 @@ const description =
       closeTeamsConfig();
       closePointerConfig();
       closePaletteConfig();
+      closeSizeConfig();
       labelrotConfig.hidden = false;
       if (labelrotBtn) labelrotBtn.setAttribute("aria-expanded", "true");
       const pressed = Array.from(labelrotChips).find((c) => c.getAttribute("aria-pressed") === "true");
@@ -2862,6 +2962,7 @@ const description =
       closeTeamsConfig();
       closePointerConfig();
       closeLabelrotConfig();
+      closeSizeConfig();
       paletteConfig.hidden = false;
       if (paletteBtn) paletteBtn.setAttribute("aria-expanded", "true");
       const pressed = paletteConfig.querySelector<HTMLButtonElement>(".spin-palette-chip[aria-pressed='true']");
@@ -2872,6 +2973,53 @@ const description =
       if (!paletteConfig) return;
       paletteConfig.hidden = true;
       if (paletteBtn) paletteBtn.setAttribute("aria-expanded", "false");
+    }
+
+    function applyWheelSize() {
+      if (wheelFrame) wheelFrame.dataset.size = wheelSize;
+      sizeChips.forEach((c) => {
+        c.setAttribute("aria-pressed", String(c.dataset.size === wheelSize));
+      });
+    }
+
+    function setWheelSize(next: WheelSize) {
+      if (wheelSize === next) return;
+      wheelSize = next;
+      applyWheelSize();
+      save();
+      drawWheel();
+      fitConfetti();
+      requestAnimationFrame(() => {
+        drawWheel();
+        fitConfetti();
+      });
+    }
+
+    if (wheelFrame) {
+      wheelFrame.addEventListener("transitionend", (e) => {
+        if ((e as TransitionEvent).propertyName === "max-width") {
+          drawWheel();
+          fitConfetti();
+        }
+      });
+    }
+
+    function openSizeConfig() {
+      if (!sizeConfig) return;
+      closeTeamsConfig();
+      closePointerConfig();
+      closeLabelrotConfig();
+      closePaletteConfig();
+      sizeConfig.hidden = false;
+      if (sizeBtn) sizeBtn.setAttribute("aria-expanded", "true");
+      const pressed = Array.from(sizeChips).find((c) => c.getAttribute("aria-pressed") === "true");
+      (pressed as HTMLButtonElement | undefined)?.focus();
+    }
+
+    function closeSizeConfig() {
+      if (!sizeConfig) return;
+      sizeConfig.hidden = true;
+      if (sizeBtn) sizeBtn.setAttribute("aria-expanded", "false");
     }
 
     // Snake-draft partition: ensures team sizes stay within 1 of each other and
@@ -3175,6 +3323,20 @@ const description =
       });
     }
     if (paletteCancel) paletteCancel.addEventListener("click", closePaletteConfig);
+
+    if (sizeBtn) {
+      sizeBtn.addEventListener("click", () => {
+        if (sizeConfig && !sizeConfig.hidden) closeSizeConfig();
+        else openSizeConfig();
+      });
+    }
+    if (sizeCancel) sizeCancel.addEventListener("click", closeSizeConfig);
+    sizeChips.forEach((c) => {
+      c.addEventListener("click", () => {
+        const s = c.dataset.size;
+        if (s === "s" || s === "m" || s === "l" || s === "full") setWheelSize(s);
+      });
+    });
 
     againBtn!.addEventListener("click", () => {
       // If we're closing an order or teams reveal, the next spin should
@@ -3889,6 +4051,7 @@ const description =
     applyPointer();
     applyLabelRotation();
     renderPaletteChips();
+    applyWheelSize();
 
     if (historyClear) {
       historyClear.addEventListener("click", () => {
