@@ -57,6 +57,10 @@ const description =
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                   Duplicate
                 </button>
+                <button type="button" id="spin-picker-reset-counts" class="spin-picker-action" role="menuitem" hidden>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                  Reset win counts
+                </button>
                 <button type="button" id="spin-picker-export" class="spin-picker-action" role="menuitem">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   Export JSON
@@ -84,6 +88,9 @@ const description =
             </button>
             <button id="spin-eliminate" type="button" class="spin-icon-btn spin-icon-mode" title="Eliminate mode — winner removed each spin" aria-label="Eliminate mode" aria-pressed="false">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </button>
+            <button id="spin-accumulate" type="button" class="spin-icon-btn spin-icon-mode" title="Accumulate mode — track win counts" aria-label="Accumulate mode" aria-pressed="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="20" x2="4" y2="13"/><line x1="10" y1="20" x2="10" y2="8"/><line x1="16" y1="20" x2="16" y2="11"/><line x1="3" y1="20" x2="17" y2="20"/></svg>
             </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
@@ -575,6 +582,23 @@ const description =
       color: var(--content);
       background: var(--surface-3);
     }
+    .spin-list-wins {
+      flex-shrink: 0;
+      font-family: var(--font-mono, ui-monospace, monospace);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      background: color-mix(in oklab, var(--accent) 10%, transparent);
+      border: 1px solid color-mix(in oklab, var(--accent) 25%, transparent);
+      padding: 2px 7px;
+      border-radius: 9999px;
+      letter-spacing: 0.01em;
+    }
+    .spin-list-wins-zero {
+      color: var(--content-4);
+      background: transparent;
+      border-color: transparent;
+    }
     .spin-list-item:hover .spin-list-weight,
     .spin-list-item:focus-within .spin-list-weight {
       border-color: var(--border, rgba(20, 17, 11, 0.12));
@@ -876,8 +900,8 @@ const description =
   </style>
 
   <script>
-    type Entry = { id: string; label: string; color?: string; weight?: number };
-    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean };
+    type Entry = { id: string; label: string; color?: string; weight?: number; wins?: number };
+    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean; accumulate?: boolean };
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
     type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean };
     type AnyPersist = PersistV1 | PersistV2;
@@ -917,6 +941,8 @@ const description =
     const shareBtn = document.getElementById("spin-share");
     const muteBtn = document.getElementById("spin-mute");
     const eliminateBtn = document.getElementById("spin-eliminate");
+    const accumulateBtn = document.getElementById("spin-accumulate");
+    const pickerResetCounts = document.getElementById("spin-picker-reset-counts") as HTMLButtonElement | null;
     const modalLabelEl = document.getElementById("spin-modal-label");
     const hintEl = document.getElementById("spin-hint");
     const modal = document.getElementById("spin-winner") as HTMLDivElement | null;
@@ -985,12 +1011,24 @@ const description =
           const cleaned: Wheel[] = p.wheels
             .filter((w) => w && typeof w.id === "string" && typeof w.name === "string" && Array.isArray(w.entries))
             .map((w) => {
+              const entries = w.entries
+                .filter((e) => e && typeof e.label === "string")
+                .slice(0, 200)
+                .map((e) => {
+                  if (typeof e.wins === "number" && Number.isFinite(e.wins) && e.wins > 0) {
+                    e.wins = Math.max(0, Math.min(9999, Math.floor(e.wins)));
+                  } else if ("wins" in e) {
+                    delete e.wins;
+                  }
+                  return e;
+                });
               const out: Wheel = {
                 id: w.id,
                 name: w.name.slice(0, MAX_WHEEL_NAME) || "Untitled",
-                entries: w.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
+                entries,
               };
               if (w.eliminate === true) out.eliminate = true;
+              if (w.accumulate === true) out.accumulate = true;
               return out;
             })
             .slice(0, MAX_WHEELS);
@@ -1172,6 +1210,8 @@ const description =
       }
       if (pickerDelete) pickerDelete.disabled = wheels.length <= 1;
       updateEliminateBtn();
+      updateAccumulateBtn();
+      updatePickerResetCounts();
     }
 
     function openPicker() {
@@ -1452,6 +1492,16 @@ const description =
 
         li.appendChild(weight);
 
+        if (currentWheel().accumulate) {
+          const wins = document.createElement("span");
+          const n = entry.wins || 0;
+          wins.className = n > 0 ? "spin-list-wins" : "spin-list-wins spin-list-wins-zero";
+          wins.textContent = `× ${n}`;
+          wins.setAttribute("aria-label", `${n} ${n === 1 ? "win" : "wins"}`);
+          wins.title = "Win count";
+          li.appendChild(wins);
+        }
+
         const rm = document.createElement("button");
         rm.type = "button";
         rm.className = "spin-list-remove";
@@ -1614,10 +1664,21 @@ const description =
     }
 
     function showWinner(entry: Entry) {
-      winnerName!.textContent = entry.label;
+      const cw = currentWheel();
+      const eliminateMode = !!cw.eliminate;
+      const accumulateMode = !!cw.accumulate;
+      // Increment count BEFORE rendering so the modal can show the new total.
+      if (accumulateMode) {
+        entry.wins = (entry.wins || 0) + 1;
+        save();
+        renderList();
+        updatePickerResetCounts();
+      }
+      winnerName!.textContent = accumulateMode
+        ? `${entry.label} × ${entry.wins}`
+        : entry.label;
       modal!.hidden = false;
       modal!.setAttribute("aria-hidden", "false");
-      const eliminateMode = !!currentWheel().eliminate;
       // Once we remove this entry the wheel will only contain the champion.
       const isFinal = eliminateMode && entries.length === 1;
       pendingEliminate = eliminateMode && !isFinal;
@@ -1767,6 +1828,33 @@ const description =
         "aria-label",
         muted ? "Unmute sound" : "Mute sound",
       );
+    }
+
+    function updateAccumulateBtn() {
+      if (!accumulateBtn) return;
+      const on = !!currentWheel().accumulate;
+      accumulateBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      accumulateBtn.setAttribute(
+        "title",
+        on
+          ? "Accumulate mode on — winner count tallied"
+          : "Accumulate mode — track win counts",
+      );
+      accumulateBtn.setAttribute(
+        "aria-label",
+        on ? "Accumulate mode (on)" : "Accumulate mode (off)",
+      );
+    }
+
+    function wheelHasWins(w: Wheel): boolean {
+      return w.entries.some((e) => (e.wins || 0) > 0);
+    }
+
+    function updatePickerResetCounts() {
+      if (!pickerResetCounts) return;
+      const cw = currentWheel();
+      const show = !!cw.accumulate && wheelHasWins(cw);
+      pickerResetCounts.hidden = !show;
     }
 
     function updateEliminateBtn() {
@@ -2026,6 +2114,51 @@ const description =
         showToast(cw.eliminate ? "Eliminate mode on" : "Eliminate mode off");
       });
     }
+    if (accumulateBtn) {
+      accumulateBtn.addEventListener("click", () => {
+        if (spinning) {
+          showToast("Wait for the spin to finish");
+          return;
+        }
+        const cw = currentWheel();
+        if (cw.accumulate) {
+          delete cw.accumulate;
+        } else {
+          cw.accumulate = true;
+        }
+        save();
+        updateAccumulateBtn();
+        renderList();
+        updatePickerResetCounts();
+        showToast(cw.accumulate ? "Accumulate mode on" : "Accumulate mode off");
+      });
+    }
+    if (pickerResetCounts) {
+      pickerResetCounts.addEventListener("click", () => {
+        if (spinning) {
+          showToast("Wait for the spin to finish");
+          return;
+        }
+        const cw = currentWheel();
+        let touched = 0;
+        for (const e of cw.entries) {
+          if (e.wins && e.wins > 0) {
+            delete e.wins;
+            touched++;
+          }
+        }
+        if (touched === 0) {
+          updatePickerResetCounts();
+          closePicker();
+          return;
+        }
+        save();
+        renderList();
+        updatePickerResetCounts();
+        closePicker();
+        showToast(`Reset ${touched} win count${touched === 1 ? "" : "s"}`);
+      });
+    }
 
     // === Wheel picker wiring ===
     if (pickerBtn) {
@@ -2120,10 +2253,12 @@ const description =
           name: w.name,
           entries: w.entries.map((e) => {
             const heavyWeight = (e.weight || 1) > 1;
-            if (!e.color && !heavyWeight) return e.label;
-            const obj: { label: string; color?: string; weight?: number } = { label: e.label };
+            const hasWins = (e.wins || 0) > 0;
+            if (!e.color && !heavyWeight && !hasWins) return e.label;
+            const obj: { label: string; color?: string; weight?: number; wins?: number } = { label: e.label };
             if (e.color) obj.color = e.color;
             if (heavyWeight) obj.weight = e.weight;
+            if (hasWins) obj.wins = e.wins;
             return obj;
           }),
         })),
@@ -2154,7 +2289,7 @@ const description =
         return;
       }
       // Accept either the full export shape or a single wheel
-      type ImportEntry = { label: string; color?: string; weight?: number };
+      type ImportEntry = { label: string; color?: string; weight?: number; wins?: number };
       const incoming: { name: string; entries: ImportEntry[] }[] = [];
       const p = parsed as { wheels?: unknown; name?: unknown; entries?: unknown };
       const normalizeEntries = (raw: unknown[]): ImportEntry[] => {
@@ -2163,10 +2298,11 @@ const description =
           let label: string | null = null;
           let color: string | undefined;
           let weight: number | undefined;
+          let wins: number | undefined;
           if (typeof e === "string") {
             label = e;
           } else if (e && typeof e === "object") {
-            const obj = e as { label?: unknown; color?: unknown; weight?: unknown };
+            const obj = e as { label?: unknown; color?: unknown; weight?: unknown; wins?: unknown };
             if (typeof obj.label === "string") label = obj.label;
             if (typeof obj.color === "string" && /^#[0-9a-fA-F]{6}$/.test(obj.color)) {
               color = obj.color.toLowerCase();
@@ -2175,6 +2311,9 @@ const description =
               const wv = Math.max(1, Math.min(10, Math.round(obj.weight)));
               if (wv > 1) weight = wv;
             }
+            if (typeof obj.wins === "number" && Number.isFinite(obj.wins) && obj.wins > 0) {
+              wins = Math.max(0, Math.min(9999, Math.floor(obj.wins)));
+            }
           }
           if (label === null) continue;
           const trimmed = label.trim();
@@ -2182,6 +2321,7 @@ const description =
           const entry: ImportEntry = { label: trimmed };
           if (color) entry.color = color;
           if (weight) entry.weight = weight;
+          if (wins) entry.wins = wins;
           out.push(entry);
           if (out.length >= 200) break;
         }
@@ -2229,6 +2369,7 @@ const description =
             const e: Entry = { id: newId(), label: it.label };
             if (it.color) e.color = it.color;
             if (it.weight) e.weight = it.weight;
+            if (it.wins) e.wins = it.wins;
             return e;
           }),
         };
@@ -2275,6 +2416,8 @@ const description =
 
     updateMuteBtn();
     updateEliminateBtn();
+    updateAccumulateBtn();
+    updatePickerResetCounts();
     fitConfetti();
     renderPicker();
     renderList();
