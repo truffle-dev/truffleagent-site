@@ -95,6 +95,9 @@ const description =
             <button id="spin-order" type="button" class="spin-icon-btn" title="Spin for order — random ordering of all entries" aria-label="Spin for order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><path d="M4 4h1.5v4"/><path d="M4 14h2.5c0 1-2 2-2 3h2"/></svg>
             </button>
+            <button id="spin-teams" type="button" class="spin-icon-btn" title="Split into teams" aria-label="Split into teams" aria-expanded="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/><path d="M11 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/></svg>
+            </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
             </button>
@@ -102,6 +105,17 @@ const description =
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
             </button>
           </div>
+        </div>
+
+        <div id="spin-teams-config" class="spin-teams-config" hidden role="group" aria-label="Team split settings">
+          <span class="spin-teams-label">Teams</span>
+          <div class="spin-teams-stepper" role="group" aria-label="Team count stepper">
+            <button id="spin-teams-dec" type="button" class="spin-teams-step" aria-label="Fewer teams">−</button>
+            <span id="spin-teams-count" class="spin-teams-count" aria-live="polite">3</span>
+            <button id="spin-teams-inc" type="button" class="spin-teams-step" aria-label="More teams">+</button>
+          </div>
+          <button id="spin-teams-go" type="button" class="spin-teams-go">Split</button>
+          <button id="spin-teams-cancel" type="button" class="spin-teams-cancel" aria-label="Cancel team split">×</button>
         </div>
 
         <ul id="spin-list" class="spin-list" aria-label="Entries list"></ul>
@@ -146,6 +160,7 @@ const description =
       <p id="spin-modal-label" class="spin-modal-label">Winner</p>
       <p id="spin-winner-name" class="spin-modal-name"></p>
       <ol id="spin-order-list" class="spin-order-list" hidden aria-label="Spin order"></ol>
+      <div id="spin-teams-list" class="spin-teams-list" hidden aria-label="Teams"></div>
       <div class="spin-modal-actions">
         <button id="spin-winner-remove" type="button" class="spin-btn">Remove + spin</button>
         <button id="spin-winner-again" type="button" class="spin-btn spin-btn-primary">Spin again</button>
@@ -824,6 +839,100 @@ const description =
       outline-offset: 2px;
     }
 
+    .spin-teams-config {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.7rem;
+      margin: 0 0 0.85rem;
+      background: color-mix(in oklab, var(--accent) 4%, var(--surface-2));
+      border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border));
+      border-radius: 8px;
+    }
+    .spin-teams-label {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-3);
+    }
+    .spin-teams-stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .spin-teams-step {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .spin-teams-step:hover { background: var(--surface-2); }
+    .spin-teams-step:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-teams-step:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .spin-teams-count {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+      min-width: 20px;
+      text-align: center;
+      color: var(--content);
+    }
+    .spin-teams-go {
+      margin-left: auto;
+      padding: 0.4rem 0.95rem;
+      border-radius: 7px;
+      border: 0;
+      background: var(--accent);
+      color: white;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .spin-teams-go:hover { background: var(--accent-2); }
+    .spin-teams-go:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-teams-cancel {
+      width: 24px;
+      height: 24px;
+      border: 0;
+      background: transparent;
+      color: var(--content-4);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0;
+    }
+    .spin-teams-cancel:hover {
+      color: var(--content);
+      background: var(--surface);
+    }
+    .spin-teams-cancel:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+
     .spin-foot {
       margin-top: 3rem;
       padding-top: 1.5rem;
@@ -934,6 +1043,58 @@ const description =
       flex: 1;
       word-break: break-word;
     }
+    .spin-teams-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      margin: 0 0 1.25rem;
+      max-height: 55vh;
+      overflow-y: auto;
+      text-align: left;
+    }
+    .spin-team {
+      padding: 0.55rem 0.75rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .spin-team:first-child {
+      border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+      background: color-mix(in oklab, var(--accent) 6%, var(--surface-2));
+    }
+    .spin-team-name {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--content-3);
+      margin: 0 0 0.4rem;
+      font-weight: 500;
+    }
+    .spin-team:first-child .spin-team-name { color: var(--accent); }
+    .spin-team-size {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      color: var(--content-4);
+      font-size: 11px;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .spin-team-members {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 14px;
+      color: var(--content);
+    }
+    .spin-team-members li { word-break: break-word; }
     .spin-modal-actions {
       display: flex;
       flex-wrap: wrap;
@@ -1047,7 +1208,7 @@ const description =
 
   <script>
     type Entry = { id: string; label: string; color?: string; weight?: number; wins?: number };
-    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean; accumulate?: boolean };
+    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean; accumulate?: boolean; teamCount?: number };
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
     type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean };
     type AnyPersist = PersistV1 | PersistV2;
@@ -1094,6 +1255,14 @@ const description =
     const accumulateBtn = document.getElementById("spin-accumulate");
     const orderBtn = document.getElementById("spin-order");
     const orderList = document.getElementById("spin-order-list") as HTMLOListElement | null;
+    const teamsBtn = document.getElementById("spin-teams") as HTMLButtonElement | null;
+    const teamsConfig = document.getElementById("spin-teams-config") as HTMLDivElement | null;
+    const teamsCountEl = document.getElementById("spin-teams-count") as HTMLSpanElement | null;
+    const teamsDec = document.getElementById("spin-teams-dec") as HTMLButtonElement | null;
+    const teamsInc = document.getElementById("spin-teams-inc") as HTMLButtonElement | null;
+    const teamsGo = document.getElementById("spin-teams-go") as HTMLButtonElement | null;
+    const teamsCancel = document.getElementById("spin-teams-cancel") as HTMLButtonElement | null;
+    const teamsList = document.getElementById("spin-teams-list") as HTMLDivElement | null;
     const historyList = document.getElementById("spin-history-list") as HTMLUListElement | null;
     const historyCount = document.getElementById("spin-history-count") as HTMLSpanElement | null;
     const historyClear = document.getElementById("spin-history-clear") as HTMLButtonElement | null;
@@ -1150,6 +1319,8 @@ const description =
     // One-shot flag set by the "Spin for order" button. When true, the next
     // showWinner reveals the full ordering instead of a single winner.
     let orderSpinPending = false;
+    // Same pattern for team-split: the next showWinner reveals K teams.
+    let teamSpinPending = false;
 
     let history: HistoryEntry[] = loadHistory();
 
@@ -1247,6 +1418,10 @@ const description =
               };
               if (w.eliminate === true) out.eliminate = true;
               if (w.accumulate === true) out.accumulate = true;
+              if (typeof w.teamCount === "number" && Number.isFinite(w.teamCount)) {
+                const tc = Math.floor(w.teamCount);
+                if (tc >= 2 && tc <= 10) out.teamCount = tc;
+              }
               return out;
             })
             .slice(0, MAX_WHEELS);
@@ -1612,6 +1787,7 @@ const description =
     function renderList() {
       list!.innerHTML = "";
       countEl!.textContent = String(entries.length);
+      if (teamsBtn) setTeamCount(getTeamCount());
       entries.forEach((entry, i) => {
         const li = document.createElement("li");
         li.className = "spin-list-item";
@@ -1891,6 +2067,72 @@ const description =
       return [winner, ...rest];
     }
 
+    function maxTeamCount(): number {
+      return Math.min(10, Math.max(2, entries.length));
+    }
+
+    function getTeamCount(): number {
+      const k = currentWheel().teamCount;
+      const max = maxTeamCount();
+      const start = typeof k === "number" && Number.isFinite(k) ? Math.floor(k) : 3;
+      return Math.max(2, Math.min(max, start));
+    }
+
+    function setTeamCount(n: number) {
+      const clamped = Math.max(2, Math.min(maxTeamCount(), Math.floor(n)));
+      const cw = currentWheel();
+      const prior = cw.teamCount;
+      cw.teamCount = clamped;
+      if (prior !== clamped) save();
+      if (teamsCountEl) teamsCountEl.textContent = String(clamped);
+      if (teamsDec) teamsDec.disabled = clamped <= 2;
+      if (teamsInc) teamsInc.disabled = clamped >= maxTeamCount();
+      if (teamsBtn) {
+        teamsBtn.title = `Split into ${clamped} teams`;
+        teamsBtn.setAttribute("aria-label", `Split into ${clamped} teams`);
+      }
+    }
+
+    function openTeamsConfig() {
+      if (entries.length < 4) {
+        showToast("Need at least 4 entries to split teams");
+        return;
+      }
+      if (!teamsConfig) return;
+      teamsConfig.hidden = false;
+      if (teamsBtn) teamsBtn.setAttribute("aria-expanded", "true");
+      setTeamCount(getTeamCount());
+      (teamsGo as HTMLButtonElement | null)?.focus();
+    }
+
+    function closeTeamsConfig() {
+      if (!teamsConfig) return;
+      teamsConfig.hidden = true;
+      if (teamsBtn) teamsBtn.setAttribute("aria-expanded", "false");
+    }
+
+    // Snake-draft partition: ensures team sizes stay within 1 of each other and
+    // adjacent rounds reverse direction, so the first team isn't always the
+    // largest. Returns one section per team with header + member list.
+    function buildTeams(): { name: string; members: Entry[] }[] {
+      const k = getTeamCount();
+      const shuffled = entries.slice();
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const teams = Array.from({ length: k }, (_, i) => ({
+        name: `Team ${String.fromCharCode(65 + i)}`,
+        members: [] as Entry[],
+      }));
+      shuffled.forEach((e, i) => {
+        const round = Math.floor(i / k);
+        const slot = round % 2 === 0 ? i % k : k - 1 - (i % k);
+        teams[slot].members.push(e);
+      });
+      return teams;
+    }
+
     function renderHistory() {
       if (!historyList) return;
       historyList.innerHTML = "";
@@ -1962,8 +2204,55 @@ const description =
       (closeBtn as HTMLButtonElement).focus();
     }
 
+    function showTeamReveal() {
+      if (!teamsList) return;
+      const teams = buildTeams();
+      teamsList.innerHTML = "";
+      teams.forEach((t) => {
+        const sec = document.createElement("section");
+        sec.className = "spin-team";
+        const head = document.createElement("h3");
+        head.className = "spin-team-name";
+        const name = document.createElement("span");
+        name.textContent = t.name;
+        const size = document.createElement("span");
+        size.className = "spin-team-size";
+        size.textContent = `${t.members.length}`;
+        head.appendChild(name);
+        head.appendChild(size);
+        const ul = document.createElement("ul");
+        ul.className = "spin-team-members";
+        t.members.forEach((m) => {
+          const li = document.createElement("li");
+          li.textContent = m.label;
+          ul.appendChild(li);
+        });
+        sec.appendChild(head);
+        sec.appendChild(ul);
+        teamsList!.appendChild(sec);
+      });
+      if (winnerName) (winnerName as HTMLElement).hidden = true;
+      if (orderList) orderList.hidden = true;
+      teamsList.hidden = false;
+      if (modalLabelEl) modalLabelEl.textContent = `Split into ${teams.length} teams`;
+      if (removeBtn) (removeBtn as HTMLButtonElement).hidden = true;
+      if (againBtn) {
+        (againBtn as HTMLButtonElement).hidden = false;
+        (againBtn as HTMLButtonElement).textContent = "Re-split";
+      }
+      modal!.hidden = false;
+      modal!.setAttribute("aria-hidden", "false");
+      hintEl!.textContent = `Teams: ${teams.map((t) => `${t.name} (${t.members.map((m) => m.label).join(", ")})`).join(" · ")}`;
+      (closeBtn as HTMLButtonElement).focus();
+    }
+
     function showWinner(entry: Entry) {
       const cw = currentWheel();
+      if (teamSpinPending) {
+        teamSpinPending = false;
+        showTeamReveal();
+        return;
+      }
       if (orderSpinPending) {
         orderSpinPending = false;
         const idx = entries.indexOf(entry);
@@ -2031,6 +2320,7 @@ const description =
       // Reset modal back to winner layout so the next spin renders normally.
       if (winnerName) (winnerName as HTMLElement).hidden = false;
       if (orderList) orderList.hidden = true;
+      if (teamsList) teamsList.hidden = true;
     }
 
     centerBtn!.addEventListener("click", spin);
@@ -2050,12 +2340,50 @@ const description =
       });
     }
 
+    if (teamsBtn) {
+      teamsBtn.addEventListener("click", () => {
+        if (spinning) {
+          showToast("Wait for the spin to finish");
+          return;
+        }
+        if (teamsConfig && !teamsConfig.hidden) closeTeamsConfig();
+        else openTeamsConfig();
+      });
+    }
+    if (teamsDec) {
+      teamsDec.addEventListener("click", () => setTeamCount(getTeamCount() - 1));
+    }
+    if (teamsInc) {
+      teamsInc.addEventListener("click", () => setTeamCount(getTeamCount() + 1));
+    }
+    if (teamsCancel) {
+      teamsCancel.addEventListener("click", closeTeamsConfig);
+    }
+    if (teamsGo) {
+      teamsGo.addEventListener("click", () => {
+        if (spinning) {
+          showToast("Wait for the spin to finish");
+          return;
+        }
+        if (entries.length < 4) {
+          showToast("Need at least 4 entries to split teams");
+          return;
+        }
+        closeTeamsConfig();
+        teamSpinPending = true;
+        spin();
+      });
+    }
+
     againBtn!.addEventListener("click", () => {
-      // If we're closing an order reveal, the next spin should reveal an
-      // order again. The order-list visibility is the source of truth.
+      // If we're closing an order or teams reveal, the next spin should
+      // re-arm the same reveal. The hidden state of each panel is the
+      // source of truth.
       const wasOrder = !!(orderList && !orderList.hidden);
+      const wasTeams = !!(teamsList && !teamsList.hidden);
       hideWinner();
-      if (wasOrder) orderSpinPending = true;
+      if (wasTeams) teamSpinPending = true;
+      else if (wasOrder) orderSpinPending = true;
       spin();
     });
 
@@ -2755,6 +3083,7 @@ const description =
     renderList();
     renderHistory();
     drawWheel();
+    if (teamsBtn) setTeamCount(getTeamCount());
 
     if (historyClear) {
       historyClear.addEventListener("click", () => {
