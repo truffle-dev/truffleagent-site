@@ -251,6 +251,22 @@ const description =
     </div>
   </div>
 
+  <div id="spin-help" class="spin-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="spin-help-title">
+    <div class="spin-modal-card spin-help-card">
+      <button id="spin-help-close-x" type="button" class="spin-help-x" aria-label="Close keyboard shortcuts">×</button>
+      <p class="spin-modal-label">Shortcuts</p>
+      <p id="spin-help-title" class="spin-help-title">Keyboard</p>
+      <dl class="spin-help-list">
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">Space</kbd></dt><dd>Spin the wheel</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">Esc</kbd></dt><dd>Close any dialog</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">?</kbd></dt><dd>Toggle this cheatsheet</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">Enter</kbd></dt><dd>Add entry (while typing)</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">Tab</kbd></dt><dd>Move through entries</dd></div>
+      </dl>
+      <p class="spin-help-foot">Shortcuts skip when an input is focused.</p>
+    </div>
+  </div>
+
   <canvas id="spin-confetti" class="spin-confetti" aria-hidden="true"></canvas>
   <div id="spin-toast" class="spin-toast" hidden aria-live="polite"></div>
 
@@ -1714,6 +1730,85 @@ const description =
       color: var(--content);
     }
 
+    /* Help / cheatsheet */
+    .spin-help-card {
+      max-width: 460px;
+      text-align: left;
+      padding-top: 1.6rem;
+      position: relative;
+    }
+    .spin-help-card .spin-modal-label {
+      text-align: left;
+    }
+    .spin-help-title {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(1.6rem, 3.5vw, 2rem);
+      font-weight: 400;
+      line-height: 1.1;
+      color: var(--content);
+      margin: 0 0 1.25rem;
+    }
+    .spin-help-x {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.65rem;
+      width: 30px;
+      height: 30px;
+      border: 0;
+      background: transparent;
+      color: var(--content-3);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    .spin-help-x:hover { color: var(--content); background: var(--surface-2); }
+    .spin-help-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .spin-help-list {
+      margin: 0 0 1rem;
+      padding: 0;
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      column-gap: 0.85rem;
+      row-gap: 0.55rem;
+    }
+    .spin-help-row {
+      display: contents;
+    }
+    .spin-help-row dt {
+      margin: 0;
+      align-self: center;
+    }
+    .spin-help-row dd {
+      margin: 0;
+      align-self: center;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--content-2);
+    }
+    .spin-kbd {
+      display: inline-block;
+      min-width: 2.1em;
+      padding: 3px 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+      color: var(--content);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      line-height: 1.2;
+    }
+    .spin-help-foot {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--content-4);
+    }
+
     /* Confetti overlay */
     .spin-confetti {
       position: fixed;
@@ -1925,6 +2020,8 @@ const description =
     const wheelFrame = document.querySelector(".spin-wheel-frame") as HTMLDivElement | null;
     const historyList = document.getElementById("spin-history-list") as HTMLUListElement | null;
     const historyCount = document.getElementById("spin-history-count") as HTMLSpanElement | null;
+    const helpModal = document.getElementById("spin-help") as HTMLDivElement | null;
+    const helpCloseX = document.getElementById("spin-help-close-x") as HTMLButtonElement | null;
     const historyClear = document.getElementById("spin-history-clear") as HTMLButtonElement | null;
     const pickerResetCounts = document.getElementById("spin-picker-reset-counts") as HTMLButtonElement | null;
     const modalLabelEl = document.getElementById("spin-modal-label");
@@ -3379,7 +3476,27 @@ const description =
       if (e.target === modal) hideWinner();
     });
 
+    function showHelp() {
+      if (!helpModal) return;
+      helpModal.hidden = false;
+      helpModal.setAttribute("aria-hidden", "false");
+      helpCloseX?.focus();
+    }
+    function hideHelp() {
+      if (!helpModal) return;
+      helpModal.hidden = true;
+      helpModal.setAttribute("aria-hidden", "true");
+    }
+    helpCloseX?.addEventListener("click", hideHelp);
+    helpModal?.addEventListener("click", (e) => {
+      if (e.target === helpModal) hideHelp();
+    });
+
     document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && helpModal && !helpModal.hidden) {
+        hideHelp();
+        return;
+      }
       if (e.key === "Escape" && !modal!.hidden) {
         hideWinner();
         return;
@@ -3387,6 +3504,13 @@ const description =
       if (e.key === " " && !modal!.hidden) return;
       const tag = (document.activeElement?.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea") return;
+      if (e.key === "?") {
+        e.preventDefault();
+        if (helpModal && !helpModal.hidden) hideHelp();
+        else showHelp();
+        return;
+      }
+      if (helpModal && !helpModal.hidden) return;
       if (e.key === " " || e.code === "Space") {
         e.preventDefault();
         if (!spinning) spin();
