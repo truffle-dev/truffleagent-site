@@ -57,12 +57,21 @@ const description =
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                   Duplicate
                 </button>
+                <button type="button" id="spin-picker-export" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export JSON
+                </button>
+                <button type="button" id="spin-picker-import" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Import JSON
+                </button>
                 <button type="button" id="spin-picker-delete" class="spin-picker-action spin-picker-action-danger" role="menuitem">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                   Delete
                 </button>
               </div>
             </div>
+            <input type="file" id="spin-import-file" accept=".json,application/json" hidden />
           </div>
           <div class="spin-side-actions">
             <button id="spin-share" type="button" class="spin-icon-btn" title="Copy share link" aria-label="Copy share link">
@@ -856,6 +865,9 @@ const description =
     const pickerRename = document.getElementById("spin-picker-rename");
     const pickerDupe = document.getElementById("spin-picker-dupe");
     const pickerDelete = document.getElementById("spin-picker-delete") as HTMLButtonElement | null;
+    const pickerExport = document.getElementById("spin-picker-export");
+    const pickerImport = document.getElementById("spin-picker-import");
+    const importFileInput = document.getElementById("spin-import-file") as HTMLInputElement | null;
 
     if (!canvas || !centerBtn || !list || !addForm || !addInput || !modal) {
       console.error("[spin] missing required DOM nodes");
@@ -1774,6 +1786,140 @@ const description =
         if (!confirm(`Delete "${cw.name}"? This cannot be undone.`)) return;
         deleteWheel(cw.id);
       });
+    }
+    if (pickerExport) {
+      pickerExport.addEventListener("click", () => {
+        closePicker();
+        exportAllWheels();
+      });
+    }
+    if (pickerImport) {
+      pickerImport.addEventListener("click", () => {
+        closePicker();
+        importFileInput?.click();
+      });
+    }
+    if (importFileInput) {
+      importFileInput.addEventListener("change", async () => {
+        const file = importFileInput.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          importFromJson(text);
+        } catch {
+          showToast("Could not read file");
+        }
+        importFileInput.value = "";
+      });
+    }
+
+    function exportAllWheels() {
+      const payload = {
+        format: "spinwheel",
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        wheels: wheels.map((w) => ({
+          name: w.name,
+          entries: w.entries.map((e) => e.label),
+        })),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `spinwheel-export-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      showToast(`Exported ${wheels.length} wheel${wheels.length === 1 ? "" : "s"}`);
+    }
+
+    function importFromJson(text: string) {
+      if (spinning) {
+        showToast("Wait for the spin to finish");
+        return;
+      }
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        showToast("Not valid JSON");
+        return;
+      }
+      // Accept either the full export shape or a single wheel
+      const incoming: { name: string; entries: string[] }[] = [];
+      const p = parsed as { wheels?: unknown; name?: unknown; entries?: unknown };
+      if (Array.isArray(p?.wheels)) {
+        for (const raw of p.wheels) {
+          const w = raw as { name?: unknown; entries?: unknown };
+          if (!Array.isArray(w?.entries)) continue;
+          const labels = (w.entries as unknown[])
+            .map((e) => (typeof e === "string" ? e : (e as { label?: unknown })?.label))
+            .filter((s): s is string => typeof s === "string")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0 && s.length <= 80)
+            .slice(0, 200);
+          if (labels.length === 0) continue;
+          const name = typeof w.name === "string" ? w.name.slice(0, MAX_WHEEL_NAME) : "Imported";
+          incoming.push({ name: name || "Imported", entries: labels });
+        }
+      } else if (Array.isArray(p?.entries)) {
+        const labels = (p.entries as unknown[])
+          .map((e) => (typeof e === "string" ? e : (e as { label?: unknown })?.label))
+          .filter((s): s is string => typeof s === "string")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0 && s.length <= 80)
+          .slice(0, 200);
+        if (labels.length > 0) {
+          const name = typeof p.name === "string" ? p.name.slice(0, MAX_WHEEL_NAME) : "Imported";
+          incoming.push({ name: name || "Imported", entries: labels });
+        }
+      }
+      if (incoming.length === 0) {
+        showToast("No wheels found in file");
+        return;
+      }
+      const slots = MAX_WHEELS - wheels.length;
+      const toAdd = incoming.slice(0, Math.max(0, slots));
+      if (toAdd.length === 0) {
+        showToast(`Max ${MAX_WHEELS} wheels — make room first`);
+        return;
+      }
+      // Persist active wheel's edits before appending
+      currentWheel().entries = entries;
+      const existing = new Set(wheels.map((w) => w.name));
+      let last: Wheel | null = null;
+      for (const w of toAdd) {
+        let name = w.name;
+        let n = 2;
+        while (existing.has(name)) name = `${w.name} (${n++})`;
+        existing.add(name);
+        const wheel: Wheel = {
+          id: newId(),
+          name,
+          entries: w.entries.map((label) => ({ id: newId(), label })),
+        };
+        wheels.push(wheel);
+        last = wheel;
+      }
+      if (last) {
+        currentId = last.id;
+        entries = last.entries;
+        rotation = 0;
+        lastWinnerIdx = null;
+      }
+      save();
+      renderPicker();
+      renderList();
+      drawWheel();
+      const skipped = incoming.length - toAdd.length;
+      showToast(
+        skipped > 0
+          ? `Imported ${toAdd.length} wheel${toAdd.length === 1 ? "" : "s"} (${skipped} skipped: max reached)`
+          : `Imported ${toAdd.length} wheel${toAdd.length === 1 ? "" : "s"}`,
+      );
     }
 
     // === Init: handle ?w= shared wheel + apply settings ===
