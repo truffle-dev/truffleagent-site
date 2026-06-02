@@ -101,6 +101,9 @@ const description =
             <button id="spin-pointer-btn" type="button" class="spin-icon-btn" title="Pointer settings" aria-label="Pointer settings" aria-expanded="false">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 3 8.5 8.5 15.5 8.5"/><circle cx="12" cy="15" r="5"/></svg>
             </button>
+            <button id="spin-labelrot-btn" type="button" class="spin-icon-btn" title="Label rotation" aria-label="Label rotation" aria-expanded="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19 L9 5 L13 19"/><line x1="6.5" y1="14" x2="11.5" y2="14"/><path d="M15 9 a4 4 0 0 1 4 4 a4 4 0 0 1 -4 4"/><polyline points="13 15 15 17 17 15"/></svg>
+            </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
             </button>
@@ -134,6 +137,16 @@ const description =
             <button type="button" class="spin-pointer-swatch spin-pointer-swatch-amber" data-color="amber" aria-pressed="false" aria-label="Amber"></button>
           </div>
           <button id="spin-pointer-cancel" type="button" class="spin-pointer-cancel" aria-label="Close pointer settings">×</button>
+        </div>
+
+        <div id="spin-labelrot-config" class="spin-labelrot-config" hidden role="group" aria-label="Label rotation settings">
+          <span class="spin-labelrot-label">Labels</span>
+          <div class="spin-labelrot-chips" role="group" aria-label="Label rotation mode">
+            <button id="spin-labelrot-auto" type="button" class="spin-labelrot-chip" data-mode="auto" aria-pressed="true">Auto</button>
+            <button id="spin-labelrot-tangent" type="button" class="spin-labelrot-chip" data-mode="tangent" aria-pressed="false">Tangent</button>
+            <button id="spin-labelrot-radial" type="button" class="spin-labelrot-chip" data-mode="radial" aria-pressed="false">Radial</button>
+          </div>
+          <button id="spin-labelrot-cancel" type="button" class="spin-labelrot-cancel" aria-label="Close label rotation settings">×</button>
         </div>
 
         <ul id="spin-list" class="spin-list" aria-label="Entries list"></ul>
@@ -1050,6 +1063,71 @@ const description =
       outline-offset: 2px;
     }
 
+    .spin-labelrot-config {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.7rem;
+      margin: 0 0 0.85rem;
+      background: color-mix(in oklab, var(--accent) 4%, var(--surface-2));
+      border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border));
+      border-radius: 8px;
+    }
+    .spin-labelrot-label {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-3);
+    }
+    .spin-labelrot-chips {
+      display: inline-flex;
+      gap: 4px;
+    }
+    .spin-labelrot-chip {
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content-2);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .spin-labelrot-chip:hover { background: var(--surface-2); }
+    .spin-labelrot-chip:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-labelrot-chip[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .spin-labelrot-cancel {
+      margin-left: auto;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      background: transparent;
+      color: var(--content-4);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0;
+    }
+    .spin-labelrot-cancel:hover {
+      color: var(--content);
+      background: var(--surface);
+    }
+    .spin-labelrot-cancel:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+
     .spin-foot {
       margin-top: 3rem;
       padding-top: 1.5rem;
@@ -1329,8 +1407,9 @@ const description =
     type PointerPos = "top" | "right";
     type PointerColor = "ink" | "accent" | "amber";
     type PointerCfg = { pos: PointerPos; color: PointerColor };
+    type LabelRotation = "auto" | "tangent" | "radial";
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
-    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg };
+    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation };
     type AnyPersist = PersistV1 | PersistV2;
 
     const STORAGE_KEY = "spinwheel:v1";
@@ -1370,6 +1449,12 @@ const description =
       return out;
     }
 
+    const DEFAULT_LABEL_ROTATION: LabelRotation = "auto";
+    function validLabelRotation(v: unknown): LabelRotation {
+      return v === "tangent" || v === "radial" || v === "auto" ? v : DEFAULT_LABEL_ROTATION;
+    }
+    const AUTO_RADIAL_THRESHOLD = 7;
+
     const canvas = document.getElementById("spin-canvas") as HTMLCanvasElement | null;
     const centerBtn = document.getElementById("spin-center") as HTMLButtonElement | null;
     const list = document.getElementById("spin-list") as HTMLUListElement | null;
@@ -1401,6 +1486,10 @@ const description =
     const pointerPosRight = document.getElementById("spin-pointer-pos-right") as HTMLButtonElement | null;
     const pointerCancel = document.getElementById("spin-pointer-cancel") as HTMLButtonElement | null;
     const pointerSwatches = document.querySelectorAll<HTMLButtonElement>(".spin-pointer-swatch");
+    const labelrotBtn = document.getElementById("spin-labelrot-btn") as HTMLButtonElement | null;
+    const labelrotConfig = document.getElementById("spin-labelrot-config") as HTMLDivElement | null;
+    const labelrotCancel = document.getElementById("spin-labelrot-cancel") as HTMLButtonElement | null;
+    const labelrotChips = document.querySelectorAll<HTMLButtonElement>(".spin-labelrot-chip");
     const historyList = document.getElementById("spin-history-list") as HTMLUListElement | null;
     const historyCount = document.getElementById("spin-history-count") as HTMLSpanElement | null;
     const historyClear = document.getElementById("spin-history-clear") as HTMLButtonElement | null;
@@ -1439,6 +1528,7 @@ const description =
     let currentId: string = initialState.currentId;
     let muted: boolean = initialState.muted;
     let pointerCfg: PointerCfg = initialState.pointer;
+    let labelRotation: LabelRotation = initialState.labelRotation;
 
     function currentWheel(): Wheel {
       return wheels.find((w) => w.id === currentId) ?? wheels[0];
@@ -1521,7 +1611,7 @@ const description =
       return `${month}/${day}`;
     }
 
-    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg } {
+    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg; labelRotation: LabelRotation } {
       const defaultWheel = (): Wheel => ({
         id: newId(),
         name: "My wheel",
@@ -1531,7 +1621,7 @@ const description =
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
           const w = defaultWheel();
-          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER } };
+          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION };
         }
         const parsed = JSON.parse(raw) as AnyPersist;
         if (parsed && (parsed as PersistV2).version === 2 && Array.isArray((parsed as PersistV2).wheels)) {
@@ -1566,10 +1656,10 @@ const description =
             .slice(0, MAX_WHEELS);
           if (cleaned.length === 0) {
             const w = defaultWheel();
-            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer) };
+            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation) };
           }
           const cid = cleaned.find((w) => w.id === p.currentId)?.id ?? cleaned[0].id;
-          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer) };
+          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation) };
         }
         // v1 migration
         if (parsed && (parsed as PersistV1).version === 1 && Array.isArray((parsed as PersistV1).entries)) {
@@ -1579,20 +1669,20 @@ const description =
             name: "My wheel",
             entries: p.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
           };
-          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER } };
+          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION };
         }
       } catch {
         // fall through
       }
       const w = defaultWheel();
-      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER } };
+      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION };
     }
 
     function save() {
       const cw = currentWheel();
       if (cw) cw.entries = entries;
       try {
-        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg };
+        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
         // ignore quota
@@ -1830,21 +1920,40 @@ const description =
       ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
       ctx.shadowBlur = 2;
 
+      const effectiveRotation: "tangent" | "radial" =
+        labelRotation === "auto"
+          ? n >= AUTO_RADIAL_THRESHOLD
+            ? "tangent"
+            : "radial"
+          : labelRotation;
+
       for (let i = 0; i < n; i++) {
         const midAngle = (bounds[i] + bounds[i + 1]) / 2;
         const sliceSpan = bounds[i + 1] - bounds[i];
         const mid = rotation + midAngle - Math.PI / 2;
         const text = entries[i].label || "—";
-        const labelR = r * 0.62;
         ctx.save();
-        ctx.translate(cx + Math.cos(mid) * labelR, cy + Math.sin(mid) * labelR);
-        ctx.rotate(mid + Math.PI / 2);
-        ctx.textAlign = "center";
-        // Tangential label width scales with slice span; clamp so single slice
-        // doesn't blow past the wheel and a sliver still gets minimal text.
-        const maxW = Math.min(r * 0.9, Math.max(r * 0.18, r * sliceSpan * 0.95));
-        const displayed = clipText(ctx, text, maxW);
-        ctx.fillText(displayed, 0, 0);
+        if (effectiveRotation === "tangent") {
+          const labelR = r * 0.62;
+          ctx.translate(cx + Math.cos(mid) * labelR, cy + Math.sin(mid) * labelR);
+          ctx.rotate(mid + Math.PI / 2);
+          ctx.textAlign = "center";
+          // Tangential label width scales with slice span; clamp so single slice
+          // doesn't blow past the wheel and a sliver still gets minimal text.
+          const maxW = Math.min(r * 0.9, Math.max(r * 0.18, r * sliceSpan * 0.95));
+          const displayed = clipText(ctx, text, maxW);
+          ctx.fillText(displayed, 0, 0);
+        } else {
+          const innerR = r * 0.28;
+          const outerR = r * 0.92;
+          const labelR = (innerR + outerR) / 2;
+          ctx.translate(cx + Math.cos(mid) * labelR, cy + Math.sin(mid) * labelR);
+          ctx.rotate(mid);
+          ctx.textAlign = "center";
+          const maxW = outerR - innerR;
+          const displayed = clipText(ctx, text, maxW);
+          ctx.fillText(displayed, 0, 0);
+        }
         ctx.restore();
       }
 
@@ -2245,6 +2354,7 @@ const description =
       }
       if (!teamsConfig) return;
       closePointerConfig();
+      closeLabelrotConfig();
       teamsConfig.hidden = false;
       if (teamsBtn) teamsBtn.setAttribute("aria-expanded", "true");
       setTeamCount(getTeamCount());
@@ -2298,6 +2408,7 @@ const description =
     function openPointerConfig() {
       if (!pointerConfig) return;
       closeTeamsConfig();
+      closeLabelrotConfig();
       pointerConfig.hidden = false;
       if (pointerBtn) pointerBtn.setAttribute("aria-expanded", "true");
       (pointerPosTop as HTMLButtonElement | null)?.focus();
@@ -2307,6 +2418,36 @@ const description =
       if (!pointerConfig) return;
       pointerConfig.hidden = true;
       if (pointerBtn) pointerBtn.setAttribute("aria-expanded", "false");
+    }
+
+    function applyLabelRotation() {
+      labelrotChips.forEach((c) => {
+        c.setAttribute("aria-pressed", String(c.dataset.mode === labelRotation));
+      });
+    }
+
+    function setLabelRotation(mode: LabelRotation) {
+      if (labelRotation === mode) return;
+      labelRotation = mode;
+      applyLabelRotation();
+      save();
+      drawWheel();
+    }
+
+    function openLabelrotConfig() {
+      if (!labelrotConfig) return;
+      closeTeamsConfig();
+      closePointerConfig();
+      labelrotConfig.hidden = false;
+      if (labelrotBtn) labelrotBtn.setAttribute("aria-expanded", "true");
+      const pressed = Array.from(labelrotChips).find((c) => c.getAttribute("aria-pressed") === "true");
+      (pressed as HTMLButtonElement | undefined)?.focus();
+    }
+
+    function closeLabelrotConfig() {
+      if (!labelrotConfig) return;
+      labelrotConfig.hidden = true;
+      if (labelrotBtn) labelrotBtn.setAttribute("aria-expanded", "false");
     }
 
     // Snake-draft partition: ensures team sizes stay within 1 of each other and
@@ -2586,6 +2727,20 @@ const description =
       s.addEventListener("click", () => {
         const c = s.dataset.color;
         if (c === "ink" || c === "accent" || c === "amber") setPointerColor(c);
+      });
+    });
+
+    if (labelrotBtn) {
+      labelrotBtn.addEventListener("click", () => {
+        if (labelrotConfig && !labelrotConfig.hidden) closeLabelrotConfig();
+        else openLabelrotConfig();
+      });
+    }
+    if (labelrotCancel) labelrotCancel.addEventListener("click", closeLabelrotConfig);
+    labelrotChips.forEach((c) => {
+      c.addEventListener("click", () => {
+        const m = c.dataset.mode;
+        if (m === "auto" || m === "tangent" || m === "radial") setLabelRotation(m);
       });
     });
 
@@ -3299,6 +3454,7 @@ const description =
     drawWheel();
     if (teamsBtn) setTeamCount(getTeamCount());
     applyPointer();
+    applyLabelRotation();
 
     if (historyClear) {
       historyClear.addEventListener("click", () => {
