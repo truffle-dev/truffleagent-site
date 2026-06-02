@@ -82,6 +82,9 @@ const description =
               <svg class="spin-mute-on" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
               <svg class="spin-mute-off" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
             </button>
+            <button id="spin-eliminate" type="button" class="spin-icon-btn spin-icon-mode" title="Eliminate mode — winner removed each spin" aria-label="Eliminate mode" aria-pressed="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
             </button>
@@ -124,7 +127,7 @@ const description =
 
   <div id="spin-winner" class="spin-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="spin-winner-name">
     <div class="spin-modal-card">
-      <p class="spin-modal-label">Winner</p>
+      <p id="spin-modal-label" class="spin-modal-label">Winner</p>
       <p id="spin-winner-name" class="spin-modal-name"></p>
       <div class="spin-modal-actions">
         <button id="spin-winner-remove" type="button" class="spin-btn">Remove + spin</button>
@@ -817,10 +820,17 @@ const description =
 
     /* Mute toggle icon swap */
     .spin-mute-off { display: none; }
-    .spin-icon-btn[aria-pressed="true"] .spin-mute-on { display: none; }
-    .spin-icon-btn[aria-pressed="true"] .spin-mute-off { display: inline; }
-    .spin-icon-btn[aria-pressed="true"] {
+    #spin-mute[aria-pressed="true"] .spin-mute-on { display: none; }
+    #spin-mute[aria-pressed="true"] .spin-mute-off { display: inline; }
+    #spin-mute[aria-pressed="true"] {
       color: var(--content-4);
+    }
+
+    /* Mode-toggle pressed state — eliminate */
+    .spin-icon-mode[aria-pressed="true"] {
+      color: var(--accent);
+      background: color-mix(in oklab, var(--accent) 12%, transparent);
+      border-color: color-mix(in oklab, var(--accent) 30%, transparent);
     }
 
     /* Toast */
@@ -867,7 +877,7 @@ const description =
 
   <script>
     type Entry = { id: string; label: string; color?: string; weight?: number };
-    type Wheel = { id: string; name: string; entries: Entry[] };
+    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean };
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
     type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean };
     type AnyPersist = PersistV1 | PersistV2;
@@ -906,6 +916,8 @@ const description =
     const resetBtn = document.getElementById("spin-reset");
     const shareBtn = document.getElementById("spin-share");
     const muteBtn = document.getElementById("spin-mute");
+    const eliminateBtn = document.getElementById("spin-eliminate");
+    const modalLabelEl = document.getElementById("spin-modal-label");
     const hintEl = document.getElementById("spin-hint");
     const modal = document.getElementById("spin-winner") as HTMLDivElement | null;
     const winnerName = document.getElementById("spin-winner-name");
@@ -950,6 +962,9 @@ const description =
     let entries: Entry[] = currentEntries();
     let rotation = 0;
     let spinning = false;
+    // True between showWinner and hideWinner when eliminate mode is active
+    // and the displayed winner is not the implicit champion.
+    let pendingEliminate = false;
     let lastWinnerIdx: number | null = null;
 
     function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean } {
@@ -967,13 +982,17 @@ const description =
         const parsed = JSON.parse(raw) as AnyPersist;
         if (parsed && (parsed as PersistV2).version === 2 && Array.isArray((parsed as PersistV2).wheels)) {
           const p = parsed as PersistV2;
-          const cleaned = p.wheels
+          const cleaned: Wheel[] = p.wheels
             .filter((w) => w && typeof w.id === "string" && typeof w.name === "string" && Array.isArray(w.entries))
-            .map((w) => ({
-              id: w.id,
-              name: w.name.slice(0, MAX_WHEEL_NAME) || "Untitled",
-              entries: w.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
-            }))
+            .map((w) => {
+              const out: Wheel = {
+                id: w.id,
+                name: w.name.slice(0, MAX_WHEEL_NAME) || "Untitled",
+                entries: w.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
+              };
+              if (w.eliminate === true) out.eliminate = true;
+              return out;
+            })
             .slice(0, MAX_WHEELS);
           if (cleaned.length === 0) {
             const w = defaultWheel();
@@ -1152,6 +1171,7 @@ const description =
         pickerListEl.appendChild(li);
       }
       if (pickerDelete) pickerDelete.disabled = wheels.length <= 1;
+      updateEliminateBtn();
     }
 
     function openPicker() {
@@ -1597,12 +1617,44 @@ const description =
       winnerName!.textContent = entry.label;
       modal!.hidden = false;
       modal!.setAttribute("aria-hidden", "false");
-      hintEl!.textContent = `Winner: ${entry.label}`;
+      const eliminateMode = !!currentWheel().eliminate;
+      // Once we remove this entry the wheel will only contain the champion.
+      const isFinal = eliminateMode && entries.length === 1;
+      pendingEliminate = eliminateMode && !isFinal;
+      if (modalLabelEl) {
+        modalLabelEl.textContent = isFinal ? "Champion" : eliminateMode ? "Eliminated" : "Winner";
+      }
+      // The "Remove + spin" button is redundant in eliminate mode.
+      if (removeBtn) (removeBtn as HTMLButtonElement).hidden = eliminateMode;
+      if (againBtn) {
+        (againBtn as HTMLButtonElement).hidden = isFinal;
+        (againBtn as HTMLButtonElement).textContent = "Spin again";
+      }
+      hintEl!.textContent = isFinal
+        ? `Champion: ${entry.label}`
+        : `Winner: ${entry.label}`;
       // Focus the primary action for keyboard users
-      (againBtn as HTMLButtonElement).focus();
+      if (isFinal && closeBtn) {
+        (closeBtn as HTMLButtonElement).focus();
+      } else {
+        (againBtn as HTMLButtonElement).focus();
+      }
     }
 
     function hideWinner() {
+      if (pendingEliminate && lastWinnerIdx !== null && entries[lastWinnerIdx]) {
+        const removedId = entries[lastWinnerIdx].id;
+        entries = entries.filter((e) => e.id !== removedId);
+        renderList();
+        save();
+        drawWheel();
+        if (entries.length === 1) {
+          showToast(`Champion: ${entries[0].label}`);
+        } else if (entries.length === 0) {
+          showToast("All entries eliminated");
+        }
+      }
+      pendingEliminate = false;
       modal!.hidden = true;
       modal!.setAttribute("aria-hidden", "true");
     }
@@ -1621,6 +1673,8 @@ const description =
         renderList();
         save();
       }
+      // Removal already done by hand; don't let hideWinner double-eliminate.
+      pendingEliminate = false;
       hideWinner();
       drawWheel();
       if (entries.length > 0) spin();
@@ -1712,6 +1766,22 @@ const description =
       muteBtn.setAttribute(
         "aria-label",
         muted ? "Unmute sound" : "Mute sound",
+      );
+    }
+
+    function updateEliminateBtn() {
+      if (!eliminateBtn) return;
+      const on = !!currentWheel().eliminate;
+      eliminateBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      eliminateBtn.setAttribute(
+        "title",
+        on
+          ? "Eliminate mode on — winner removed each spin"
+          : "Eliminate mode — winner removed each spin",
+      );
+      eliminateBtn.setAttribute(
+        "aria-label",
+        on ? "Eliminate mode (on)" : "Eliminate mode (off)",
       );
     }
 
@@ -1937,6 +2007,23 @@ const description =
         save();
         updateMuteBtn();
         showToast(muted ? "Sound off" : "Sound on");
+      });
+    }
+    if (eliminateBtn) {
+      eliminateBtn.addEventListener("click", () => {
+        if (spinning) {
+          showToast("Wait for the spin to finish");
+          return;
+        }
+        const cw = currentWheel();
+        if (cw.eliminate) {
+          delete cw.eliminate;
+        } else {
+          cw.eliminate = true;
+        }
+        save();
+        updateEliminateBtn();
+        showToast(cw.eliminate ? "Eliminate mode on" : "Eliminate mode off");
       });
     }
 
@@ -2187,6 +2274,7 @@ const description =
     })();
 
     updateMuteBtn();
+    updateEliminateBtn();
     fitConfetti();
     renderPicker();
     renderList();
