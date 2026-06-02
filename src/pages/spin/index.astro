@@ -187,6 +187,33 @@ const description =
       </aside>
     </div>
 
+    <section class="spin-suggest" aria-labelledby="spin-suggest-title">
+      <details class="spin-suggest-card">
+        <summary>
+          <span class="spin-suggest-eyebrow">Have an idea?</span>
+          <span id="spin-suggest-title" class="spin-suggest-title">Request a feature</span>
+          <span class="spin-suggest-hint" aria-hidden="true"></span>
+        </summary>
+        <div class="spin-suggest-body">
+          <p class="spin-suggest-lead">What would make this wheel better for the way you use it? One line is plenty. I read every one.</p>
+          <form id="spin-suggest-form" class="spin-suggest-form" novalidate>
+            <label class="spin-suggest-label" for="spin-suggest-text">Your idea</label>
+            <textarea id="spin-suggest-text" name="text" class="spin-suggest-text" rows="4" maxlength="2000" placeholder="e.g. let me upload a CSV, or pick a wheel by URL alias" required></textarea>
+            <div class="spin-suggest-row">
+              <label class="spin-suggest-emaillabel" for="spin-suggest-email">Email (optional, for replies)</label>
+              <input id="spin-suggest-email" name="email" type="email" class="spin-suggest-email" maxlength="254" placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <div class="spin-suggest-actions">
+              <button type="submit" class="spin-suggest-send">Send</button>
+              <button type="button" id="spin-suggest-copy" class="spin-suggest-copy">Copy email instead</button>
+              <span id="spin-suggest-status" class="spin-suggest-status" aria-live="polite"></span>
+            </div>
+            <p class="spin-suggest-note">Sends to <code>truffle@truffleagent.com</code> via your mail app. No account. No tracking.</p>
+          </form>
+        </div>
+      </details>
+    </section>
+
     <footer class="spin-foot">
       <p>
         Made on <a href="/">Truffle</a>. Open source soon. No ads. No trackers.
@@ -1223,6 +1250,178 @@ const description =
       outline-offset: 2px;
     }
 
+    .spin-suggest {
+      margin-top: 2.5rem;
+    }
+    .spin-suggest-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      transition: border-color 150ms ease, background 150ms ease;
+    }
+    .spin-suggest-card[open] {
+      border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+      background: color-mix(in oklab, var(--accent) 4%, var(--surface));
+    }
+    .spin-suggest-card > summary {
+      list-style: none;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-areas: "eyebrow hint" "title hint";
+      align-items: center;
+      gap: 0.15rem 1rem;
+      padding: 1rem 1.25rem;
+    }
+    .spin-suggest-card > summary::-webkit-details-marker { display: none; }
+    .spin-suggest-eyebrow {
+      grid-area: eyebrow;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-3);
+    }
+    .spin-suggest-title {
+      grid-area: title;
+      font-family: Fraunces, Georgia, serif;
+      font-style: italic;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--content);
+    }
+    .spin-suggest-hint {
+      grid-area: hint;
+      font-size: 12px;
+      color: var(--content-3);
+    }
+    .spin-suggest-card[open] .spin-suggest-hint::before { content: "Close"; }
+    .spin-suggest-card:not([open]) .spin-suggest-hint::before { content: "Click to open"; }
+    @media (max-width: 519px) {
+      .spin-suggest-hint { display: none; }
+    }
+    .spin-suggest-body {
+      padding: 0 1.25rem 1.25rem;
+      border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+      padding-top: 1rem;
+    }
+    .spin-suggest-lead {
+      margin: 0 0 0.9rem;
+      color: var(--content-2);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .spin-suggest-form {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .spin-suggest-label,
+    .spin-suggest-emaillabel {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--content-2);
+      letter-spacing: 0.02em;
+    }
+    .spin-suggest-text {
+      width: 100%;
+      resize: vertical;
+      min-height: 90px;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--content);
+      font: inherit;
+      font-size: 14px;
+      line-height: 1.5;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .spin-suggest-text:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+    }
+    .spin-suggest-row {
+      display: grid;
+      gap: 0.35rem;
+    }
+    .spin-suggest-email {
+      width: 100%;
+      padding: 0.55rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--content);
+      font: inherit;
+      font-size: 14px;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .spin-suggest-email:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+    }
+    .spin-suggest-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .spin-suggest-send,
+    .spin-suggest-copy {
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 0.55rem 1rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+    }
+    .spin-suggest-send {
+      background: var(--accent);
+      color: #fff;
+    }
+    .spin-suggest-send:hover {
+      background: color-mix(in oklab, var(--accent) 88%, #000);
+    }
+    .spin-suggest-send:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 60%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-suggest-copy {
+      background: transparent;
+      color: var(--content-2);
+      border-color: var(--border);
+    }
+    .spin-suggest-copy:hover {
+      color: var(--content);
+      border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+    }
+    .spin-suggest-copy:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-suggest-status {
+      font-size: 13px;
+      color: var(--content-3);
+    }
+    .spin-suggest-status[data-tone="ok"] { color: color-mix(in oklab, var(--accent) 70%, var(--content-2)); }
+    .spin-suggest-status[data-tone="warn"] { color: #b45309; }
+    .spin-suggest-note {
+      margin: 0.2rem 0 0;
+      font-size: 12px;
+      color: var(--content-3);
+    }
+    .spin-suggest-note code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      padding: 0.05rem 0.35rem;
+      border-radius: 5px;
+      background: color-mix(in oklab, var(--accent) 8%, var(--bg));
+      color: var(--content-2);
+    }
+
     .spin-foot {
       margin-top: 3rem;
       padding-top: 1.5rem;
@@ -1585,7 +1784,8 @@ const description =
     function validLabelRotation(v: unknown): LabelRotation {
       return v === "tangent" || v === "radial" || v === "auto" ? v : DEFAULT_LABEL_ROTATION;
     }
-    const AUTO_RADIAL_THRESHOLD = 7;
+    const AUTO_TANGENT_MIN = 7;
+    const AUTO_TANGENT_MAX = 16;
 
     const canvas = document.getElementById("spin-canvas") as HTMLCanvasElement | null;
     const centerBtn = document.getElementById("spin-center") as HTMLButtonElement | null;
@@ -1995,7 +2195,7 @@ const description =
       return Math.random().toString(36).slice(2, 10);
     }
 
-    function fitCanvas() {
+    function fitCanvas(): number {
       const rect = canvas!.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const size = Math.floor(rect.width * dpr);
@@ -2003,15 +2203,17 @@ const description =
         canvas!.width = size;
         canvas!.height = size;
       }
+      return dpr;
     }
 
     function drawWheel() {
-      fitCanvas();
+      const dpr = fitCanvas();
       const w = canvas!.width;
       const h = canvas!.height;
       const cx = w / 2;
       const cy = h / 2;
       const r = Math.min(cx, cy) - 2;
+      const cssR = r / dpr;
 
       ctx.clearRect(0, 0, w, h);
 
@@ -2023,7 +2225,7 @@ const description =
         ctx.fillStyle = "rgba(132, 120, 90, 0.6)";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.font = `italic ${Math.round(r * 0.12)}px Fraunces, Georgia, serif`;
+        ctx.font = `italic ${Math.round(cssR * 0.12 * dpr)}px Fraunces, Georgia, serif`;
         ctx.fillText("Add an entry to begin", cx, cy);
         return;
       }
@@ -2052,19 +2254,32 @@ const description =
       ctx.stroke();
 
       // Labels
-      const fontSize = Math.max(11, Math.min(22, Math.round(r * 0.085)));
-      ctx.font = `500 ${fontSize}px Inter, system-ui, sans-serif`;
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#fff";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
-      ctx.shadowBlur = 2;
-
       const effectiveRotation: "tangent" | "radial" =
         labelRotation === "auto"
-          ? n >= AUTO_RADIAL_THRESHOLD
+          ? n >= AUTO_TANGENT_MIN && n <= AUTO_TANGENT_MAX
             ? "tangent"
             : "radial"
           : labelRotation;
+
+      const tangentLabelR = r * 0.62;
+      const radialInnerR = r * 0.28;
+      const radialOuterR = r * 0.92;
+      const radialLabelR = (radialInnerR + radialOuterR) / 2;
+      const labelR = effectiveRotation === "tangent" ? tangentLabelR : radialLabelR;
+
+      // Font sizing is computed in CSS pixels, then scaled by dpr for the
+      // canvas-internal font value. This keeps labels crisp on retina and
+      // readable on phones, where the canvas is twice the CSS resolution.
+      const cssArcAtLabel = (2 * Math.PI * (labelR / dpr)) / n;
+      const cssBaseMax = Math.min(26, Math.round(cssR * 0.135));
+      const cssArcCap = Math.max(8, Math.floor(cssArcAtLabel * 0.7));
+      const cssFontSize = Math.max(8, Math.min(cssBaseMax, cssArcCap));
+      const fontSize = Math.round(cssFontSize * dpr);
+      ctx.font = `600 ${fontSize}px Inter, system-ui, sans-serif`;
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#fff";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = Math.max(2, fontSize * 0.12);
 
       for (let i = 0; i < n; i++) {
         const midAngle = (bounds[i] + bounds[i + 1]) / 2;
@@ -2073,23 +2288,20 @@ const description =
         const text = entries[i].label || "—";
         ctx.save();
         if (effectiveRotation === "tangent") {
-          const labelR = r * 0.62;
-          ctx.translate(cx + Math.cos(mid) * labelR, cy + Math.sin(mid) * labelR);
+          ctx.translate(cx + Math.cos(mid) * tangentLabelR, cy + Math.sin(mid) * tangentLabelR);
           ctx.rotate(mid + Math.PI / 2);
           ctx.textAlign = "center";
-          // Tangential label width scales with slice span; clamp so single slice
-          // doesn't blow past the wheel and a sliver still gets minimal text.
-          const maxW = Math.min(r * 0.9, Math.max(r * 0.18, r * sliceSpan * 0.95));
+          // Tangent maxW = chord of the slice at the label radius minus padding.
+          // Floor of r * 0.14 protects very thin slices from collapsing to "…".
+          const chord = 2 * tangentLabelR * Math.sin(sliceSpan / 2);
+          const maxW = Math.max(r * 0.14, chord * 0.92);
           const displayed = clipText(ctx, text, maxW);
           ctx.fillText(displayed, 0, 0);
         } else {
-          const innerR = r * 0.28;
-          const outerR = r * 0.92;
-          const labelR = (innerR + outerR) / 2;
-          ctx.translate(cx + Math.cos(mid) * labelR, cy + Math.sin(mid) * labelR);
+          ctx.translate(cx + Math.cos(mid) * radialLabelR, cy + Math.sin(mid) * radialLabelR);
           ctx.rotate(mid);
           ctx.textAlign = "center";
-          const maxW = outerR - innerR;
+          const maxW = radialOuterR - radialInnerR;
           const displayed = clipText(ctx, text, maxW);
           ctx.fillText(displayed, 0, 0);
         }
@@ -3685,6 +3897,90 @@ const description =
         saveHistory();
         renderHistory();
         showToast("History cleared");
+      });
+    }
+
+    // === Feature-request wiring ===
+    const suggestForm = document.getElementById("spin-suggest-form") as HTMLFormElement | null;
+    const suggestText = document.getElementById("spin-suggest-text") as HTMLTextAreaElement | null;
+    const suggestEmail = document.getElementById("spin-suggest-email") as HTMLInputElement | null;
+    const suggestStatus = document.getElementById("spin-suggest-status");
+    const suggestCopy = document.getElementById("spin-suggest-copy");
+    const SUGGEST_ADDR = "truffle@truffleagent.com";
+
+    function setSuggestStatus(message: string, tone: "ok" | "warn" | "" = "") {
+      if (!suggestStatus) return;
+      suggestStatus.textContent = message;
+      if (tone) suggestStatus.setAttribute("data-tone", tone);
+      else suggestStatus.removeAttribute("data-tone");
+    }
+
+    function copyToClipboard(text: string): Promise<boolean> {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard
+          .writeText(text)
+          .then(() => true)
+          .catch(() => fallbackCopy(text));
+      }
+      return Promise.resolve(fallbackCopy(text));
+    }
+    function fallbackCopy(text: string): boolean {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      } catch {
+        return false;
+      }
+    }
+
+    if (suggestForm) {
+      suggestForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const body = (suggestText?.value || "").trim();
+        if (!body) {
+          setSuggestStatus("Type an idea first.", "warn");
+          suggestText?.focus();
+          return;
+        }
+        const reply = (suggestEmail?.value || "").trim();
+        const wheel = currentWheel();
+        const wheelName = wheel?.name || "unnamed";
+        const subject = `[/spin/] feature request — ${wheelName}`;
+        const lines = [
+          body,
+          "",
+          "---",
+          `Wheel: ${wheelName}`,
+          `Entries: ${entries.length}`,
+          reply ? `Reply to: ${reply}` : "Reply to: (not provided)",
+        ];
+        const mailto =
+          `mailto:${SUGGEST_ADDR}` +
+          `?subject=${encodeURIComponent(subject)}` +
+          `&body=${encodeURIComponent(lines.join("\n"))}`;
+        window.location.href = mailto;
+        setSuggestStatus(
+          "Opened your mail app. If nothing happened, use Copy email instead.",
+          "ok",
+        );
+      });
+    }
+    if (suggestCopy) {
+      suggestCopy.addEventListener("click", () => {
+        copyToClipboard(SUGGEST_ADDR).then((ok) => {
+          setSuggestStatus(
+            ok ? `Copied ${SUGGEST_ADDR}.` : `Email me at ${SUGGEST_ADDR}.`,
+            ok ? "ok" : "warn",
+          );
+        });
       });
     }
   </script>
