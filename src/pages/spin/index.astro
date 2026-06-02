@@ -37,6 +37,13 @@ const description =
         <div class="spin-side-head">
           <h2 class="spin-side-title">Entries <span id="spin-count" class="spin-count">0</span></h2>
           <div class="spin-side-actions">
+            <button id="spin-share" type="button" class="spin-icon-btn" title="Copy share link" aria-label="Copy share link">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </button>
+            <button id="spin-mute" type="button" class="spin-icon-btn" title="Mute sound" aria-label="Mute sound" aria-pressed="false">
+              <svg class="spin-mute-on" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+              <svg class="spin-mute-off" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
             </button>
@@ -88,6 +95,9 @@ const description =
       </div>
     </div>
   </div>
+
+  <canvas id="spin-confetti" class="spin-confetti" aria-hidden="true"></canvas>
+  <div id="spin-toast" class="spin-toast" hidden aria-live="polite"></div>
 
   <style is:global>
     .spin-page {
@@ -549,18 +559,69 @@ const description =
       color: var(--content);
     }
 
+    /* Confetti overlay */
+    .spin-confetti {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 60;
+    }
+
+    /* Mute toggle icon swap */
+    .spin-mute-off { display: none; }
+    .spin-icon-btn[aria-pressed="true"] .spin-mute-on { display: none; }
+    .spin-icon-btn[aria-pressed="true"] .spin-mute-off { display: inline; }
+    .spin-icon-btn[aria-pressed="true"] {
+      color: var(--content-4);
+    }
+
+    /* Toast */
+    .spin-toast {
+      position: fixed;
+      bottom: clamp(1rem, 3vw, 2rem);
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--content);
+      color: var(--surface);
+      padding: 0.6rem 1.1rem;
+      border-radius: 999px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      opacity: 0;
+      transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+      z-index: 80;
+      pointer-events: none;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .spin-toast.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .spin-toast[hidden] {
+      display: none;
+    }
+
     /* Reduce motion */
     @media (prefers-reduced-motion: reduce) {
       .spin-modal,
       .spin-modal-card {
         animation: none;
       }
+      .spin-confetti {
+        display: none;
+      }
     }
   </style>
 
   <script>
     type Entry = { id: string; label: string };
-    type Persist = { entries: Entry[]; version: 1 };
+    type Persist = { entries: Entry[]; version: 1; muted?: boolean };
 
     const STORAGE_KEY = "spinwheel:v1";
     const DEFAULT_ENTRIES: Entry[] = [
@@ -592,19 +653,25 @@ const description =
     const bulkApply = document.getElementById("spin-bulk-apply");
     const shuffleBtn = document.getElementById("spin-shuffle");
     const resetBtn = document.getElementById("spin-reset");
+    const shareBtn = document.getElementById("spin-share");
+    const muteBtn = document.getElementById("spin-mute");
     const hintEl = document.getElementById("spin-hint");
     const modal = document.getElementById("spin-winner") as HTMLDivElement | null;
     const winnerName = document.getElementById("spin-winner-name");
     const removeBtn = document.getElementById("spin-winner-remove");
     const againBtn = document.getElementById("spin-winner-again");
     const closeBtn = document.getElementById("spin-winner-close");
+    const confetti = document.getElementById("spin-confetti") as HTMLCanvasElement | null;
+    const toast = document.getElementById("spin-toast") as HTMLDivElement | null;
 
     if (!canvas || !centerBtn || !list || !addForm || !addInput || !modal) {
       console.error("[spin] missing required DOM nodes");
     }
 
     const ctx = canvas!.getContext("2d")!;
+    const confettiCtx = confetti ? confetti.getContext("2d") : null;
     let entries: Entry[] = loadEntries();
+    let muted = loadMuted();
     let rotation = 0; // radians, current wheel rotation
     let spinning = false;
     let lastWinnerIdx: number | null = null;
@@ -621,9 +688,20 @@ const description =
       }
     }
 
+    function loadMuted(): boolean {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        return !!parsed?.muted;
+      } catch {
+        return false;
+      }
+    }
+
     function save() {
       try {
-        const data: Persist = { entries, version: 1 };
+        const data: Persist = { entries, version: 1, muted };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
         // ignore quota
@@ -840,6 +918,14 @@ const description =
       spinning = true;
       centerBtn!.disabled = true;
 
+      // Prime / resume audio context on user gesture (mobile autoplay policy)
+      if (!muted) {
+        const c = getAudio();
+        if (c && c.state === "suspended") {
+          c.resume().catch(() => {});
+        }
+      }
+
       const n = entries.length;
       const sliceAngle = (Math.PI * 2) / n;
 
@@ -872,17 +958,40 @@ const description =
 
       hintEl!.textContent = "Spinning…";
 
+      let lastSliceIdx = -1;
+      const twoPi = Math.PI * 2;
+
       function frame(now: number) {
         const t = Math.min(1, (now - startTs) / duration);
         const eased = easeOutCubicBezier(t);
         rotation = startRotation + totalDeltaJittered * eased;
         drawWheel();
+
+        // Tick whenever the pointer crosses a slice boundary
+        const norm = ((-rotation % twoPi) + twoPi) % twoPi;
+        const curSlice = Math.floor(norm / sliceAngle) % n;
+        if (curSlice !== lastSliceIdx) {
+          lastSliceIdx = curSlice;
+          // Skip the very first frame so we don't double-tick at t=0
+          if (now - startTs > 30) tick();
+        }
+
         if (t < 1) {
           requestAnimationFrame(frame);
         } else {
           spinning = false;
           centerBtn!.disabled = false;
           lastWinnerIdx = winnerIdx;
+          fanfare();
+          // Burst from the canvas center on screen for a wheel-anchored feel
+          let originX: number | undefined;
+          let originY: number | undefined;
+          if (canvas) {
+            const r = canvas.getBoundingClientRect();
+            originX = r.left + r.width / 2;
+            originY = r.top + r.height / 2;
+          }
+          burstConfetti(originX, originY);
           showWinner(entries[winnerIdx]);
         }
       }
@@ -944,7 +1053,291 @@ const description =
 
     window.addEventListener("resize", () => {
       drawWheel();
+      fitConfetti();
     });
+
+    // === Web Audio (lazy) ===
+    let audioCtx: AudioContext | null = null;
+    function getAudio(): AudioContext | null {
+      if (audioCtx) return audioCtx;
+      try {
+        const AC =
+          (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!AC) return null;
+        audioCtx = new AC();
+      } catch {
+        audioCtx = null;
+      }
+      return audioCtx;
+    }
+
+    function tick() {
+      if (muted) return;
+      const c = getAudio();
+      if (!c) return;
+      const t = c.currentTime;
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = 720 + Math.random() * 220;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.045, t + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.065);
+      osc.connect(gain).connect(c.destination);
+      osc.start(t);
+      osc.stop(t + 0.08);
+    }
+
+    function fanfare() {
+      if (muted) return;
+      const c = getAudio();
+      if (!c) return;
+      // C5, E5, G5, C6 — a small bright ascent
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      const t0 = c.currentTime;
+      notes.forEach((freq, i) => {
+        const t = t0 + i * 0.08;
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.11, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+        osc.connect(gain).connect(c.destination);
+        osc.start(t);
+        osc.stop(t + 0.5);
+      });
+    }
+
+    function updateMuteBtn() {
+      if (!muteBtn) return;
+      muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
+      muteBtn.setAttribute("title", muted ? "Unmute sound" : "Mute sound");
+      muteBtn.setAttribute(
+        "aria-label",
+        muted ? "Unmute sound" : "Mute sound",
+      );
+    }
+
+    // === Confetti ===
+    type Particle = {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      rot: number;
+      vr: number;
+      size: number;
+      color: string;
+      life: number;
+      shape: number;
+    };
+    let particles: Particle[] = [];
+    let confettiActive = false;
+    let confettiDpr = 1;
+
+    function fitConfetti() {
+      if (!confetti) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      confettiDpr = dpr;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      confetti.width = Math.floor(w * dpr);
+      confetti.height = Math.floor(h * dpr);
+      confetti.style.width = w + "px";
+      confetti.style.height = h + "px";
+    }
+
+    function burstConfetti(originX?: number, originY?: number) {
+      if (!confetti || !confettiCtx) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      fitConfetti();
+      const cx = originX ?? window.innerWidth / 2;
+      const cy = originY ?? window.innerHeight / 2;
+      const count = 140;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 6 + Math.random() * 11;
+        particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 5,
+          rot: Math.random() * Math.PI * 2,
+          vr: (Math.random() - 0.5) * 0.5,
+          size: 5 + Math.random() * 9,
+          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          life: 1,
+          shape: Math.random() < 0.55 ? 0 : 1,
+        });
+      }
+      if (!confettiActive) {
+        confettiActive = true;
+        requestAnimationFrame(confettiFrame);
+      }
+    }
+
+    function confettiFrame() {
+      if (!confetti || !confettiCtx) {
+        confettiActive = false;
+        return;
+      }
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      confettiCtx.setTransform(confettiDpr, 0, 0, confettiDpr, 0, 0);
+      confettiCtx.clearRect(0, 0, w, h);
+      const gravity = 0.27;
+      const drag = 0.992;
+      let alive: Particle[] = [];
+      for (const p of particles) {
+        p.vy += gravity;
+        p.vx *= drag;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        p.life -= 1 / 220;
+        if (p.life <= 0 || p.y > h + 40) continue;
+        alive.push(p);
+        confettiCtx.save();
+        confettiCtx.globalAlpha = Math.min(1, p.life * 1.6);
+        confettiCtx.translate(p.x, p.y);
+        confettiCtx.rotate(p.rot);
+        confettiCtx.fillStyle = p.color;
+        if (p.shape === 0) {
+          confettiCtx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size / 1.6);
+        } else {
+          confettiCtx.beginPath();
+          confettiCtx.arc(0, 0, p.size / 2.4, 0, Math.PI * 2);
+          confettiCtx.fill();
+        }
+        confettiCtx.restore();
+      }
+      particles = alive;
+      if (alive.length > 0) {
+        requestAnimationFrame(confettiFrame);
+      } else {
+        confettiActive = false;
+        confettiCtx.clearRect(0, 0, w, h);
+      }
+    }
+
+    // === Share link ===
+    function buildShareUrl(): string {
+      const payload = { e: entries.map((x) => x.label).slice(0, 200) };
+      const json = JSON.stringify(payload);
+      const b64 = btoa(unescape(encodeURIComponent(json)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+      return `${location.origin}/spin/?w=${b64}`;
+    }
+
+    function tryDecodeShareParam(): Entry[] | null {
+      try {
+        const params = new URLSearchParams(location.search);
+        const w = params.get("w");
+        if (!w) return null;
+        let b64 = w.replace(/-/g, "+").replace(/_/g, "/");
+        while (b64.length % 4 !== 0) b64 += "=";
+        const json = decodeURIComponent(escape(atob(b64)));
+        const parsed = JSON.parse(json);
+        if (!parsed || !Array.isArray(parsed.e)) return null;
+        const out = parsed.e
+          .filter((s: unknown): s is string => typeof s === "string")
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0 && s.length <= 80)
+          .slice(0, 200)
+          .map((label: string) => ({ id: newId(), label }));
+        return out.length > 0 ? out : null;
+      } catch {
+        return null;
+      }
+    }
+
+    async function copyShareLink() {
+      if (entries.length === 0) {
+        showToast("Add an entry first");
+        return;
+      }
+      const url = buildShareUrl();
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(url);
+          showToast("Share link copied");
+        } else {
+          // Fallback for non-secure contexts
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          showToast("Share link copied");
+        }
+      } catch {
+        showToast("Could not copy. URL: " + url.slice(0, 40) + "…");
+      }
+    }
+
+    // === Toast ===
+    let toastTimer: number | null = null;
+    function showToast(msg: string) {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.hidden = false;
+      // Force reflow so the transition fires
+      void toast.offsetWidth;
+      toast.classList.add("is-visible");
+      if (toastTimer) window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        toast.classList.remove("is-visible");
+        window.setTimeout(() => {
+          if (toast && !toast.classList.contains("is-visible")) {
+            toast.hidden = true;
+          }
+        }, 220);
+      }, 2200);
+    }
+
+    // === Wire new buttons ===
+    if (shareBtn) {
+      shareBtn.addEventListener("click", () => {
+        copyShareLink();
+      });
+    }
+    if (muteBtn) {
+      muteBtn.addEventListener("click", () => {
+        muted = !muted;
+        save();
+        updateMuteBtn();
+        showToast(muted ? "Sound off" : "Sound on");
+      });
+    }
+
+    // === Init: handle ?w= shared wheel + apply settings ===
+    (function initFromUrl() {
+      const shared = tryDecodeShareParam();
+      if (shared && shared.length > 0) {
+        entries = shared;
+        save();
+        // Strip ?w= to keep the URL clean for further sharing
+        try {
+          const url = new URL(location.href);
+          url.searchParams.delete("w");
+          history.replaceState({}, "", url.toString());
+        } catch {
+          // ignore
+        }
+        // Defer toast until renderList runs so we see the new entries first
+        setTimeout(() => showToast("Loaded shared wheel"), 300);
+      }
+    })();
+
+    updateMuteBtn();
+    fitConfetti();
 
     renderList();
     drawWheel();
