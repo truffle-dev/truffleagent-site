@@ -35,7 +35,35 @@ const description =
 
       <aside class="spin-side" aria-label="Entries">
         <div class="spin-side-head">
-          <h2 class="spin-side-title">Entries <span id="spin-count" class="spin-count">0</span></h2>
+          <div class="spin-wheel-picker">
+            <button id="spin-picker-btn" type="button" class="spin-picker-btn" aria-haspopup="true" aria-expanded="false" aria-controls="spin-picker-panel">
+              <span id="spin-picker-name" class="spin-picker-name">My wheel</span>
+              <svg class="spin-picker-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <span id="spin-count" class="spin-count">0</span>
+            <div id="spin-picker-panel" class="spin-picker-panel" hidden role="menu" aria-label="Wheels">
+              <ul id="spin-picker-list" class="spin-picker-list" role="none"></ul>
+              <div class="spin-picker-divider"></div>
+              <div class="spin-picker-actions" role="none">
+                <button type="button" id="spin-picker-new" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  New wheel
+                </button>
+                <button type="button" id="spin-picker-rename" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  Rename
+                </button>
+                <button type="button" id="spin-picker-dupe" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  Duplicate
+                </button>
+                <button type="button" id="spin-picker-delete" class="spin-picker-action spin-picker-action-danger" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
           <div class="spin-side-actions">
             <button id="spin-share" type="button" class="spin-icon-btn" title="Copy share link" aria-label="Copy share link">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -271,6 +299,158 @@ const description =
       display: flex;
       gap: 0.25rem;
     }
+
+    .spin-wheel-picker {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 0;
+      flex: 1;
+    }
+    .spin-picker-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 4px 8px 4px 4px;
+      cursor: pointer;
+      color: var(--content);
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 500;
+      line-height: 1.1;
+      min-width: 0;
+      max-width: 100%;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .spin-picker-btn:hover {
+      background: var(--surface-3);
+      border-color: var(--border);
+    }
+    .spin-picker-btn[aria-expanded="true"] {
+      background: var(--surface-3);
+      border-color: var(--border);
+    }
+    .spin-picker-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 14ch;
+    }
+    .spin-picker-chev {
+      color: var(--content-3);
+      transition: transform 0.15s var(--ease-out);
+      flex-shrink: 0;
+    }
+    .spin-picker-btn[aria-expanded="true"] .spin-picker-chev {
+      transform: rotate(180deg);
+    }
+    .spin-picker-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 20;
+      min-width: 220px;
+      max-width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.18), 0 2px 6px -2px rgba(0, 0, 0, 0.08);
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+    }
+    .spin-picker-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 220px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .spin-picker-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 7px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--content);
+      background: transparent;
+      border: 0;
+      width: 100%;
+      text-align: left;
+      transition: background 0.1s;
+    }
+    .spin-picker-item:hover {
+      background: var(--surface-2);
+    }
+    .spin-picker-item-check {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      color: var(--accent);
+      opacity: 0;
+    }
+    .spin-picker-item[aria-current="true"] .spin-picker-item-check {
+      opacity: 1;
+    }
+    .spin-picker-item-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .spin-picker-item-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--content-3);
+      flex-shrink: 0;
+    }
+    .spin-picker-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 6px;
+    }
+    .spin-picker-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .spin-picker-action {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 7px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--content-2);
+      background: transparent;
+      border: 0;
+      text-align: left;
+      transition: background 0.1s, color 0.1s;
+    }
+    .spin-picker-action:hover {
+      background: var(--surface-2);
+      color: var(--content);
+    }
+    .spin-picker-action-danger:hover {
+      color: var(--color-rust-500);
+    }
+    .spin-picker-action[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     .spin-icon-btn {
       width: 32px;
       height: 32px;
@@ -621,9 +801,14 @@ const description =
 
   <script>
     type Entry = { id: string; label: string };
-    type Persist = { entries: Entry[]; version: 1; muted?: boolean };
+    type Wheel = { id: string; name: string; entries: Entry[] };
+    type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
+    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean };
+    type AnyPersist = PersistV1 | PersistV2;
 
     const STORAGE_KEY = "spinwheel:v1";
+    const MAX_WHEELS = 20;
+    const MAX_WHEEL_NAME = 40;
     const DEFAULT_ENTRIES: Entry[] = [
       { id: "1", label: "Pizza" },
       { id: "2", label: "Tacos" },
@@ -663,6 +848,14 @@ const description =
     const closeBtn = document.getElementById("spin-winner-close");
     const confetti = document.getElementById("spin-confetti") as HTMLCanvasElement | null;
     const toast = document.getElementById("spin-toast") as HTMLDivElement | null;
+    const pickerBtn = document.getElementById("spin-picker-btn") as HTMLButtonElement | null;
+    const pickerName = document.getElementById("spin-picker-name");
+    const pickerPanel = document.getElementById("spin-picker-panel") as HTMLDivElement | null;
+    const pickerListEl = document.getElementById("spin-picker-list") as HTMLUListElement | null;
+    const pickerNew = document.getElementById("spin-picker-new");
+    const pickerRename = document.getElementById("spin-picker-rename");
+    const pickerDupe = document.getElementById("spin-picker-dupe");
+    const pickerDelete = document.getElementById("spin-picker-delete") as HTMLButtonElement | null;
 
     if (!canvas || !centerBtn || !list || !addForm || !addInput || !modal) {
       console.error("[spin] missing required DOM nodes");
@@ -670,42 +863,242 @@ const description =
 
     const ctx = canvas!.getContext("2d")!;
     const confettiCtx = confetti ? confetti.getContext("2d") : null;
-    let entries: Entry[] = loadEntries();
-    let muted = loadMuted();
-    let rotation = 0; // radians, current wheel rotation
+
+    const initialState = loadState();
+    let wheels: Wheel[] = initialState.wheels;
+    let currentId: string = initialState.currentId;
+    let muted: boolean = initialState.muted;
+
+    function currentWheel(): Wheel {
+      return wheels.find((w) => w.id === currentId) ?? wheels[0];
+    }
+    function currentEntries(): Entry[] {
+      return currentWheel().entries;
+    }
+
+    // entries alias targets the active wheel
+    let entries: Entry[] = currentEntries();
+    let rotation = 0;
     let spinning = false;
     let lastWinnerIdx: number | null = null;
 
-    function loadEntries(): Entry[] {
+    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean } {
+      const defaultWheel = (): Wheel => ({
+        id: newId(),
+        name: "My wheel",
+        entries: [...DEFAULT_ENTRIES],
+      });
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [...DEFAULT_ENTRIES];
-        const parsed = JSON.parse(raw) as Persist;
-        if (!parsed || !Array.isArray(parsed.entries)) return [...DEFAULT_ENTRIES];
-        return parsed.entries.filter((e) => e && typeof e.label === "string").slice(0, 200);
+        if (!raw) {
+          const w = defaultWheel();
+          return { wheels: [w], currentId: w.id, muted: false };
+        }
+        const parsed = JSON.parse(raw) as AnyPersist;
+        if (parsed && (parsed as PersistV2).version === 2 && Array.isArray((parsed as PersistV2).wheels)) {
+          const p = parsed as PersistV2;
+          const cleaned = p.wheels
+            .filter((w) => w && typeof w.id === "string" && typeof w.name === "string" && Array.isArray(w.entries))
+            .map((w) => ({
+              id: w.id,
+              name: w.name.slice(0, MAX_WHEEL_NAME) || "Untitled",
+              entries: w.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
+            }))
+            .slice(0, MAX_WHEELS);
+          if (cleaned.length === 0) {
+            const w = defaultWheel();
+            return { wheels: [w], currentId: w.id, muted: !!p.muted };
+          }
+          const cid = cleaned.find((w) => w.id === p.currentId)?.id ?? cleaned[0].id;
+          return { wheels: cleaned, currentId: cid, muted: !!p.muted };
+        }
+        // v1 migration
+        if (parsed && (parsed as PersistV1).version === 1 && Array.isArray((parsed as PersistV1).entries)) {
+          const p = parsed as PersistV1;
+          const w: Wheel = {
+            id: newId(),
+            name: "My wheel",
+            entries: p.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
+          };
+          return { wheels: [w], currentId: w.id, muted: !!p.muted };
+        }
       } catch {
-        return [...DEFAULT_ENTRIES];
+        // fall through
       }
-    }
-
-    function loadMuted(): boolean {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
-        return !!parsed?.muted;
-      } catch {
-        return false;
-      }
+      const w = defaultWheel();
+      return { wheels: [w], currentId: w.id, muted: false };
     }
 
     function save() {
+      const cw = currentWheel();
+      if (cw) cw.entries = entries;
       try {
-        const data: Persist = { entries, version: 1, muted };
+        const data: PersistV2 = { version: 2, wheels, currentId, muted };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
         // ignore quota
       }
+    }
+
+    function switchWheel(id: string) {
+      if (spinning) {
+        showToast("Wait for the spin to finish");
+        return;
+      }
+      const w = wheels.find((x) => x.id === id);
+      if (!w || w.id === currentId) {
+        closePicker();
+        return;
+      }
+      // Persist current wheel's edits before switching
+      currentWheel().entries = entries;
+      currentId = w.id;
+      entries = w.entries;
+      rotation = 0;
+      lastWinnerIdx = null;
+      save();
+      renderPicker();
+      renderList();
+      drawWheel();
+      closePicker();
+      showToast(`Switched to ${w.name}`);
+    }
+
+    function createWheel(name?: string, withEntries?: Entry[]): Wheel | null {
+      if (spinning) {
+        showToast("Wait for the spin to finish");
+        return null;
+      }
+      if (wheels.length >= MAX_WHEELS) {
+        showToast(`Max ${MAX_WHEELS} wheels`);
+        return null;
+      }
+      const finalName = (name ?? "").trim().slice(0, MAX_WHEEL_NAME) || `Wheel ${wheels.length + 1}`;
+      const w: Wheel = {
+        id: newId(),
+        name: finalName,
+        entries: withEntries ?? [...DEFAULT_ENTRIES.map((e) => ({ ...e, id: newId() }))],
+      };
+      // Persist active wheel's current entries
+      currentWheel().entries = entries;
+      wheels.push(w);
+      currentId = w.id;
+      entries = w.entries;
+      rotation = 0;
+      lastWinnerIdx = null;
+      save();
+      renderPicker();
+      renderList();
+      drawWheel();
+      return w;
+    }
+
+    function renameWheel(id: string, newName: string) {
+      const w = wheels.find((x) => x.id === id);
+      if (!w) return;
+      const trimmed = newName.trim().slice(0, MAX_WHEEL_NAME);
+      if (!trimmed) return;
+      w.name = trimmed;
+      save();
+      renderPicker();
+    }
+
+    function duplicateWheel(id: string) {
+      const w = wheels.find((x) => x.id === id);
+      if (!w) return;
+      if (wheels.length >= MAX_WHEELS) {
+        showToast(`Max ${MAX_WHEELS} wheels`);
+        return;
+      }
+      const copy: Wheel = {
+        id: newId(),
+        name: `${w.name} copy`.slice(0, MAX_WHEEL_NAME),
+        entries: w.entries.map((e) => ({ ...e, id: newId() })),
+      };
+      // Persist active wheel's entries before insert
+      currentWheel().entries = entries;
+      wheels.push(copy);
+      currentId = copy.id;
+      entries = copy.entries;
+      rotation = 0;
+      lastWinnerIdx = null;
+      save();
+      renderPicker();
+      renderList();
+      drawWheel();
+      showToast(`Duplicated to ${copy.name}`);
+    }
+
+    function deleteWheel(id: string) {
+      if (spinning) {
+        showToast("Wait for the spin to finish");
+        return;
+      }
+      if (wheels.length <= 1) {
+        showToast("Cannot delete the only wheel");
+        return;
+      }
+      const idx = wheels.findIndex((x) => x.id === id);
+      if (idx < 0) return;
+      const wasCurrent = wheels[idx].id === currentId;
+      const removedName = wheels[idx].name;
+      wheels.splice(idx, 1);
+      if (wasCurrent) {
+        const nextIdx = Math.min(idx, wheels.length - 1);
+        currentId = wheels[nextIdx].id;
+        entries = wheels[nextIdx].entries;
+        rotation = 0;
+        lastWinnerIdx = null;
+      }
+      save();
+      renderPicker();
+      renderList();
+      drawWheel();
+      showToast(`Deleted ${removedName}`);
+    }
+
+    function renderPicker() {
+      if (!pickerListEl || !pickerName) return;
+      const cw = currentWheel();
+      pickerName.textContent = cw.name;
+      pickerListEl.innerHTML = "";
+      for (const w of wheels) {
+        const li = document.createElement("li");
+        li.setAttribute("role", "none");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "spin-picker-item";
+        btn.setAttribute("role", "menuitem");
+        if (w.id === currentId) btn.setAttribute("aria-current", "true");
+        btn.innerHTML = `
+          <svg class="spin-picker-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="spin-picker-item-name"></span>
+          <span class="spin-picker-item-count"></span>
+        `;
+        (btn.querySelector(".spin-picker-item-name") as HTMLElement).textContent = w.name;
+        (btn.querySelector(".spin-picker-item-count") as HTMLElement).textContent = String(w.entries.length);
+        btn.addEventListener("click", () => switchWheel(w.id));
+        li.appendChild(btn);
+        pickerListEl.appendChild(li);
+      }
+      if (pickerDelete) pickerDelete.disabled = wheels.length <= 1;
+    }
+
+    function openPicker() {
+      if (!pickerPanel || !pickerBtn) return;
+      pickerPanel.hidden = false;
+      pickerBtn.setAttribute("aria-expanded", "true");
+      renderPicker();
+    }
+    function closePicker() {
+      if (!pickerPanel || !pickerBtn) return;
+      pickerPanel.hidden = true;
+      pickerBtn.setAttribute("aria-expanded", "false");
+    }
+    function togglePicker() {
+      if (!pickerPanel) return;
+      if (pickerPanel.hidden) openPicker();
+      else closePicker();
     }
 
     function newId(): string {
@@ -1224,7 +1617,11 @@ const description =
 
     // === Share link ===
     function buildShareUrl(): string {
-      const payload = { e: entries.map((x) => x.label).slice(0, 200) };
+      const cw = currentWheel();
+      const payload = {
+        n: cw.name.slice(0, MAX_WHEEL_NAME),
+        e: entries.map((x) => x.label).slice(0, 200),
+      };
       const json = JSON.stringify(payload);
       const b64 = btoa(unescape(encodeURIComponent(json)))
         .replace(/\+/g, "-")
@@ -1233,7 +1630,7 @@ const description =
       return `${location.origin}/spin/?w=${b64}`;
     }
 
-    function tryDecodeShareParam(): Entry[] | null {
+    function tryDecodeShareParam(): { name: string; entries: Entry[] } | null {
       try {
         const params = new URLSearchParams(location.search);
         const w = params.get("w");
@@ -1249,7 +1646,10 @@ const description =
           .filter((s: string) => s.length > 0 && s.length <= 80)
           .slice(0, 200)
           .map((label: string) => ({ id: newId(), label }));
-        return out.length > 0 ? out : null;
+        if (out.length === 0) return null;
+        const rawName = typeof parsed.n === "string" ? parsed.n.trim() : "";
+        const name = rawName.slice(0, MAX_WHEEL_NAME) || "Shared wheel";
+        return { name, entries: out };
       } catch {
         return null;
       }
@@ -1317,12 +1717,71 @@ const description =
       });
     }
 
+    // === Wheel picker wiring ===
+    if (pickerBtn) {
+      pickerBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        togglePicker();
+      });
+    }
+    document.addEventListener("click", (e) => {
+      if (!pickerPanel || pickerPanel.hidden) return;
+      const t = e.target as Node | null;
+      if (t && (pickerPanel.contains(t) || pickerBtn?.contains(t))) return;
+      closePicker();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && pickerPanel && !pickerPanel.hidden) {
+        closePicker();
+        pickerBtn?.focus();
+      }
+    });
+    if (pickerNew) {
+      pickerNew.addEventListener("click", () => {
+        closePicker();
+        const name = window.prompt("Name for the new wheel?", `Wheel ${wheels.length + 1}`);
+        if (name === null) return;
+        const created = createWheel(name, []);
+        if (created) showToast(`Created ${created.name}`);
+      });
+    }
+    if (pickerRename) {
+      pickerRename.addEventListener("click", () => {
+        closePicker();
+        const cw = currentWheel();
+        const name = window.prompt("Rename wheel:", cw.name);
+        if (name === null) return;
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        renameWheel(cw.id, trimmed);
+        showToast("Renamed");
+      });
+    }
+    if (pickerDupe) {
+      pickerDupe.addEventListener("click", () => {
+        closePicker();
+        duplicateWheel(currentId);
+      });
+    }
+    if (pickerDelete) {
+      pickerDelete.addEventListener("click", () => {
+        closePicker();
+        const cw = currentWheel();
+        if (wheels.length <= 1) {
+          showToast("Cannot delete the only wheel");
+          return;
+        }
+        if (!confirm(`Delete "${cw.name}"? This cannot be undone.`)) return;
+        deleteWheel(cw.id);
+      });
+    }
+
     // === Init: handle ?w= shared wheel + apply settings ===
     (function initFromUrl() {
       const shared = tryDecodeShareParam();
-      if (shared && shared.length > 0) {
-        entries = shared;
-        save();
+      if (shared && shared.entries.length > 0) {
+        // Import as a NEW wheel so existing wheels are never clobbered
+        const created = createWheel(shared.name, shared.entries);
         // Strip ?w= to keep the URL clean for further sharing
         try {
           const url = new URL(location.href);
@@ -1331,14 +1790,15 @@ const description =
         } catch {
           // ignore
         }
-        // Defer toast until renderList runs so we see the new entries first
-        setTimeout(() => showToast("Loaded shared wheel"), 300);
+        if (created) {
+          setTimeout(() => showToast(`Imported "${created.name}"`), 300);
+        }
       }
     })();
 
     updateMuteBtn();
     fitConfetti();
-
+    renderPicker();
     renderList();
     drawWheel();
   </script>
