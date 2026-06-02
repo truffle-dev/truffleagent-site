@@ -104,6 +104,9 @@ const description =
             <button id="spin-labelrot-btn" type="button" class="spin-icon-btn" title="Label rotation" aria-label="Label rotation" aria-expanded="false">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19 L9 5 L13 19"/><line x1="6.5" y1="14" x2="11.5" y2="14"/><path d="M15 9 a4 4 0 0 1 4 4 a4 4 0 0 1 -4 4"/><polyline points="13 15 15 17 17 15"/></svg>
             </button>
+            <button id="spin-palette-btn" type="button" class="spin-icon-btn" title="Theme palette" aria-label="Theme palette" aria-expanded="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2 0-1.5-1.5-2-1.5-3.5 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4 9 9 0 0 0-9-7z"/><circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7" r="1"/><circle cx="15.5" cy="8" r="1"/><circle cx="17.5" cy="12.5" r="1"/></svg>
+            </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
             </button>
@@ -147,6 +150,12 @@ const description =
             <button id="spin-labelrot-radial" type="button" class="spin-labelrot-chip" data-mode="radial" aria-pressed="false">Radial</button>
           </div>
           <button id="spin-labelrot-cancel" type="button" class="spin-labelrot-cancel" aria-label="Close label rotation settings">×</button>
+        </div>
+
+        <div id="spin-palette-config" class="spin-palette-config" hidden role="group" aria-label="Theme palette settings">
+          <span class="spin-palette-cfg-label">Palette</span>
+          <div id="spin-palette-chips" class="spin-palette-chips" role="group" aria-label="Palette choice"></div>
+          <button id="spin-palette-cancel" type="button" class="spin-palette-cancel" aria-label="Close palette settings">×</button>
         </div>
 
         <ul id="spin-list" class="spin-list" aria-label="Entries list"></ul>
@@ -1128,6 +1137,92 @@ const description =
       outline-offset: 2px;
     }
 
+    .spin-palette-config {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.7rem;
+      margin: 0 0 0.85rem;
+      background: color-mix(in oklab, var(--accent) 4%, var(--surface-2));
+      border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border));
+      border-radius: 8px;
+    }
+    .spin-palette-cfg-label {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-3);
+    }
+    .spin-palette-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .spin-palette-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.3rem 0.55rem 0.3rem 0.4rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content-2);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .spin-palette-chip:hover { background: var(--surface-2); }
+    .spin-palette-chip:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-palette-chip[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+      color: var(--content);
+    }
+    .spin-palette-swatches {
+      display: inline-flex;
+      gap: 2px;
+      padding: 2px;
+      border-radius: 4px;
+      background: color-mix(in oklab, var(--content) 8%, transparent);
+    }
+    .spin-palette-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+    .spin-palette-name {
+      font-family: var(--font-sans);
+      font-size: 12px;
+    }
+    .spin-palette-cancel {
+      margin-left: auto;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      background: transparent;
+      color: var(--content-4);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0;
+    }
+    .spin-palette-cancel:hover {
+      color: var(--content);
+      background: var(--surface);
+    }
+    .spin-palette-cancel:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+
     .spin-foot {
       margin-top: 3rem;
       padding-top: 1.5rem;
@@ -1408,8 +1503,9 @@ const description =
     type PointerColor = "ink" | "accent" | "amber";
     type PointerCfg = { pos: PointerPos; color: PointerColor };
     type LabelRotation = "auto" | "tangent" | "radial";
+    type Palette = "paper" | "vibrant" | "pastel" | "mono";
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
-    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation };
+    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation; palette?: Palette };
     type AnyPersist = PersistV1 | PersistV2;
 
     const STORAGE_KEY = "spinwheel:v1";
@@ -1427,16 +1523,52 @@ const description =
       { id: "5", label: "Burger" },
       { id: "6", label: "Salad" },
     ];
-    const PALETTE = [
-      "#4850c4", // truffle indigo
-      "#6a7d3b", // moss
-      "#b07d2a", // amber
-      "#a14a2a", // rust
-      "#3b3527", // ink-2
-      "#84785a", // paper-500
-      "#5d68d0", // truffle-400
-      "#3b41a3", // truffle-600
-    ];
+    const PALETTES: Record<Palette, string[]> = {
+      paper: [
+        "#4850c4", // truffle indigo
+        "#6a7d3b", // moss
+        "#b07d2a", // amber
+        "#a14a2a", // rust
+        "#3b3527", // ink-2
+        "#84785a", // paper-500
+        "#5d68d0", // truffle-400
+        "#3b41a3", // truffle-600
+      ],
+      vibrant: [
+        "#e63946", // crimson
+        "#f48c06", // orange
+        "#ffba08", // gold
+        "#5cb85c", // green
+        "#0aa6b7", // teal
+        "#4361ee", // blue
+        "#8338ec", // violet
+        "#ef476f", // rose
+      ],
+      pastel: [
+        "#e0a3a3", // dusty rose
+        "#e8b58b", // peach
+        "#dfc97b", // butter
+        "#a8c98a", // sage
+        "#90c0cc", // sky
+        "#a3a8d8", // lavender
+        "#bea2cf", // lilac
+        "#d8a3b3", // blush
+      ],
+      mono: [
+        "#2e2519", // ink-1
+        "#3b3527", // ink-2
+        "#4e4633", // ink-3
+        "#665b44", // ink-4
+        "#84785a", // paper-500
+        "#a39682", // paper-400
+        "#b8ad9a", // paper-300
+        "#cec2af", // paper-200
+      ],
+    };
+    const DEFAULT_PALETTE: Palette = "paper";
+    function validPalette(v: unknown): Palette {
+      return v === "paper" || v === "vibrant" || v === "pastel" || v === "mono" ? v : DEFAULT_PALETTE;
+    }
 
     const DEFAULT_POINTER: PointerCfg = { pos: "top", color: "ink" };
     function validPointer(p: unknown): PointerCfg {
@@ -1490,6 +1622,10 @@ const description =
     const labelrotConfig = document.getElementById("spin-labelrot-config") as HTMLDivElement | null;
     const labelrotCancel = document.getElementById("spin-labelrot-cancel") as HTMLButtonElement | null;
     const labelrotChips = document.querySelectorAll<HTMLButtonElement>(".spin-labelrot-chip");
+    const paletteBtn = document.getElementById("spin-palette-btn") as HTMLButtonElement | null;
+    const paletteConfig = document.getElementById("spin-palette-config") as HTMLDivElement | null;
+    const paletteChipsHost = document.getElementById("spin-palette-chips") as HTMLDivElement | null;
+    const paletteCancel = document.getElementById("spin-palette-cancel") as HTMLButtonElement | null;
     const historyList = document.getElementById("spin-history-list") as HTMLUListElement | null;
     const historyCount = document.getElementById("spin-history-count") as HTMLSpanElement | null;
     const historyClear = document.getElementById("spin-history-clear") as HTMLButtonElement | null;
@@ -1529,6 +1665,8 @@ const description =
     let muted: boolean = initialState.muted;
     let pointerCfg: PointerCfg = initialState.pointer;
     let labelRotation: LabelRotation = initialState.labelRotation;
+    let palette: Palette = initialState.palette;
+    function activePalette(): string[] { return PALETTES[palette]; }
 
     function currentWheel(): Wheel {
       return wheels.find((w) => w.id === currentId) ?? wheels[0];
@@ -1611,7 +1749,7 @@ const description =
       return `${month}/${day}`;
     }
 
-    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg; labelRotation: LabelRotation } {
+    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg; labelRotation: LabelRotation; palette: Palette } {
       const defaultWheel = (): Wheel => ({
         id: newId(),
         name: "My wheel",
@@ -1621,7 +1759,7 @@ const description =
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
           const w = defaultWheel();
-          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION };
+          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE };
         }
         const parsed = JSON.parse(raw) as AnyPersist;
         if (parsed && (parsed as PersistV2).version === 2 && Array.isArray((parsed as PersistV2).wheels)) {
@@ -1656,10 +1794,10 @@ const description =
             .slice(0, MAX_WHEELS);
           if (cleaned.length === 0) {
             const w = defaultWheel();
-            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation) };
+            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette) };
           }
           const cid = cleaned.find((w) => w.id === p.currentId)?.id ?? cleaned[0].id;
-          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation) };
+          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette) };
         }
         // v1 migration
         if (parsed && (parsed as PersistV1).version === 1 && Array.isArray((parsed as PersistV1).entries)) {
@@ -1669,20 +1807,20 @@ const description =
             name: "My wheel",
             entries: p.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
           };
-          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION };
+          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE };
         }
       } catch {
         // fall through
       }
       const w = defaultWheel();
-      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION };
+      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE };
     }
 
     function save() {
       const cw = currentWheel();
       if (cw) cw.entries = entries;
       try {
-        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation };
+        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation, palette };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
         // ignore quota
@@ -1901,7 +2039,8 @@ const description =
         ctx.moveTo(cx, cy);
         ctx.arc(cx, cy, r, start, end);
         ctx.closePath();
-        ctx.fillStyle = entries[i].color || PALETTE[i % PALETTE.length];
+        const pal = activePalette();
+        ctx.fillStyle = entries[i].color || pal[i % pal.length];
         ctx.fill();
       }
 
@@ -2043,7 +2182,8 @@ const description =
         const color = document.createElement("button");
         color.type = "button";
         color.className = "spin-list-color";
-        const auto = PALETTE[i % PALETTE.length];
+        const pal = activePalette();
+        const auto = pal[i % pal.length];
         const effective = entry.color || auto;
         color.style.background = effective;
         color.style.color = effective;
@@ -2355,6 +2495,7 @@ const description =
       if (!teamsConfig) return;
       closePointerConfig();
       closeLabelrotConfig();
+      closePaletteConfig();
       teamsConfig.hidden = false;
       if (teamsBtn) teamsBtn.setAttribute("aria-expanded", "true");
       setTeamCount(getTeamCount());
@@ -2409,6 +2550,7 @@ const description =
       if (!pointerConfig) return;
       closeTeamsConfig();
       closeLabelrotConfig();
+      closePaletteConfig();
       pointerConfig.hidden = false;
       if (pointerBtn) pointerBtn.setAttribute("aria-expanded", "true");
       (pointerPosTop as HTMLButtonElement | null)?.focus();
@@ -2438,6 +2580,7 @@ const description =
       if (!labelrotConfig) return;
       closeTeamsConfig();
       closePointerConfig();
+      closePaletteConfig();
       labelrotConfig.hidden = false;
       if (labelrotBtn) labelrotBtn.setAttribute("aria-expanded", "true");
       const pressed = Array.from(labelrotChips).find((c) => c.getAttribute("aria-pressed") === "true");
@@ -2448,6 +2591,75 @@ const description =
       if (!labelrotConfig) return;
       labelrotConfig.hidden = true;
       if (labelrotBtn) labelrotBtn.setAttribute("aria-expanded", "false");
+    }
+
+    const PALETTE_LABELS: Record<Palette, string> = {
+      paper: "Paper",
+      vibrant: "Vibrant",
+      pastel: "Pastel",
+      mono: "Mono",
+    };
+
+    function renderPaletteChips() {
+      if (!paletteChipsHost) return;
+      paletteChipsHost.replaceChildren();
+      (Object.keys(PALETTES) as Palette[]).forEach((key) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "spin-palette-chip";
+        chip.dataset.palette = key;
+        chip.setAttribute("aria-pressed", String(key === palette));
+        const swatches = document.createElement("span");
+        swatches.className = "spin-palette-swatches";
+        swatches.setAttribute("aria-hidden", "true");
+        const previewColors = PALETTES[key].slice(0, 4);
+        for (const c of previewColors) {
+          const dot = document.createElement("span");
+          dot.className = "spin-palette-dot";
+          dot.style.background = c;
+          swatches.appendChild(dot);
+        }
+        chip.appendChild(swatches);
+        const name = document.createElement("span");
+        name.className = "spin-palette-name";
+        name.textContent = PALETTE_LABELS[key];
+        chip.appendChild(name);
+        chip.addEventListener("click", () => setPalette(key));
+        paletteChipsHost.appendChild(chip);
+      });
+    }
+
+    function applyPalette() {
+      if (!paletteChipsHost) return;
+      paletteChipsHost.querySelectorAll<HTMLButtonElement>(".spin-palette-chip").forEach((c) => {
+        c.setAttribute("aria-pressed", String(c.dataset.palette === palette));
+      });
+    }
+
+    function setPalette(next: Palette) {
+      if (palette === next) return;
+      palette = next;
+      applyPalette();
+      save();
+      drawWheel();
+      renderList();
+    }
+
+    function openPaletteConfig() {
+      if (!paletteConfig) return;
+      closeTeamsConfig();
+      closePointerConfig();
+      closeLabelrotConfig();
+      paletteConfig.hidden = false;
+      if (paletteBtn) paletteBtn.setAttribute("aria-expanded", "true");
+      const pressed = paletteConfig.querySelector<HTMLButtonElement>(".spin-palette-chip[aria-pressed='true']");
+      pressed?.focus();
+    }
+
+    function closePaletteConfig() {
+      if (!paletteConfig) return;
+      paletteConfig.hidden = true;
+      if (paletteBtn) paletteBtn.setAttribute("aria-expanded", "false");
     }
 
     // Snake-draft partition: ensures team sizes stay within 1 of each other and
@@ -2744,6 +2956,14 @@ const description =
       });
     });
 
+    if (paletteBtn) {
+      paletteBtn.addEventListener("click", () => {
+        if (paletteConfig && !paletteConfig.hidden) closePaletteConfig();
+        else openPaletteConfig();
+      });
+    }
+    if (paletteCancel) paletteCancel.addEventListener("click", closePaletteConfig);
+
     againBtn!.addEventListener("click", () => {
       // If we're closing an order or teams reveal, the next spin should
       // re-arm the same reveal. The hidden state of each panel is the
@@ -2938,6 +3158,7 @@ const description =
       const cx = originX ?? window.innerWidth / 2;
       const cy = originY ?? window.innerHeight / 2;
       const count = 140;
+      const pal = activePalette();
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 6 + Math.random() * 11;
@@ -2949,7 +3170,7 @@ const description =
           rot: Math.random() * Math.PI * 2,
           vr: (Math.random() - 0.5) * 0.5,
           size: 5 + Math.random() * 9,
-          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          color: pal[Math.floor(Math.random() * pal.length)],
           life: 1,
           shape: Math.random() < 0.55 ? 0 : 1,
         });
@@ -3455,6 +3676,7 @@ const description =
     if (teamsBtn) setTeamCount(getTeamCount());
     applyPointer();
     applyLabelRotation();
+    renderPaletteChips();
 
     if (historyClear) {
       historyClear.addEventListener("click", () => {
