@@ -548,6 +548,39 @@ const description =
       outline-offset: 2px;
       border-radius: 4px;
     }
+    .spin-list-weight {
+      width: 38px;
+      flex-shrink: 0;
+      border: 1px solid transparent;
+      background: transparent;
+      font-family: var(--font-mono, ui-monospace, monospace);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: var(--content-4);
+      padding: 3px 6px;
+      border-radius: 6px;
+      text-align: right;
+      -moz-appearance: textfield;
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+    }
+    .spin-list-weight::-webkit-outer-spin-button,
+    .spin-list-weight::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .spin-list-weight[data-custom="true"] {
+      color: var(--content);
+      background: var(--surface-3);
+    }
+    .spin-list-item:hover .spin-list-weight,
+    .spin-list-item:focus-within .spin-list-weight {
+      border-color: var(--border, rgba(20, 17, 11, 0.12));
+    }
+    .spin-list-weight:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 35%, transparent);
+    }
     .spin-list-remove {
       width: 24px;
       height: 24px;
@@ -833,7 +866,7 @@ const description =
   </style>
 
   <script>
-    type Entry = { id: string; label: string; color?: string };
+    type Entry = { id: string; label: string; color?: string; weight?: number };
     type Wheel = { id: string; name: string; entries: Entry[] };
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
     type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean };
@@ -1176,12 +1209,12 @@ const description =
       }
 
       const n = entries.length;
-      const sliceAngle = (Math.PI * 2) / n;
+      const bounds = sliceBounds();
 
       // Slices
       for (let i = 0; i < n; i++) {
-        const start = rotation + i * sliceAngle - Math.PI / 2;
-        const end = start + sliceAngle;
+        const start = rotation + bounds[i] - Math.PI / 2;
+        const end = rotation + bounds[i + 1] - Math.PI / 2;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.arc(cx, cy, r, start, end);
@@ -1206,20 +1239,51 @@ const description =
       ctx.shadowBlur = 2;
 
       for (let i = 0; i < n; i++) {
-        const mid = rotation + i * sliceAngle + sliceAngle / 2 - Math.PI / 2;
+        const midAngle = (bounds[i] + bounds[i + 1]) / 2;
+        const sliceSpan = bounds[i + 1] - bounds[i];
+        const mid = rotation + midAngle - Math.PI / 2;
         const text = entries[i].label || "—";
         const labelR = r * 0.62;
         ctx.save();
         ctx.translate(cx + Math.cos(mid) * labelR, cy + Math.sin(mid) * labelR);
         ctx.rotate(mid + Math.PI / 2);
         ctx.textAlign = "center";
-        const maxW = r * 0.55;
+        // Tangential label width scales with slice span; clamp so single slice
+        // doesn't blow past the wheel and a sliver still gets minimal text.
+        const maxW = Math.min(r * 0.9, Math.max(r * 0.18, r * sliceSpan * 0.95));
         const displayed = clipText(ctx, text, maxW);
         ctx.fillText(displayed, 0, 0);
         ctx.restore();
       }
 
       ctx.shadowBlur = 0;
+    }
+
+    function sliceBounds(): number[] {
+      const n = entries.length;
+      const bounds = new Array<number>(n + 1);
+      bounds[0] = 0;
+      let total = 0;
+      for (let i = 0; i < n; i++) total += entries[i].weight || 1;
+      let cum = 0;
+      for (let i = 0; i < n; i++) {
+        cum += entries[i].weight || 1;
+        bounds[i + 1] = (cum / total) * Math.PI * 2;
+      }
+      return bounds;
+    }
+
+    function indexAt(angle: number, bounds: number[]): number {
+      // angle in [0, 2π)
+      // binary search bounds[i] <= angle < bounds[i+1]
+      let lo = 0;
+      let hi = bounds.length - 1;
+      while (lo < hi - 1) {
+        const mid = (lo + hi) >> 1;
+        if (bounds[mid] <= angle) lo = mid;
+        else hi = mid;
+      }
+      return lo;
     }
 
     function clipText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
@@ -1333,6 +1397,41 @@ const description =
         });
         li.appendChild(input);
 
+        const weight = document.createElement("input");
+        weight.type = "number";
+        weight.className = "spin-list-weight";
+        weight.min = "1";
+        weight.max = "10";
+        weight.step = "1";
+        weight.inputMode = "numeric";
+        const wv = entry.weight && entry.weight > 1 ? entry.weight : 1;
+        weight.value = String(wv);
+        if (wv > 1) weight.dataset.custom = "true";
+        weight.title = "Weight (1-10): higher = larger slice + more likely";
+        weight.setAttribute(
+          "aria-label",
+          `Weight for ${entry.label || "entry"} (1-10), currently ${wv}`,
+        );
+        const commitWeight = () => {
+          let v = parseInt(weight.value, 10);
+          if (!Number.isFinite(v)) v = 1;
+          v = Math.max(1, Math.min(10, Math.round(v)));
+          weight.value = String(v);
+          if (v > 1) {
+            entry.weight = v;
+            weight.dataset.custom = "true";
+          } else {
+            delete entry.weight;
+            delete weight.dataset.custom;
+          }
+          drawWheel();
+          save();
+        };
+        weight.addEventListener("input", commitWeight);
+        weight.addEventListener("change", commitWeight);
+
+        li.appendChild(weight);
+
         const rm = document.createElement("button");
         rm.type = "button";
         rm.className = "spin-list-remove";
@@ -1425,29 +1524,27 @@ const description =
       }
 
       const n = entries.length;
-      const sliceAngle = (Math.PI * 2) / n;
+      const bounds = sliceBounds();
 
-      // Pick winner uniformly, then compute target rotation so that
-      // pointer (top, -PI/2) lands in the middle of the winning slice.
-      const winnerIdx = Math.floor(Math.random() * n);
-      const sliceMid = winnerIdx * sliceAngle + sliceAngle / 2;
-      // Slice i is drawn from rotation + i*sliceAngle - PI/2 to next.
-      // Pointer is at -PI/2 in absolute coords (top of canvas).
-      // We want: pointer ∈ (rotation + winnerIdx*sliceAngle - PI/2,
-      //                     rotation + (winnerIdx+1)*sliceAngle - PI/2)
-      // Solve for rotation: rotation = -PI/2 - sliceMid + (-PI/2) ...
-      // Simpler: want rotation + sliceMid - PI/2 ≡ -PI/2 (mod 2π)
+      // Weighted winner pick: probability proportional to slice angular span.
+      // Equivalent to picking r uniformly in [0, 2π) and locating containing slice.
+      const r = Math.random() * Math.PI * 2;
+      const winnerIdx = indexAt(r, bounds);
+      const sliceStart = bounds[winnerIdx];
+      const sliceEnd = bounds[winnerIdx + 1];
+      const sliceSpan = sliceEnd - sliceStart;
+      const sliceMid = (sliceStart + sliceEnd) / 2;
+      // Want rotation + sliceMid - PI/2 ≡ -PI/2 (mod 2π)
       //   so rotation ≡ -sliceMid (mod 2π)
       const targetMod = ((-sliceMid) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-      // turns must be an integer; non-integer * 2π leaves a residual rotation
-      // that desynchronises the wheel from the chosen winner.
       const turns = 5 + Math.floor(Math.random() * 3); // 5, 6, or 7 full turns
       const currentMod = ((rotation % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
       let deltaToTarget = targetMod - currentMod;
       if (deltaToTarget <= 0) deltaToTarget += Math.PI * 2;
       const totalDelta = turns * Math.PI * 2 + deltaToTarget;
-      // Add jitter within slice (90% inside center)
-      const jitter = (Math.random() - 0.5) * sliceAngle * 0.7;
+      // Jitter within slice, capped so the pointer never falls outside the
+      // winning wedge — vital for narrow (low-weight) slices.
+      const jitter = (Math.random() - 0.5) * sliceSpan * 0.7;
       const totalDeltaJittered = totalDelta + jitter;
 
       const startRotation = rotation;
@@ -1467,7 +1564,7 @@ const description =
 
         // Tick whenever the pointer crosses a slice boundary
         const norm = ((-rotation % twoPi) + twoPi) % twoPi;
-        const curSlice = Math.floor(norm / sliceAngle) % n;
+        const curSlice = indexAt(norm, bounds);
         if (curSlice !== lastSliceIdx) {
           lastSliceIdx = curSlice;
           // Skip the very first frame so we don't double-tick at t=0
@@ -1724,12 +1821,15 @@ const description =
     function buildShareUrl(): string {
       const cw = currentWheel();
       const limited = entries.slice(0, 200);
-      const payload: { n: string; e: string[]; c?: (string | null)[] } = {
+      const payload: { n: string; e: string[]; c?: (string | null)[]; w?: number[] } = {
         n: cw.name.slice(0, MAX_WHEEL_NAME),
         e: limited.map((x) => x.label),
       };
       if (limited.some((x) => x.color)) {
         payload.c = limited.map((x) => x.color || null);
+      }
+      if (limited.some((x) => (x.weight || 1) > 1)) {
+        payload.w = limited.map((x) => x.weight || 1);
       }
       const json = JSON.stringify(payload);
       const b64 = btoa(unescape(encodeURIComponent(json)))
@@ -1750,6 +1850,7 @@ const description =
         const parsed = JSON.parse(json);
         if (!parsed || !Array.isArray(parsed.e)) return null;
         const rawColors: unknown[] = Array.isArray(parsed.c) ? parsed.c : [];
+        const rawWeights: unknown[] = Array.isArray(parsed.w) ? parsed.w : [];
         const out: Entry[] = [];
         for (let i = 0; i < Math.min(parsed.e.length, 200); i++) {
           const raw = parsed.e[i];
@@ -1760,6 +1861,11 @@ const description =
           const rc = rawColors[i];
           if (typeof rc === "string" && /^#[0-9a-fA-F]{6}$/.test(rc)) {
             e.color = rc.toLowerCase();
+          }
+          const rw = rawWeights[i];
+          if (typeof rw === "number" && Number.isFinite(rw)) {
+            const wv = Math.max(1, Math.min(10, Math.round(rw)));
+            if (wv > 1) e.weight = wv;
           }
           out.push(e);
         }
@@ -1925,9 +2031,14 @@ const description =
         exportedAt: new Date().toISOString(),
         wheels: wheels.map((w) => ({
           name: w.name,
-          entries: w.entries.map((e) =>
-            e.color ? { label: e.label, color: e.color } : e.label,
-          ),
+          entries: w.entries.map((e) => {
+            const heavyWeight = (e.weight || 1) > 1;
+            if (!e.color && !heavyWeight) return e.label;
+            const obj: { label: string; color?: string; weight?: number } = { label: e.label };
+            if (e.color) obj.color = e.color;
+            if (heavyWeight) obj.weight = e.weight;
+            return obj;
+          }),
         })),
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -1956,7 +2067,7 @@ const description =
         return;
       }
       // Accept either the full export shape or a single wheel
-      type ImportEntry = { label: string; color?: string };
+      type ImportEntry = { label: string; color?: string; weight?: number };
       const incoming: { name: string; entries: ImportEntry[] }[] = [];
       const p = parsed as { wheels?: unknown; name?: unknown; entries?: unknown };
       const normalizeEntries = (raw: unknown[]): ImportEntry[] => {
@@ -1964,19 +2075,27 @@ const description =
         for (const e of raw) {
           let label: string | null = null;
           let color: string | undefined;
+          let weight: number | undefined;
           if (typeof e === "string") {
             label = e;
           } else if (e && typeof e === "object") {
-            const obj = e as { label?: unknown; color?: unknown };
+            const obj = e as { label?: unknown; color?: unknown; weight?: unknown };
             if (typeof obj.label === "string") label = obj.label;
             if (typeof obj.color === "string" && /^#[0-9a-fA-F]{6}$/.test(obj.color)) {
               color = obj.color.toLowerCase();
+            }
+            if (typeof obj.weight === "number" && Number.isFinite(obj.weight)) {
+              const wv = Math.max(1, Math.min(10, Math.round(obj.weight)));
+              if (wv > 1) weight = wv;
             }
           }
           if (label === null) continue;
           const trimmed = label.trim();
           if (trimmed.length === 0 || trimmed.length > 80) continue;
-          out.push(color ? { label: trimmed, color } : { label: trimmed });
+          const entry: ImportEntry = { label: trimmed };
+          if (color) entry.color = color;
+          if (weight) entry.weight = weight;
+          out.push(entry);
           if (out.length >= 200) break;
         }
         return out;
@@ -2019,9 +2138,12 @@ const description =
         const wheel: Wheel = {
           id: newId(),
           name,
-          entries: w.entries.map((it) =>
-            it.color ? { id: newId(), label: it.label, color: it.color } : { id: newId(), label: it.label },
-          ),
+          entries: w.entries.map((it) => {
+            const e: Entry = { id: newId(), label: it.label };
+            if (it.color) e.color = it.color;
+            if (it.weight) e.weight = it.weight;
+            return e;
+          }),
         };
         wheels.push(wheel);
         last = wheel;
