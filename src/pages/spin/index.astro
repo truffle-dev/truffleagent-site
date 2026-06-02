@@ -7,6 +7,16 @@ const description =
 ---
 
 <BaseLayout title={title} description={description}>
+  <script slot="head" is:inline>
+    (function () {
+      try {
+        var p = new URLSearchParams(location.search);
+        if (p.get("embed") === "1") {
+          document.documentElement.dataset.embed = "1";
+        }
+      } catch (e) {}
+    })();
+  </script>
   <section class="spin-page" aria-labelledby="spin-title">
     <header class="spin-header">
       <p class="spin-eyebrow">Spin</p>
@@ -68,6 +78,10 @@ const description =
                 <button type="button" id="spin-picker-import" class="spin-picker-action" role="menuitem">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                   Import JSON
+                </button>
+                <button type="button" id="spin-picker-embed" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  Embed code
                 </button>
                 <button type="button" id="spin-picker-delete" class="spin-picker-action spin-picker-action-danger" role="menuitem">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -234,6 +248,10 @@ const description =
         Your wheel lives in your browser.
       </p>
     </footer>
+
+    <a class="spin-embed-credit" href="/spin/" target="_blank" rel="noopener">
+      spin · truffleagent.com
+    </a>
   </section>
 
   <div id="spin-winner" class="spin-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="spin-winner-name">
@@ -247,6 +265,20 @@ const description =
         <button id="spin-winner-again" type="button" class="spin-btn spin-btn-primary">Spin again</button>
         <button id="spin-winner-share" type="button" class="spin-btn">Share image</button>
         <button id="spin-winner-close" type="button" class="spin-btn-ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="spin-embed-modal" class="spin-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="spin-embed-title">
+    <div class="spin-modal-card spin-embed-card">
+      <button id="spin-embed-x" type="button" class="spin-help-x" aria-label="Close embed dialog">×</button>
+      <p class="spin-modal-label">Embed</p>
+      <p id="spin-embed-title" class="spin-help-title">Drop the wheel anywhere</p>
+      <p class="spin-embed-lead">Paste this snippet into a blog post, doc, or any HTML page. The current wheel state travels in the URL. Visitors can spin but not edit.</p>
+      <textarea id="spin-embed-code" class="spin-embed-textarea" readonly rows="4" aria-label="Embed snippet"></textarea>
+      <div class="spin-modal-actions">
+        <button id="spin-embed-copy" type="button" class="spin-btn spin-btn-primary">Copy code</button>
+        <button id="spin-embed-close" type="button" class="spin-btn-ghost">Close</button>
       </div>
     </div>
   </div>
@@ -1809,6 +1841,103 @@ const description =
       color: var(--content-4);
     }
 
+    /* Embed credit footer (only visible in embed mode) */
+    .spin-embed-credit {
+      display: none;
+      position: fixed;
+      bottom: 8px;
+      right: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--content-3);
+      text-decoration: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: color-mix(in oklab, var(--surface) 80%, transparent);
+      z-index: 10;
+    }
+    .spin-embed-credit:hover {
+      color: var(--content);
+      background: var(--surface-2);
+    }
+    .spin-embed-credit:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Embed mode — strip the page to wheel only */
+    html[data-embed="1"] .site-header,
+    html[data-embed="1"] .site-footer {
+      display: none !important;
+    }
+    html[data-embed="1"] body {
+      background: transparent;
+    }
+    html[data-embed="1"] #main {
+      padding: 0;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .spin-page.spin-is-embed {
+      padding: 0;
+      max-width: none;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .spin-page.spin-is-embed .spin-header,
+    .spin-page.spin-is-embed .spin-side,
+    .spin-page.spin-is-embed .spin-suggest,
+    .spin-page.spin-is-embed .spin-foot {
+      display: none;
+    }
+    .spin-page.spin-is-embed .spin-stage {
+      grid-template-columns: 1fr;
+      width: 100%;
+      padding: 1rem;
+    }
+    .spin-page.spin-is-embed .spin-embed-credit {
+      display: inline-block;
+    }
+
+    /* Embed-snippet modal */
+    .spin-embed-card {
+      max-width: 540px;
+      text-align: left;
+      position: relative;
+      padding-top: 1.6rem;
+    }
+    .spin-embed-card .spin-modal-label {
+      text-align: left;
+    }
+    .spin-embed-lead {
+      margin: 0 0 0.85rem;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--content-2);
+      line-height: 1.5;
+    }
+    .spin-embed-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.7rem 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--content);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      resize: vertical;
+      margin: 0 0 1rem;
+    }
+    .spin-embed-textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      border-color: var(--accent);
+    }
+
     /* Confetti overlay */
     .spin-confetti {
       position: fixed;
@@ -1891,6 +2020,10 @@ const description =
 
     const STORAGE_KEY = "spinwheel:v1";
     const HISTORY_KEY = "spinwheel:history:v1";
+    const IS_EMBED = (() => {
+      try { return new URLSearchParams(location.search).get("embed") === "1"; }
+      catch { return false; }
+    })();
     const HISTORY_CAP = 20;
     const MAX_WHEELS = 20;
     const MAX_WHEEL_NAME = 40;
@@ -2044,6 +2177,12 @@ const description =
     const pickerDelete = document.getElementById("spin-picker-delete") as HTMLButtonElement | null;
     const pickerExport = document.getElementById("spin-picker-export");
     const pickerImport = document.getElementById("spin-picker-import");
+    const pickerEmbed = document.getElementById("spin-picker-embed");
+    const embedModal = document.getElementById("spin-embed-modal") as HTMLDivElement | null;
+    const embedCode = document.getElementById("spin-embed-code") as HTMLTextAreaElement | null;
+    const embedX = document.getElementById("spin-embed-x") as HTMLButtonElement | null;
+    const embedCopy = document.getElementById("spin-embed-copy") as HTMLButtonElement | null;
+    const embedCloseBtn = document.getElementById("spin-embed-close") as HTMLButtonElement | null;
     const importFileInput = document.getElementById("spin-import-file") as HTMLInputElement | null;
     const colorPicker = document.getElementById("spin-color-picker") as HTMLInputElement | null;
 
@@ -2114,6 +2253,7 @@ const description =
     }
 
     function saveHistory() {
+      if (IS_EMBED) return;
       try {
         localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, HISTORY_CAP)));
       } catch {}
@@ -2215,6 +2355,7 @@ const description =
     function save() {
       const cw = currentWheel();
       if (cw) cw.entries = entries;
+      if (IS_EMBED) return;
       try {
         const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation, palette, wheelSize };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -3493,6 +3634,10 @@ const description =
     });
 
     document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && embedModal && !embedModal.hidden) {
+        closeEmbedModal();
+        return;
+      }
       if (e.key === "Escape" && helpModal && !helpModal.hidden) {
         hideHelp();
         return;
@@ -3819,6 +3964,74 @@ const description =
         showToast("Could not copy. URL: " + url.slice(0, 40) + "…");
       }
     }
+
+    // === Embed snippet ===
+    function buildEmbedSnippet(): string {
+      const cw = currentWheel();
+      const payload: { n: string; e: string[]; c?: (string | null)[]; w?: (number | null)[] } = {
+        n: cw.name,
+        e: entries.map((e) => e.label),
+      };
+      if (entries.some((e) => e.color)) {
+        payload.c = entries.map((e) => e.color || null);
+      }
+      if (entries.some((e) => e.weight)) {
+        payload.w = entries.map((e) => e.weight || null);
+      }
+      const json = JSON.stringify(payload);
+      const b64 = btoa(unescape(encodeURIComponent(json)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+      const url = `https://truffleagent.com/spin/?embed=1&w=${b64}`;
+      return `<iframe src="${url}" width="640" height="640" loading="lazy" style="border:0;max-width:100%" title="Spin the wheel"></iframe>`;
+    }
+
+    function openEmbedModal() {
+      if (!embedModal || !embedCode) return;
+      if (entries.length === 0) {
+        showToast("Add an entry first");
+        return;
+      }
+      embedCode.value = buildEmbedSnippet();
+      embedModal.hidden = false;
+      embedModal.setAttribute("aria-hidden", "false");
+      embedCode.focus();
+      embedCode.select();
+    }
+    function closeEmbedModal() {
+      if (!embedModal) return;
+      embedModal.hidden = true;
+      embedModal.setAttribute("aria-hidden", "true");
+    }
+
+    if (pickerEmbed) {
+      pickerEmbed.addEventListener("click", () => {
+        closePicker();
+        openEmbedModal();
+      });
+    }
+    embedX?.addEventListener("click", closeEmbedModal);
+    embedCloseBtn?.addEventListener("click", closeEmbedModal);
+    embedModal?.addEventListener("click", (e) => {
+      if (e.target === embedModal) closeEmbedModal();
+    });
+    embedCopy?.addEventListener("click", async () => {
+      if (!embedCode) return;
+      const code = embedCode.value;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(code);
+          showToast("Embed code copied");
+        } else {
+          embedCode.select();
+          document.execCommand("copy");
+          showToast("Embed code copied");
+        }
+      } catch {
+        showToast("Select the code and copy manually");
+      }
+    });
 
     // === Share image ===
     function tokenOr(name: string, fallback: string): string {
@@ -4330,6 +4543,18 @@ const description =
     // === Init: handle ?w= shared wheel + apply settings ===
     (function initFromUrl() {
       const shared = tryDecodeShareParam();
+      if (IS_EMBED) {
+        // Embed mode: never persist; use shared state in memory if present,
+        // otherwise the seeded default wheel. Don't strip ?w= — preserves
+        // identity if a visitor copies the URL.
+        if (shared && shared.entries.length > 0) {
+          const w: Wheel = { id: "embed", name: shared.name, entries: shared.entries };
+          wheels = [w];
+          currentId = w.id;
+          entries = w.entries;
+        }
+        return;
+      }
       if (shared && shared.entries.length > 0) {
         // Import as a NEW wheel so existing wheels are never clobbered
         const created = createWheel(shared.name, shared.entries);
@@ -4346,6 +4571,10 @@ const description =
         }
       }
     })();
+
+    if (IS_EMBED) {
+      document.querySelector(".spin-page")?.classList.add("spin-is-embed");
+    }
 
     updateMuteBtn();
     updateEliminateBtn();
