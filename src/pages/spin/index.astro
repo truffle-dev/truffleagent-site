@@ -245,6 +245,7 @@ const description =
       <div class="spin-modal-actions">
         <button id="spin-winner-remove" type="button" class="spin-btn">Remove + spin</button>
         <button id="spin-winner-again" type="button" class="spin-btn spin-btn-primary">Spin again</button>
+        <button id="spin-winner-share" type="button" class="spin-btn">Share image</button>
         <button id="spin-winner-close" type="button" class="spin-btn-ghost">Close</button>
       </div>
     </div>
@@ -1933,6 +1934,7 @@ const description =
     const removeBtn = document.getElementById("spin-winner-remove");
     const againBtn = document.getElementById("spin-winner-again");
     const closeBtn = document.getElementById("spin-winner-close");
+    const shareImgBtn = document.getElementById("spin-winner-share") as HTMLButtonElement | null;
     const confetti = document.getElementById("spin-confetti") as HTMLCanvasElement | null;
     const toast = document.getElementById("spin-toast") as HTMLDivElement | null;
     const pickerBtn = document.getElementById("spin-picker-btn") as HTMLButtonElement | null;
@@ -3109,6 +3111,7 @@ const description =
         (againBtn as HTMLButtonElement).hidden = false;
         (againBtn as HTMLButtonElement).textContent = "Spin again";
       }
+      if (shareImgBtn) shareImgBtn.hidden = true;
       modal!.hidden = false;
       modal!.setAttribute("aria-hidden", "false");
       hintEl!.textContent = `Order: ${order.map((e) => e.label).join(", ")}`;
@@ -3151,6 +3154,7 @@ const description =
         (againBtn as HTMLButtonElement).hidden = false;
         (againBtn as HTMLButtonElement).textContent = "Re-split";
       }
+      if (shareImgBtn) shareImgBtn.hidden = true;
       modal!.hidden = false;
       modal!.setAttribute("aria-hidden", "false");
       hintEl!.textContent = `Teams: ${teams.map((t) => `${t.name} (${t.members.map((m) => m.label).join(", ")})`).join(" · ")}`;
@@ -3201,6 +3205,7 @@ const description =
         (againBtn as HTMLButtonElement).hidden = isFinal;
         (againBtn as HTMLButtonElement).textContent = "Spin again";
       }
+      if (shareImgBtn) shareImgBtn.hidden = false;
       hintEl!.textContent = isFinal
         ? `Champion: ${entry.label}`
         : `Winner: ${entry.label}`;
@@ -3365,6 +3370,10 @@ const description =
     });
 
     closeBtn!.addEventListener("click", hideWinner);
+
+    shareImgBtn?.addEventListener("click", () => {
+      void shareWinnerImage();
+    });
 
     modal!.addEventListener("click", (e) => {
       if (e.target === modal) hideWinner();
@@ -3684,6 +3693,182 @@ const description =
         }
       } catch {
         showToast("Could not copy. URL: " + url.slice(0, 40) + "…");
+      }
+    }
+
+    // === Share image ===
+    function tokenOr(name: string, fallback: string): string {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return v || fallback;
+    }
+
+    function wrapAndFill(
+      ctx: CanvasRenderingContext2D,
+      text: string,
+      x: number,
+      y: number,
+      maxWidth: number,
+      lineHeight: number,
+      maxLines: number,
+    ): number {
+      const words = text.split(/\s+/);
+      const lines: string[] = [];
+      let line = "";
+      for (const w of words) {
+        const test = line ? `${line} ${w}` : w;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          lines.push(line);
+          line = w;
+        } else {
+          line = test;
+        }
+        if (lines.length >= maxLines) break;
+      }
+      if (line && lines.length < maxLines) lines.push(line);
+      if (lines.length === maxLines && ctx.measureText(line).width > maxWidth) {
+        let trimmed = lines[lines.length - 1];
+        while (trimmed.length > 1 && ctx.measureText(trimmed + "…").width > maxWidth) {
+          trimmed = trimmed.slice(0, -1);
+        }
+        lines[lines.length - 1] = trimmed + "…";
+      }
+      lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineHeight));
+      return lines.length;
+    }
+
+    async function buildShareCanvas(
+      winnerLabel: string,
+      wheelName: string,
+    ): Promise<HTMLCanvasElement> {
+      const W = 1200;
+      const H = 630;
+      const dpr = 2;
+      const out = document.createElement("canvas");
+      out.width = W * dpr;
+      out.height = H * dpr;
+      const ctx = out.getContext("2d");
+      if (!ctx) return out;
+      ctx.scale(dpr, dpr);
+
+      const bg = tokenOr("--bg", "#f5f1e8");
+      const content = tokenOr("--content", "#1a1a1a");
+      const content3 = tokenOr("--content-3", "#6b6b6b");
+      const accent = tokenOr("--accent", "#4850c4");
+      const border = tokenOr("--border", "#e2dccc");
+
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      const wheelSize = 460;
+      const wheelX = W - 80 - wheelSize;
+      const wheelY = (H - wheelSize) / 2;
+      if (canvas) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(wheelX + wheelSize / 2, wheelY + wheelSize / 2, wheelSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(canvas, wheelX, wheelY, wheelSize, wheelSize);
+        ctx.restore();
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(wheelX + wheelSize / 2, wheelY + wheelSize / 2, wheelSize / 2, 0, Math.PI * 2);
+        ctx.stroke();
+        const pcx = wheelX + wheelSize / 2;
+        const pTop = wheelY - 6;
+        ctx.fillStyle = content;
+        ctx.beginPath();
+        ctx.moveTo(pcx, pTop + 26);
+        ctx.lineTo(pcx - 14, pTop);
+        ctx.lineTo(pcx + 14, pTop);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      const padding = 72;
+      const textMax = wheelX - padding - 40;
+
+      ctx.fillStyle = accent;
+      ctx.font = "600 16px Inter, system-ui, sans-serif";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText("WINNER", padding, 150);
+
+      ctx.fillStyle = content;
+      ctx.font = "italic 500 68px Fraunces, Georgia, serif";
+      const lines = wrapAndFill(ctx, winnerLabel, padding, 220, textMax, 78, 3);
+
+      const subY = 220 + lines * 78 + 24;
+      ctx.fillStyle = content3;
+      ctx.font = "400 20px Inter, system-ui, sans-serif";
+      const trimmedWheelName = wheelName.length > 40 ? wheelName.slice(0, 39) + "…" : wheelName;
+      ctx.fillText(`from ${trimmedWheelName}`, padding, subY);
+
+      ctx.fillStyle = content3;
+      ctx.font = "500 16px \"JetBrains Mono\", ui-monospace, monospace";
+      ctx.fillText("truffleagent.com/spin", padding, H - 60);
+
+      return out;
+    }
+
+    function slugify(s: string): string {
+      return s
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .slice(0, 40) || "winner";
+    }
+
+    async function shareWinnerImage() {
+      const label = (winnerName?.textContent || "").trim();
+      if (!label) return;
+      const wheelName = currentWheel().name || "My wheel";
+      try {
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready;
+        }
+      } catch {}
+      let blob: Blob | null = null;
+      try {
+        const out = await buildShareCanvas(label, wheelName);
+        blob = await new Promise<Blob | null>((resolve) =>
+          out.toBlob((b) => resolve(b), "image/png"),
+        );
+      } catch {
+        showToast("Could not build image");
+        return;
+      }
+      if (!blob) {
+        showToast("Could not build image");
+        return;
+      }
+      const isSecure = window.isSecureContext;
+      const canCopyImage =
+        isSecure &&
+        typeof (window as unknown as { ClipboardItem?: unknown }).ClipboardItem !== "undefined" &&
+        !!navigator.clipboard?.write;
+      if (canCopyImage) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+          ]);
+          showToast("Image copied to clipboard");
+          return;
+        } catch {}
+      }
+      try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `spin-${slugify(label)}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast("Image downloaded");
+      } catch {
+        showToast("Could not save image");
       }
     }
 
