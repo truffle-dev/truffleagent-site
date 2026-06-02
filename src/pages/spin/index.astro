@@ -22,7 +22,7 @@ const description =
     <div class="spin-stage">
       <div class="spin-wheel-pane">
         <div class="spin-wheel-frame">
-          <div class="spin-pointer" aria-hidden="true"></div>
+          <div class="spin-pointer spin-pointer-top" aria-hidden="true"></div>
           <canvas id="spin-canvas" width="640" height="640" role="img" aria-label="Decision wheel"></canvas>
           <button id="spin-center" class="spin-center-btn" type="button" aria-label="Spin the wheel">
             <span class="spin-center-label">Spin</span>
@@ -98,6 +98,9 @@ const description =
             <button id="spin-teams" type="button" class="spin-icon-btn" title="Split into teams" aria-label="Split into teams" aria-expanded="false">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/><path d="M11 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/></svg>
             </button>
+            <button id="spin-pointer-btn" type="button" class="spin-icon-btn" title="Pointer settings" aria-label="Pointer settings" aria-expanded="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 3 8.5 8.5 15.5 8.5"/><circle cx="12" cy="15" r="5"/></svg>
+            </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
             </button>
@@ -116,6 +119,21 @@ const description =
           </div>
           <button id="spin-teams-go" type="button" class="spin-teams-go">Split</button>
           <button id="spin-teams-cancel" type="button" class="spin-teams-cancel" aria-label="Cancel team split">×</button>
+        </div>
+
+        <div id="spin-pointer-config" class="spin-pointer-config" hidden role="group" aria-label="Pointer settings">
+          <span class="spin-pointer-cfg-label">Position</span>
+          <div class="spin-pointer-chips" role="group" aria-label="Pointer position">
+            <button id="spin-pointer-pos-top" type="button" class="spin-pointer-chip" aria-pressed="true">Top</button>
+            <button id="spin-pointer-pos-right" type="button" class="spin-pointer-chip" aria-pressed="false">Right</button>
+          </div>
+          <span class="spin-pointer-cfg-label">Color</span>
+          <div class="spin-pointer-swatches" role="group" aria-label="Pointer color">
+            <button type="button" class="spin-pointer-swatch spin-pointer-swatch-ink" data-color="ink" aria-pressed="true" aria-label="Ink"></button>
+            <button type="button" class="spin-pointer-swatch spin-pointer-swatch-accent" data-color="accent" aria-pressed="false" aria-label="Indigo"></button>
+            <button type="button" class="spin-pointer-swatch spin-pointer-swatch-amber" data-color="amber" aria-pressed="false" aria-label="Amber"></button>
+          </div>
+          <button id="spin-pointer-cancel" type="button" class="spin-pointer-cancel" aria-label="Close pointer settings">×</button>
         </div>
 
         <ul id="spin-list" class="spin-list" aria-label="Entries list"></ul>
@@ -247,16 +265,27 @@ const description =
 
     .spin-pointer {
       position: absolute;
+      width: 0;
+      height: 0;
+      z-index: 2;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      --pointer-fill: var(--content);
+    }
+    .spin-pointer-top {
       top: -6px;
       left: 50%;
       transform: translateX(-50%);
-      width: 0;
-      height: 0;
       border-left: 14px solid transparent;
       border-right: 14px solid transparent;
-      border-top: 26px solid var(--content);
-      z-index: 2;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      border-top: 26px solid var(--pointer-fill);
+    }
+    .spin-pointer-right {
+      top: 50%;
+      right: -6px;
+      transform: translateY(-50%);
+      border-top: 14px solid transparent;
+      border-bottom: 14px solid transparent;
+      border-right: 26px solid var(--pointer-fill);
     }
 
     .spin-center-btn {
@@ -933,6 +962,94 @@ const description =
       outline-offset: 2px;
     }
 
+    .spin-pointer-config {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.7rem;
+      margin: 0 0 0.85rem;
+      background: color-mix(in oklab, var(--accent) 4%, var(--surface-2));
+      border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border));
+      border-radius: 8px;
+    }
+    .spin-pointer-cfg-label {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-3);
+    }
+    .spin-pointer-chips {
+      display: inline-flex;
+      gap: 4px;
+    }
+    .spin-pointer-chip {
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content-2);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .spin-pointer-chip:hover { background: var(--surface-2); }
+    .spin-pointer-chip:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-pointer-chip[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .spin-pointer-swatches {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .spin-pointer-swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid color-mix(in oklab, var(--content) 25%, transparent);
+      padding: 0;
+      cursor: pointer;
+      background: var(--swatch-fill, var(--content));
+    }
+    .spin-pointer-swatch-ink { --swatch-fill: var(--content); }
+    .spin-pointer-swatch-accent { --swatch-fill: var(--accent); }
+    .spin-pointer-swatch-amber { --swatch-fill: #b07d2a; }
+    .spin-pointer-swatch:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-pointer-swatch[aria-pressed="true"] {
+      box-shadow: 0 0 0 2px var(--surface-2), 0 0 0 4px var(--accent);
+    }
+    .spin-pointer-cancel {
+      margin-left: auto;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      background: transparent;
+      color: var(--content-4);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0;
+    }
+    .spin-pointer-cancel:hover {
+      color: var(--content);
+      background: var(--surface);
+    }
+    .spin-pointer-cancel:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+
     .spin-foot {
       margin-top: 3rem;
       padding-top: 1.5rem;
@@ -1209,8 +1326,11 @@ const description =
   <script>
     type Entry = { id: string; label: string; color?: string; weight?: number; wins?: number };
     type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean; accumulate?: boolean; teamCount?: number };
+    type PointerPos = "top" | "right";
+    type PointerColor = "ink" | "accent" | "amber";
+    type PointerCfg = { pos: PointerPos; color: PointerColor };
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
-    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean };
+    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg };
     type AnyPersist = PersistV1 | PersistV2;
 
     const STORAGE_KEY = "spinwheel:v1";
@@ -1239,6 +1359,17 @@ const description =
       "#3b41a3", // truffle-600
     ];
 
+    const DEFAULT_POINTER: PointerCfg = { pos: "top", color: "ink" };
+    function validPointer(p: unknown): PointerCfg {
+      const out: PointerCfg = { pos: "top", color: "ink" };
+      if (p && typeof p === "object") {
+        const o = p as { pos?: unknown; color?: unknown };
+        if (o.pos === "top" || o.pos === "right") out.pos = o.pos;
+        if (o.color === "ink" || o.color === "accent" || o.color === "amber") out.color = o.color;
+      }
+      return out;
+    }
+
     const canvas = document.getElementById("spin-canvas") as HTMLCanvasElement | null;
     const centerBtn = document.getElementById("spin-center") as HTMLButtonElement | null;
     const list = document.getElementById("spin-list") as HTMLUListElement | null;
@@ -1263,6 +1394,13 @@ const description =
     const teamsGo = document.getElementById("spin-teams-go") as HTMLButtonElement | null;
     const teamsCancel = document.getElementById("spin-teams-cancel") as HTMLButtonElement | null;
     const teamsList = document.getElementById("spin-teams-list") as HTMLDivElement | null;
+    const pointerEl = document.querySelector(".spin-pointer") as HTMLDivElement | null;
+    const pointerBtn = document.getElementById("spin-pointer-btn") as HTMLButtonElement | null;
+    const pointerConfig = document.getElementById("spin-pointer-config") as HTMLDivElement | null;
+    const pointerPosTop = document.getElementById("spin-pointer-pos-top") as HTMLButtonElement | null;
+    const pointerPosRight = document.getElementById("spin-pointer-pos-right") as HTMLButtonElement | null;
+    const pointerCancel = document.getElementById("spin-pointer-cancel") as HTMLButtonElement | null;
+    const pointerSwatches = document.querySelectorAll<HTMLButtonElement>(".spin-pointer-swatch");
     const historyList = document.getElementById("spin-history-list") as HTMLUListElement | null;
     const historyCount = document.getElementById("spin-history-count") as HTMLSpanElement | null;
     const historyClear = document.getElementById("spin-history-clear") as HTMLButtonElement | null;
@@ -1300,6 +1438,7 @@ const description =
     let wheels: Wheel[] = initialState.wheels;
     let currentId: string = initialState.currentId;
     let muted: boolean = initialState.muted;
+    let pointerCfg: PointerCfg = initialState.pointer;
 
     function currentWheel(): Wheel {
       return wheels.find((w) => w.id === currentId) ?? wheels[0];
@@ -1382,7 +1521,7 @@ const description =
       return `${month}/${day}`;
     }
 
-    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean } {
+    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg } {
       const defaultWheel = (): Wheel => ({
         id: newId(),
         name: "My wheel",
@@ -1392,7 +1531,7 @@ const description =
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
           const w = defaultWheel();
-          return { wheels: [w], currentId: w.id, muted: false };
+          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER } };
         }
         const parsed = JSON.parse(raw) as AnyPersist;
         if (parsed && (parsed as PersistV2).version === 2 && Array.isArray((parsed as PersistV2).wheels)) {
@@ -1427,10 +1566,10 @@ const description =
             .slice(0, MAX_WHEELS);
           if (cleaned.length === 0) {
             const w = defaultWheel();
-            return { wheels: [w], currentId: w.id, muted: !!p.muted };
+            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer) };
           }
           const cid = cleaned.find((w) => w.id === p.currentId)?.id ?? cleaned[0].id;
-          return { wheels: cleaned, currentId: cid, muted: !!p.muted };
+          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer) };
         }
         // v1 migration
         if (parsed && (parsed as PersistV1).version === 1 && Array.isArray((parsed as PersistV1).entries)) {
@@ -1440,20 +1579,20 @@ const description =
             name: "My wheel",
             entries: p.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
           };
-          return { wheels: [w], currentId: w.id, muted: !!p.muted };
+          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER } };
         }
       } catch {
         // fall through
       }
       const w = defaultWheel();
-      return { wheels: [w], currentId: w.id, muted: false };
+      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER } };
     }
 
     function save() {
       const cw = currentWheel();
       if (cw) cw.entries = entries;
       try {
-        const data: PersistV2 = { version: 2, wheels, currentId, muted };
+        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
         // ignore quota
@@ -1998,9 +2137,13 @@ const description =
       const sliceEnd = bounds[winnerIdx + 1];
       const sliceSpan = sliceEnd - sliceStart;
       const sliceMid = (sliceStart + sliceEnd) / 2;
-      // Want rotation + sliceMid - PI/2 ≡ -PI/2 (mod 2π)
-      //   so rotation ≡ -sliceMid (mod 2π)
-      const targetMod = ((-sliceMid) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      // Wheel slice θ is drawn at screen angle (rotation + θ - PI/2).
+      // We want the winning slice's midpoint to land under the pointer,
+      // whose screen angle depends on its position (top = -PI/2, right = 0).
+      //   rotation + sliceMid - PI/2 ≡ pointerScreenAngle (mod 2π)
+      //   rotation ≡ pointerScreenAngle + PI/2 - sliceMid (mod 2π)
+      const pa = pointerScreenAngle();
+      const targetMod = ((pa + Math.PI / 2 - sliceMid) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
       const turns = 5 + Math.floor(Math.random() * 3); // 5, 6, or 7 full turns
       const currentMod = ((rotation % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
       let deltaToTarget = targetMod - currentMod;
@@ -2026,8 +2169,10 @@ const description =
         rotation = startRotation + totalDeltaJittered * eased;
         drawWheel();
 
-        // Tick whenever the pointer crosses a slice boundary
-        const norm = ((-rotation % twoPi) + twoPi) % twoPi;
+        // Tick whenever the pointer crosses a slice boundary.
+        // Solve for wheel-local θ currently at screen angle pa:
+        //   rotation + θ - PI/2 ≡ pa  →  θ ≡ pa + PI/2 - rotation
+        const norm = ((pa + Math.PI / 2 - rotation) % twoPi + twoPi) % twoPi;
         const curSlice = indexAt(norm, bounds);
         if (curSlice !== lastSliceIdx) {
           lastSliceIdx = curSlice;
@@ -2099,6 +2244,7 @@ const description =
         return;
       }
       if (!teamsConfig) return;
+      closePointerConfig();
       teamsConfig.hidden = false;
       if (teamsBtn) teamsBtn.setAttribute("aria-expanded", "true");
       setTeamCount(getTeamCount());
@@ -2109,6 +2255,58 @@ const description =
       if (!teamsConfig) return;
       teamsConfig.hidden = true;
       if (teamsBtn) teamsBtn.setAttribute("aria-expanded", "false");
+    }
+
+    // Screen angle (radians) where the pointer apex meets the wheel edge.
+    // Top pointer is at -PI/2 (12 o'clock); right pointer is at 0 (3 o'clock).
+    function pointerScreenAngle(): number {
+      return pointerCfg.pos === "right" ? 0 : -Math.PI / 2;
+    }
+
+    const POINTER_COLOR_VAR: Record<PointerColor, string> = {
+      ink: "var(--content)",
+      accent: "var(--accent)",
+      amber: "#b07d2a",
+    };
+
+    function applyPointer() {
+      if (!pointerEl) return;
+      pointerEl.classList.toggle("spin-pointer-top", pointerCfg.pos === "top");
+      pointerEl.classList.toggle("spin-pointer-right", pointerCfg.pos === "right");
+      pointerEl.style.setProperty("--pointer-fill", POINTER_COLOR_VAR[pointerCfg.color]);
+      if (pointerPosTop) pointerPosTop.setAttribute("aria-pressed", String(pointerCfg.pos === "top"));
+      if (pointerPosRight) pointerPosRight.setAttribute("aria-pressed", String(pointerCfg.pos === "right"));
+      pointerSwatches.forEach((s) => {
+        s.setAttribute("aria-pressed", String(s.dataset.color === pointerCfg.color));
+      });
+    }
+
+    function setPointerPos(pos: PointerPos) {
+      if (pointerCfg.pos === pos) return;
+      pointerCfg = { ...pointerCfg, pos };
+      applyPointer();
+      save();
+    }
+
+    function setPointerColor(color: PointerColor) {
+      if (pointerCfg.color === color) return;
+      pointerCfg = { ...pointerCfg, color };
+      applyPointer();
+      save();
+    }
+
+    function openPointerConfig() {
+      if (!pointerConfig) return;
+      closeTeamsConfig();
+      pointerConfig.hidden = false;
+      if (pointerBtn) pointerBtn.setAttribute("aria-expanded", "true");
+      (pointerPosTop as HTMLButtonElement | null)?.focus();
+    }
+
+    function closePointerConfig() {
+      if (!pointerConfig) return;
+      pointerConfig.hidden = true;
+      if (pointerBtn) pointerBtn.setAttribute("aria-expanded", "false");
     }
 
     // Snake-draft partition: ensures team sizes stay within 1 of each other and
@@ -2374,6 +2572,22 @@ const description =
         spin();
       });
     }
+
+    if (pointerBtn) {
+      pointerBtn.addEventListener("click", () => {
+        if (pointerConfig && !pointerConfig.hidden) closePointerConfig();
+        else openPointerConfig();
+      });
+    }
+    if (pointerPosTop) pointerPosTop.addEventListener("click", () => setPointerPos("top"));
+    if (pointerPosRight) pointerPosRight.addEventListener("click", () => setPointerPos("right"));
+    if (pointerCancel) pointerCancel.addEventListener("click", closePointerConfig);
+    pointerSwatches.forEach((s) => {
+      s.addEventListener("click", () => {
+        const c = s.dataset.color;
+        if (c === "ink" || c === "accent" || c === "amber") setPointerColor(c);
+      });
+    });
 
     againBtn!.addEventListener("click", () => {
       // If we're closing an order or teams reveal, the next spin should
@@ -3084,6 +3298,7 @@ const description =
     renderHistory();
     drawWheel();
     if (teamsBtn) setTeamCount(getTeamCount());
+    applyPointer();
 
     if (historyClear) {
       historyClear.addEventListener("click", () => {
