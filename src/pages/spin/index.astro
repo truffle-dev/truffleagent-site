@@ -1,13 +1,95 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
-const title = "Spin · pick anything, no ads";
+const title = "Spin the Wheel · Free Random Picker and Decision Wheel";
 const description =
-  "A calm, fast decision wheel. Add names, spin, get a winner. No accounts, no ads, no trackers. Saves locally and shares by link.";
+  "Free online spinner wheel. Add names, spin, pick a winner. Works offline, saves to your browser, shares by link. No ads. No accounts. No trackers.";
 const ogImage = "/spin/og";
+const canonical = "https://truffleagent.com/spin/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Spin the Wheel",
+  alternateName: ["Wheel of Names", "Random Picker", "Decision Wheel"],
+  url: canonical,
+  applicationCategory: "UtilityApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  description,
+  featureList: [
+    "Pick a random winner from any list",
+    "Save multiple wheels in your browser",
+    "Share a wheel by link",
+    "Team split mode",
+    "Eliminate mode",
+    "Accumulate mode",
+    "Order mode",
+    "Custom palettes and pointer",
+    "Background scenes",
+    "Selectable sound packs",
+    "Embed on any page",
+    "Works offline (PWA)",
+    "No ads or tracking",
+  ],
+  author: { "@type": "Person", name: "Truffle" },
+};
+
+const faq = [
+  {
+    q: "How does the wheel pick a winner?",
+    a: "Each entry is a slice of the wheel. The wheel spins and the slice under the pointer when it stops is the winner. Larger weights mean larger slices and a higher chance of being chosen.",
+  },
+  {
+    q: "Is the spinner free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "Does the spinner work offline?",
+    a: "Yes. After your first visit, the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "Can I save my wheels?",
+    a: "Yes. Wheels are saved automatically to your browser's localStorage. You can keep up to 20 named wheels and switch between them from the wheel picker.",
+  },
+  {
+    q: "Can I share a wheel with someone else?",
+    a: "Yes. Tap Share to copy a link that encodes the wheel's entries in the URL. Anyone who opens it sees the same wheel, ready to spin.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+  {
+    q: "Can I weight entries so some win more often?",
+    a: "Yes. Tap an entry's weight number to set a value from 1 to 10. The slice scales with the weight.",
+  },
+  {
+    q: "Can I embed the wheel on my own page?",
+    a: "Yes. The wheel-picker menu has an Embed option that gives you an iframe snippet. Visitors can spin but not edit.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+};
 ---
 
-<BaseLayout title={title} description={description} ogImage={ogImage}>
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <script slot="head" type="application/ld+json" is:inline set:html={JSON.stringify(webAppJsonLd)} />
+  <script slot="head" type="application/ld+json" is:inline set:html={JSON.stringify(faqJsonLd)} />
   <script slot="head" is:inline>
     (function () {
       try {
@@ -152,6 +234,12 @@ const ogImage = "/spin/og";
             <button id="spin-size-btn" type="button" class="spin-icon-btn" title="Wheel size" aria-label="Wheel size" aria-expanded="false">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
             </button>
+            <button id="spin-sound-btn" type="button" class="spin-icon-btn" title="Sound style" aria-label="Sound style" aria-expanded="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12 L7 12 L11 7 L11 17 L7 12"/><path d="M14 9 a4 4 0 0 1 0 6"/><path d="M17 6 a8 8 0 0 1 0 12"/></svg>
+            </button>
+            <button id="spin-scene-btn" type="button" class="spin-icon-btn" title="Background scene" aria-label="Background scene" aria-expanded="false">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 14 l5 -4 l4 3 l3 -2 l6 5"/><circle cx="8" cy="9" r="1.4"/></svg>
+            </button>
             <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
             </button>
@@ -219,6 +307,24 @@ const ogImage = "/spin/og";
           <button id="spin-size-cancel" type="button" class="spin-size-cancel" aria-label="Close size settings">×</button>
         </div>
 
+        <div id="spin-sound-config" class="spin-sound-config" hidden role="group" aria-label="Sound style settings">
+          <span class="spin-sound-label">Sound</span>
+          <div class="spin-sound-chips" role="group" aria-label="Sound style">
+            <button type="button" class="spin-sound-chip" data-pack="classic" aria-pressed="true">Classic</button>
+            <button type="button" class="spin-sound-chip" data-pack="soft" aria-pressed="false">Soft</button>
+            <button type="button" class="spin-sound-chip" data-pack="arcade" aria-pressed="false">Arcade</button>
+            <button type="button" class="spin-sound-chip" data-pack="sparkle" aria-pressed="false">Sparkle</button>
+          </div>
+          <button id="spin-sound-preview" type="button" class="spin-sound-preview" aria-label="Preview sound style">Preview</button>
+          <button id="spin-sound-cancel" type="button" class="spin-sound-cancel" aria-label="Close sound settings">×</button>
+        </div>
+
+        <div id="spin-scene-config" class="spin-scene-config" hidden role="group" aria-label="Background scene settings">
+          <span class="spin-scene-label">Scene</span>
+          <div class="spin-scene-chips" role="group" aria-label="Background scene"></div>
+          <button id="spin-scene-cancel" type="button" class="spin-scene-cancel" aria-label="Close scene settings">×</button>
+        </div>
+
         <ul id="spin-list" class="spin-list" aria-label="Entries list"></ul>
 
         <form id="spin-add-form" class="spin-add">
@@ -273,6 +379,39 @@ const ogImage = "/spin/og";
           </form>
         </div>
       </details>
+    </section>
+
+    <section class="spin-about" aria-labelledby="spin-about-title">
+      <h2 id="spin-about-title" class="spin-about-h">A calm random picker. <em>Built like a tool, not a toy.</em></h2>
+      <p class="spin-about-lead">
+        Spin the Wheel is a free online decision wheel. Add entries, press
+        spin, get a winner. Use it for stand-up order, raffles, classroom
+        questions, dinner choices, tournament brackets, or any time you need
+        a clean random pick. Your wheel lives in your browser and works
+        offline. No accounts. No ads. No analytics that fingerprint you.
+      </p>
+      <ul class="spin-about-features">
+        <li><strong>Multiple wheels.</strong> Save up to 20 named wheels and switch between them.</li>
+        <li><strong>Modes.</strong> Single winner, eliminate, accumulate, order, or team split.</li>
+        <li><strong>Sound packs.</strong> Classic, Soft, Arcade, or Sparkle.</li>
+        <li><strong>Scenes.</strong> Five page backgrounds, from warm Paper to deep Noir.</li>
+        <li><strong>Share.</strong> One link encodes the whole wheel.</li>
+        <li><strong>Embed.</strong> Drop the wheel into any blog or doc.</li>
+        <li><strong>Offline.</strong> Installs as a PWA on phones and laptops.</li>
+        <li><strong>Keyboard.</strong> Space spins, Esc closes, ? shows shortcuts.</li>
+      </ul>
+    </section>
+
+    <section class="spin-faq" aria-labelledby="spin-faq-title">
+      <h2 id="spin-faq-title" class="spin-faq-h">Frequently asked questions</h2>
+      <div class="spin-faq-list">
+        {faq.map((item) => (
+          <details class="spin-faq-item">
+            <summary>{item.q}</summary>
+            <p>{item.a}</p>
+          </details>
+        ))}
+      </div>
     </section>
 
     <footer class="spin-foot">
@@ -1696,6 +1835,276 @@ const ogImage = "/spin/og";
       outline-offset: 2px;
     }
 
+    .spin-sound-config,
+    .spin-scene-config {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.7rem;
+      margin: 0 0 0.85rem;
+      background: color-mix(in oklab, var(--accent) 4%, var(--surface-2));
+      border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border));
+      border-radius: 8px;
+    }
+    .spin-sound-label,
+    .spin-scene-label {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--content-3);
+    }
+    .spin-sound-chips,
+    .spin-scene-chips {
+      display: inline-flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .spin-sound-chip,
+    .spin-scene-chip {
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content-2);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+      min-width: 56px;
+    }
+    .spin-sound-chip:hover,
+    .spin-scene-chip:hover { background: var(--surface-2); }
+    .spin-sound-chip:focus-visible,
+    .spin-scene-chip:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-sound-chip[aria-pressed="true"],
+    .spin-scene-chip[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .spin-sound-preview {
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content-2);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .spin-sound-preview:hover { background: var(--surface-2); color: var(--content); }
+    .spin-sound-cancel,
+    .spin-scene-cancel {
+      margin-left: auto;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      background: transparent;
+      color: var(--content-4);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0;
+    }
+    .spin-sound-cancel:hover,
+    .spin-scene-cancel:hover {
+      color: var(--content);
+      background: var(--surface);
+    }
+    .spin-sound-cancel:focus-visible,
+    .spin-scene-cancel:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
+
+    /* === Background scenes — local-only overrides on the spin page === */
+    .spin-page[data-scene] {
+      position: relative;
+      isolation: isolate;
+    }
+    .spin-page[data-scene]::before {
+      content: "";
+      position: absolute;
+      inset: -10% -10% auto -10%;
+      height: clamp(360px, 70vh, 720px);
+      z-index: -1;
+      background: var(--scene-bg, transparent);
+      filter: blur(0.5px);
+      opacity: var(--scene-bg-opacity, 1);
+      pointer-events: none;
+      transition: opacity 320ms ease, background 320ms ease;
+    }
+    .spin-page[data-scene="paper"] {
+      --scene-bg: radial-gradient(60% 60% at 50% 30%, color-mix(in oklab, var(--accent) 6%, transparent), transparent 70%);
+      --scene-bg-opacity: 0.85;
+    }
+    .spin-page[data-scene="ink"] {
+      --scene-bg: radial-gradient(70% 60% at 50% 20%, #2a2f5c, #11142e 70%);
+      --scene-bg-opacity: 0.85;
+    }
+    .spin-page[data-scene="ocean"] {
+      --scene-bg: radial-gradient(80% 70% at 50% 25%, #1a708a 0%, #0e3a52 55%, #082035 90%);
+      --scene-bg-opacity: 0.8;
+    }
+    .spin-page[data-scene="sunset"] {
+      --scene-bg: radial-gradient(80% 70% at 50% 25%, #ffba6e 0%, #e07a4a 45%, #6b2a48 95%);
+      --scene-bg-opacity: 0.75;
+    }
+    .spin-page[data-scene="noir"] {
+      --scene-bg: radial-gradient(80% 70% at 50% 20%, #2c2c30 0%, #161618 60%, #0a0a0c 100%);
+      --scene-bg-opacity: 0.92;
+    }
+    /* Lift wheel frame against tinted scenes */
+    .spin-page[data-scene="ink"] .spin-wheel-frame,
+    .spin-page[data-scene="ocean"] .spin-wheel-frame,
+    .spin-page[data-scene="sunset"] .spin-wheel-frame,
+    .spin-page[data-scene="noir"] .spin-wheel-frame {
+      box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.55), 0 8px 28px -16px rgba(0, 0, 0, 0.45);
+    }
+    .spin-page[data-scene="ink"] .spin-header,
+    .spin-page[data-scene="ocean"] .spin-header,
+    .spin-page[data-scene="sunset"] .spin-header,
+    .spin-page[data-scene="noir"] .spin-header {
+      color: #f7f1e6;
+    }
+    .spin-page[data-scene="ink"] .spin-header .spin-eyebrow,
+    .spin-page[data-scene="ocean"] .spin-header .spin-eyebrow,
+    .spin-page[data-scene="sunset"] .spin-header .spin-eyebrow,
+    .spin-page[data-scene="noir"] .spin-header .spin-eyebrow,
+    .spin-page[data-scene="ink"] .spin-lede,
+    .spin-page[data-scene="ocean"] .spin-lede,
+    .spin-page[data-scene="sunset"] .spin-lede,
+    .spin-page[data-scene="noir"] .spin-lede {
+      color: color-mix(in oklab, #f7f1e6 80%, transparent);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .spin-page[data-scene]::before { transition: none; }
+    }
+
+    .spin-about {
+      margin: 3rem auto 0;
+      max-width: 760px;
+      padding: 0 0.25rem;
+    }
+    .spin-about-h {
+      font-family: var(--font-serif);
+      font-weight: 400;
+      font-size: clamp(1.5rem, 2.4vw, 2rem);
+      line-height: 1.2;
+      margin: 0 0 0.85rem;
+      color: var(--content);
+    }
+    .spin-about-h em {
+      color: var(--accent);
+      font-style: italic;
+    }
+    .spin-about-lead {
+      margin: 0 0 1.25rem;
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--content-2);
+    }
+    .spin-about-features {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem 1.5rem;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--content-2);
+    }
+    .spin-about-features li {
+      position: relative;
+      padding-left: 1.1rem;
+    }
+    .spin-about-features li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: color-mix(in oklab, var(--accent) 80%, transparent);
+    }
+    .spin-about-features strong {
+      color: var(--content);
+      font-weight: 600;
+    }
+    @media (max-width: 640px) {
+      .spin-about-features { grid-template-columns: 1fr; }
+    }
+
+    .spin-faq {
+      margin: 2.5rem auto 0;
+      max-width: 760px;
+      padding: 0 0.25rem;
+    }
+    .spin-faq-h {
+      font-family: var(--font-serif);
+      font-weight: 400;
+      font-size: clamp(1.35rem, 2vw, 1.65rem);
+      line-height: 1.2;
+      margin: 0 0 1rem;
+      color: var(--content);
+    }
+    .spin-faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .spin-faq-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      padding: 0.85rem 1rem;
+    }
+    .spin-faq-item summary {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--content);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .spin-faq-item summary::-webkit-details-marker { display: none; }
+    .spin-faq-item summary::before {
+      content: "+";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      color: var(--content-3);
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .spin-faq-item[open] summary::before { content: "–"; color: var(--accent); }
+    .spin-faq-item p {
+      margin: 0.65rem 0 0 1.65rem;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--content-2);
+    }
+    .spin-page.spin-is-embed .spin-about,
+    .spin-page.spin-is-embed .spin-faq { display: none; }
+
     .spin-foot {
       margin-top: 3rem;
       padding-top: 1.5rem;
@@ -2151,8 +2560,10 @@ const ogImage = "/spin/og";
     type LabelRotation = "auto" | "tangent" | "radial";
     type Palette = "paper" | "vibrant" | "pastel" | "mono";
     type WheelSize = "s" | "m" | "l" | "full";
+    type SoundPack = "classic" | "soft" | "arcade" | "sparkle";
+    type Scene = "none" | "paper" | "ink" | "ocean" | "sunset" | "noir";
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
-    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation; palette?: Palette; wheelSize?: WheelSize };
+    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation; palette?: Palette; wheelSize?: WheelSize; soundPack?: SoundPack; scene?: Scene };
     type AnyPersist = PersistV1 | PersistV2;
 
     const STORAGE_KEY = "spinwheel:v1";
@@ -2218,6 +2629,8 @@ const ogImage = "/spin/og";
       "toast.imported_n_skipped": "Imported {n} wheel{s} ({skipped} skipped: max reached)",
       "toast.share_decode_failed": "Couldn't read shared wheel link",
       "toast.history_cleared": "History cleared",
+      "toast.sound_pack_changed": "Sound: {name}",
+      "toast.scene_changed": "Scene: {name}",
     };
 
     function t(key: string, vars?: Record<string, string | number>): string {
@@ -2300,6 +2713,191 @@ const ogImage = "/spin/og";
       return v === "s" || v === "m" || v === "l" || v === "full" ? v : DEFAULT_WHEEL_SIZE;
     }
 
+    type SoundOps = {
+      tick: (c: AudioContext) => void;
+      fanfare: (c: AudioContext) => void;
+    };
+    // Each pack is a self-contained procedural sound — zero asset weight.
+    // `classic` mirrors the original tick + 4-note ascent verbatim so a user
+    // who never opens the sound panel hears exactly what they did before.
+    const SOUND_PACKS: Record<SoundPack, SoundOps> = {
+      classic: {
+        tick(c) {
+          const t = c.currentTime;
+          const osc = c.createOscillator();
+          const gain = c.createGain();
+          osc.type = "triangle";
+          osc.frequency.value = 720 + Math.random() * 220;
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.045, t + 0.004);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.065);
+          osc.connect(gain).connect(c.destination);
+          osc.start(t);
+          osc.stop(t + 0.08);
+        },
+        fanfare(c) {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          const t0 = c.currentTime;
+          notes.forEach((freq, i) => {
+            const t = t0 + i * 0.08;
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.type = "sine";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.11, t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+            osc.connect(gain).connect(c.destination);
+            osc.start(t);
+            osc.stop(t + 0.5);
+          });
+        },
+      },
+      soft: {
+        // Wooden-mallet pings — sine fundamentals, slow taper, quieter peak.
+        tick(c) {
+          const t = c.currentTime;
+          const osc = c.createOscillator();
+          const gain = c.createGain();
+          osc.type = "sine";
+          osc.frequency.value = 420 + Math.random() * 80;
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.028, t + 0.006);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+          osc.connect(gain).connect(c.destination);
+          osc.start(t);
+          osc.stop(t + 0.13);
+        },
+        fanfare(c) {
+          // Major 9 chord laid out as a soft pad: C5, E5, G5, D6
+          const notes = [523.25, 659.25, 783.99, 1174.66];
+          const t0 = c.currentTime;
+          notes.forEach((freq, i) => {
+            const t = t0 + i * 0.12;
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.type = "sine";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.075, t + 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+            osc.connect(gain).connect(c.destination);
+            osc.start(t);
+            osc.stop(t + 0.95);
+          });
+        },
+      },
+      arcade: {
+        // 8-bit square-wave blips with sharp attack and percussive decay.
+        tick(c) {
+          const t = c.currentTime;
+          const osc = c.createOscillator();
+          const gain = c.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(880 + Math.random() * 200, t);
+          osc.frequency.exponentialRampToValueAtTime(560, t + 0.05);
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.04, t + 0.002);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+          osc.connect(gain).connect(c.destination);
+          osc.start(t);
+          osc.stop(t + 0.06);
+        },
+        fanfare(c) {
+          // Power-up: ascending square arpeggio — C5, G5, C6, E6, G6
+          const notes = [523.25, 783.99, 1046.5, 1318.51, 1567.98];
+          const t0 = c.currentTime;
+          notes.forEach((freq, i) => {
+            const t = t0 + i * 0.06;
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.type = "square";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.07, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+            osc.connect(gain).connect(c.destination);
+            osc.start(t);
+            osc.stop(t + 0.25);
+          });
+        },
+      },
+      sparkle: {
+        // Glass-chime ticks — high overtones, very short decay.
+        tick(c) {
+          const t = c.currentTime;
+          const osc = c.createOscillator();
+          const gain = c.createGain();
+          osc.type = "sine";
+          osc.frequency.value = 1320 + Math.random() * 400;
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.03, t + 0.003);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+          osc.connect(gain).connect(c.destination);
+          osc.start(t);
+          osc.stop(t + 0.1);
+        },
+        fanfare(c) {
+          // Two-octave bell — fundamental + octave + perfect fifth, sparkle on top
+          const notes = [
+            { f: 523.25, d: 0.0 },
+            { f: 1046.5, d: 0.08 },
+            { f: 1567.98, d: 0.16 },
+            { f: 2093.0, d: 0.24 },
+            { f: 2637.02, d: 0.32 },
+          ];
+          const t0 = c.currentTime;
+          notes.forEach(({ f, d }) => {
+            const t = t0 + d;
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.type = "sine";
+            osc.frequency.value = f;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.06, t + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+            osc.connect(gain).connect(c.destination);
+            osc.start(t);
+            osc.stop(t + 0.65);
+          });
+        },
+      },
+    };
+    const DEFAULT_SOUND_PACK: SoundPack = "classic";
+    function validSoundPack(v: unknown): SoundPack {
+      return v === "classic" || v === "soft" || v === "arcade" || v === "sparkle" ? v : DEFAULT_SOUND_PACK;
+    }
+    const SOUND_PACK_LABELS: Record<SoundPack, string> = {
+      classic: "Classic",
+      soft: "Soft",
+      arcade: "Arcade",
+      sparkle: "Sparkle",
+    };
+
+    const SCENES: Scene[] = ["none", "paper", "ink", "ocean", "sunset", "noir"];
+    const SCENE_LABELS: Record<Scene, string> = {
+      none: "None",
+      paper: "Paper",
+      ink: "Ink",
+      ocean: "Ocean",
+      sunset: "Sunset",
+      noir: "Noir",
+    };
+    // Single representative color per scene — used to render a preview dot
+    // on each scene chip. Picked from the radial-gradient anchor color.
+    const SCENE_SWATCH: Record<Scene, string> = {
+      none: "transparent",
+      paper: "#f3edde",
+      ink: "#2a2f5c",
+      ocean: "#1a708a",
+      sunset: "#e07a4a",
+      noir: "#161618",
+    };
+    const DEFAULT_SCENE: Scene = "none";
+    function validScene(v: unknown): Scene {
+      return v === "none" || v === "paper" || v === "ink" || v === "ocean" || v === "sunset" || v === "noir" ? v : DEFAULT_SCENE;
+    }
+
     const canvas = document.getElementById("spin-canvas") as HTMLCanvasElement | null;
     const centerBtn = document.getElementById("spin-center") as HTMLButtonElement | null;
     const list = document.getElementById("spin-list") as HTMLUListElement | null;
@@ -2343,6 +2941,16 @@ const ogImage = "/spin/og";
     const sizeConfig = document.getElementById("spin-size-config") as HTMLDivElement | null;
     const sizeCancel = document.getElementById("spin-size-cancel") as HTMLButtonElement | null;
     const sizeChips = document.querySelectorAll<HTMLButtonElement>(".spin-size-chip");
+    const soundBtn = document.getElementById("spin-sound-btn") as HTMLButtonElement | null;
+    const soundConfig = document.getElementById("spin-sound-config") as HTMLDivElement | null;
+    const soundCancel = document.getElementById("spin-sound-cancel") as HTMLButtonElement | null;
+    const soundPreview = document.getElementById("spin-sound-preview") as HTMLButtonElement | null;
+    const soundChipsHost = document.querySelector(".spin-sound-chips") as HTMLDivElement | null;
+    const sceneBtn = document.getElementById("spin-scene-btn") as HTMLButtonElement | null;
+    const sceneConfig = document.getElementById("spin-scene-config") as HTMLDivElement | null;
+    const sceneCancel = document.getElementById("spin-scene-cancel") as HTMLButtonElement | null;
+    const sceneChipsHost = document.querySelector(".spin-scene-chips") as HTMLDivElement | null;
+    const spinPageEl = document.querySelector(".spin-page") as HTMLElement | null;
     const wheelFrame = document.querySelector(".spin-wheel-frame") as HTMLDivElement | null;
     const historyList = document.getElementById("spin-history-list") as HTMLUListElement | null;
     const historyCount = document.getElementById("spin-history-count") as HTMLSpanElement | null;
@@ -2397,6 +3005,8 @@ const ogImage = "/spin/og";
     let labelRotation: LabelRotation = initialState.labelRotation;
     let palette: Palette = initialState.palette;
     let wheelSize: WheelSize = initialState.wheelSize;
+    let soundPack: SoundPack = initialState.soundPack;
+    let scene: Scene = initialState.scene;
     function activePalette(): string[] { return PALETTES[palette]; }
 
     function currentWheel(): Wheel {
@@ -2492,7 +3102,7 @@ const ogImage = "/spin/og";
       return `${month}/${day}`;
     }
 
-    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg; labelRotation: LabelRotation; palette: Palette; wheelSize: WheelSize } {
+    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg; labelRotation: LabelRotation; palette: Palette; wheelSize: WheelSize; soundPack: SoundPack; scene: Scene } {
       const defaultWheel = (): Wheel => ({
         id: newId(),
         name: "My wheel",
@@ -2502,7 +3112,7 @@ const ogImage = "/spin/og";
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
           const w = defaultWheel();
-          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE };
+          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
         }
         const parsed = JSON.parse(raw) as AnyPersist;
         if (parsed && (parsed as PersistV2).version === 2 && Array.isArray((parsed as PersistV2).wheels)) {
@@ -2538,10 +3148,10 @@ const ogImage = "/spin/og";
             .slice(0, MAX_WHEELS);
           if (cleaned.length === 0) {
             const w = defaultWheel();
-            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize) };
+            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize), soundPack: validSoundPack(p.soundPack), scene: validScene(p.scene) };
           }
           const cid = cleaned.find((w) => w.id === p.currentId)?.id ?? cleaned[0].id;
-          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize) };
+          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize), soundPack: validSoundPack(p.soundPack), scene: validScene(p.scene) };
         }
         // v1 migration
         if (parsed && (parsed as PersistV1).version === 1 && Array.isArray((parsed as PersistV1).entries)) {
@@ -2551,13 +3161,13 @@ const ogImage = "/spin/og";
             name: "My wheel",
             entries: p.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
           };
-          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE };
+          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
         }
       } catch {
         // fall through
       }
       const w = defaultWheel();
-      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE };
+      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
     }
 
     function save() {
@@ -2565,7 +3175,7 @@ const ogImage = "/spin/og";
       if (cw) cw.entries = entries;
       if (IS_EMBED) return;
       try {
-        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation, palette, wheelSize };
+        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation, palette, wheelSize, soundPack, scene };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
         // ignore quota
@@ -3499,6 +4109,8 @@ const ogImage = "/spin/og";
       closeLabelrotConfig();
       closePaletteConfig();
       closeSizeConfig();
+      closeSoundConfig();
+      closeSceneConfig();
       teamsConfig.hidden = false;
       if (teamsBtn) teamsBtn.setAttribute("aria-expanded", "true");
       setTeamCount(getTeamCount());
@@ -3555,6 +4167,8 @@ const ogImage = "/spin/og";
       closeLabelrotConfig();
       closePaletteConfig();
       closeSizeConfig();
+      closeSoundConfig();
+      closeSceneConfig();
       pointerConfig.hidden = false;
       if (pointerBtn) pointerBtn.setAttribute("aria-expanded", "true");
       (pointerPosTop as HTMLButtonElement | null)?.focus();
@@ -3586,6 +4200,8 @@ const ogImage = "/spin/og";
       closePointerConfig();
       closePaletteConfig();
       closeSizeConfig();
+      closeSoundConfig();
+      closeSceneConfig();
       labelrotConfig.hidden = false;
       if (labelrotBtn) labelrotBtn.setAttribute("aria-expanded", "true");
       const pressed = Array.from(labelrotChips).find((c) => c.getAttribute("aria-pressed") === "true");
@@ -3656,6 +4272,8 @@ const ogImage = "/spin/og";
       closePointerConfig();
       closeLabelrotConfig();
       closeSizeConfig();
+      closeSoundConfig();
+      closeSceneConfig();
       paletteConfig.hidden = false;
       if (paletteBtn) paletteBtn.setAttribute("aria-expanded", "true");
       const pressed = paletteConfig.querySelector<HTMLButtonElement>(".spin-palette-chip[aria-pressed='true']");
@@ -3703,6 +4321,8 @@ const ogImage = "/spin/og";
       closePointerConfig();
       closeLabelrotConfig();
       closePaletteConfig();
+      closeSoundConfig();
+      closeSceneConfig();
       sizeConfig.hidden = false;
       if (sizeBtn) sizeBtn.setAttribute("aria-expanded", "true");
       const pressed = Array.from(sizeChips).find((c) => c.getAttribute("aria-pressed") === "true");
@@ -3713,6 +4333,122 @@ const ogImage = "/spin/og";
       if (!sizeConfig) return;
       sizeConfig.hidden = true;
       if (sizeBtn) sizeBtn.setAttribute("aria-expanded", "false");
+    }
+
+    // Binds click handlers on the static sound chips. Called once during init.
+    function bindSoundChips() {
+      if (!soundChipsHost) return;
+      soundChipsHost.querySelectorAll<HTMLButtonElement>(".spin-sound-chip").forEach((c) => {
+        const pack = c.dataset.pack;
+        c.addEventListener("click", () => {
+          if (pack === "classic" || pack === "soft" || pack === "arcade" || pack === "sparkle") {
+            setSoundPack(pack);
+          }
+        });
+      });
+    }
+
+    function applySound() {
+      if (!soundChipsHost) return;
+      soundChipsHost.querySelectorAll<HTMLButtonElement>(".spin-sound-chip").forEach((c) => {
+        c.setAttribute("aria-pressed", String(c.dataset.pack === soundPack));
+      });
+    }
+
+    function setSoundPack(next: SoundPack) {
+      if (soundPack === next) return;
+      soundPack = next;
+      applySound();
+      save();
+      showToast(t("toast.sound_pack_changed", { name: SOUND_PACK_LABELS[next] }));
+    }
+
+    function openSoundConfig() {
+      if (!soundConfig) return;
+      closeTeamsConfig();
+      closePointerConfig();
+      closeLabelrotConfig();
+      closePaletteConfig();
+      closeSizeConfig();
+      closeSceneConfig();
+      soundConfig.hidden = false;
+      if (soundBtn) soundBtn.setAttribute("aria-expanded", "true");
+      const pressed = soundConfig.querySelector<HTMLButtonElement>(".spin-sound-chip[aria-pressed='true']");
+      pressed?.focus();
+    }
+
+    function closeSoundConfig() {
+      if (!soundConfig) return;
+      soundConfig.hidden = true;
+      if (soundBtn) soundBtn.setAttribute("aria-expanded", "false");
+    }
+
+    function renderSceneChips() {
+      if (!sceneChipsHost) return;
+      sceneChipsHost.replaceChildren();
+      SCENES.forEach((key) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "spin-scene-chip";
+        chip.dataset.scene = key;
+        chip.setAttribute("aria-pressed", String(key === scene));
+        const dot = document.createElement("span");
+        dot.className = "spin-palette-dot";
+        dot.style.background = SCENE_SWATCH[key];
+        dot.style.marginRight = "6px";
+        dot.style.verticalAlign = "middle";
+        if (key === "none") {
+          dot.style.border = "1px dashed var(--border)";
+          dot.style.background = "transparent";
+        }
+        dot.setAttribute("aria-hidden", "true");
+        chip.appendChild(dot);
+        const name = document.createElement("span");
+        name.textContent = SCENE_LABELS[key];
+        chip.appendChild(name);
+        chip.addEventListener("click", () => setScene(key));
+        sceneChipsHost.appendChild(chip);
+      });
+    }
+
+    function applyScene() {
+      if (spinPageEl) {
+        if (scene === "none") spinPageEl.removeAttribute("data-scene");
+        else spinPageEl.setAttribute("data-scene", scene);
+      }
+      if (sceneChipsHost) {
+        sceneChipsHost.querySelectorAll<HTMLButtonElement>(".spin-scene-chip").forEach((c) => {
+          c.setAttribute("aria-pressed", String(c.dataset.scene === scene));
+        });
+      }
+    }
+
+    function setScene(next: Scene) {
+      if (scene === next) return;
+      scene = next;
+      applyScene();
+      save();
+      showToast(t("toast.scene_changed", { name: SCENE_LABELS[next] }));
+    }
+
+    function openSceneConfig() {
+      if (!sceneConfig) return;
+      closeTeamsConfig();
+      closePointerConfig();
+      closeLabelrotConfig();
+      closePaletteConfig();
+      closeSizeConfig();
+      closeSoundConfig();
+      sceneConfig.hidden = false;
+      if (sceneBtn) sceneBtn.setAttribute("aria-expanded", "true");
+      const pressed = sceneConfig.querySelector<HTMLButtonElement>(".spin-scene-chip[aria-pressed='true']");
+      pressed?.focus();
+    }
+
+    function closeSceneConfig() {
+      if (!sceneConfig) return;
+      sceneConfig.hidden = true;
+      if (sceneBtn) sceneBtn.setAttribute("aria-expanded", "false");
     }
 
     // Snake-draft partition: ensures team sizes stay within 1 of each other and
@@ -4034,6 +4770,37 @@ const ogImage = "/spin/og";
       });
     });
 
+    if (soundBtn) {
+      soundBtn.addEventListener("click", () => {
+        if (soundConfig && !soundConfig.hidden) closeSoundConfig();
+        else openSoundConfig();
+      });
+    }
+    if (soundCancel) soundCancel.addEventListener("click", closeSoundConfig);
+    if (soundPreview) {
+      soundPreview.addEventListener("click", () => {
+        // Audible regardless of mute toggle, since the user explicitly asked.
+        const c = getAudio();
+        if (!c) return;
+        SOUND_PACKS[soundPack].tick(c);
+        const ms = soundPack === "arcade" ? 90 : 140;
+        setTimeout(() => {
+          const c2 = getAudio();
+          if (c2) SOUND_PACKS[soundPack].fanfare(c2);
+        }, ms);
+      });
+    }
+    bindSoundChips();
+
+    if (sceneBtn) {
+      sceneBtn.addEventListener("click", () => {
+        if (sceneConfig && !sceneConfig.hidden) closeSceneConfig();
+        else openSceneConfig();
+      });
+    }
+    if (sceneCancel) sceneCancel.addEventListener("click", closeSceneConfig);
+    renderSceneChips();
+
     againBtn!.addEventListener("click", () => {
       // If we're closing an order or teams reveal, the next spin should
       // re-arm the same reveal. The hidden state of each panel is the
@@ -4099,6 +4866,14 @@ const ogImage = "/spin/og";
         hideWinner();
         return;
       }
+      if (e.key === "Escape" && soundConfig && !soundConfig.hidden) {
+        closeSoundConfig();
+        return;
+      }
+      if (e.key === "Escape" && sceneConfig && !sceneConfig.hidden) {
+        closeSceneConfig();
+        return;
+      }
       if (e.key === " " && !modal!.hidden) return;
       const tag = (document.activeElement?.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea") return;
@@ -4139,39 +4914,14 @@ const ogImage = "/spin/og";
       if (muted) return;
       const c = getAudio();
       if (!c) return;
-      const t = c.currentTime;
-      const osc = c.createOscillator();
-      const gain = c.createGain();
-      osc.type = "triangle";
-      osc.frequency.value = 720 + Math.random() * 220;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.045, t + 0.004);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.065);
-      osc.connect(gain).connect(c.destination);
-      osc.start(t);
-      osc.stop(t + 0.08);
+      SOUND_PACKS[soundPack].tick(c);
     }
 
     function fanfare() {
       if (muted) return;
       const c = getAudio();
       if (!c) return;
-      // C5, E5, G5, C6 — a small bright ascent
-      const notes = [523.25, 659.25, 783.99, 1046.5];
-      const t0 = c.currentTime;
-      notes.forEach((freq, i) => {
-        const t = t0 + i * 0.08;
-        const osc = c.createOscillator();
-        const gain = c.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.11, t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
-        osc.connect(gain).connect(c.destination);
-        osc.start(t);
-        osc.stop(t + 0.5);
-      });
+      SOUND_PACKS[soundPack].fanfare(c);
     }
 
     function updateMuteBtn() {
@@ -5120,6 +5870,8 @@ const ogImage = "/spin/og";
     applyLabelRotation();
     renderPaletteChips();
     applyWheelSize();
+    applySound();
+    applyScene();
 
     if (historyClear) {
       historyClear.addEventListener("click", () => {
