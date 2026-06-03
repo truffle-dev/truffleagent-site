@@ -157,6 +157,11 @@ const ogImage = "/spin/og";
           </div>
         </div>
 
+        <div id="spin-import-notice" class="spin-import-notice" hidden role="status">
+          <span class="spin-shared-pill" aria-hidden="true">shared</span>
+          <span class="spin-import-notice-text">Imported from a shared link. Edit any entry to make it your own.</span>
+        </div>
+
         <div id="spin-teams-config" class="spin-teams-config" hidden role="group" aria-label="Team split settings">
           <span class="spin-teams-label">Teams</span>
           <div class="spin-teams-stepper" role="group" aria-label="Team count stepper">
@@ -558,6 +563,36 @@ const ogImage = "/spin/og";
       text-overflow: ellipsis;
       white-space: nowrap;
       max-width: 14ch;
+    }
+    .spin-shared-pill {
+      flex-shrink: 0;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: color-mix(in oklab, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+      padding: 1px 6px;
+      border-radius: 9999px;
+      line-height: 1.6;
+    }
+    .spin-import-notice {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 8px 10px;
+      margin-top: 6px;
+      background: color-mix(in oklab, var(--accent) 8%, transparent);
+      border: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
+      border-radius: 8px;
+    }
+    .spin-import-notice-text {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--content-2);
+      line-height: 1.4;
     }
     .spin-picker-chev {
       color: var(--content-3);
@@ -2058,7 +2093,7 @@ const ogImage = "/spin/og";
 
   <script>
     type Entry = { id: string; label: string; color?: string; weight?: number; wins?: number };
-    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean; accumulate?: boolean; teamCount?: number };
+    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean; accumulate?: boolean; teamCount?: number; importedFromShare?: boolean };
     type PointerPos = "top" | "right";
     type PointerColor = "ink" | "accent" | "amber";
     type PointerCfg = { pos: PointerPos; color: PointerColor };
@@ -2220,6 +2255,7 @@ const ogImage = "/spin/og";
     const toast = document.getElementById("spin-toast") as HTMLDivElement | null;
     const pickerBtn = document.getElementById("spin-picker-btn") as HTMLButtonElement | null;
     const pickerName = document.getElementById("spin-picker-name");
+    const importNotice = document.getElementById("spin-import-notice");
     const pickerPanel = document.getElementById("spin-picker-panel") as HTMLDivElement | null;
     const pickerListEl = document.getElementById("spin-picker-list") as HTMLUListElement | null;
     const pickerNew = document.getElementById("spin-picker-new");
@@ -2259,6 +2295,17 @@ const ogImage = "/spin/og";
     }
     function currentEntries(): Entry[] {
       return currentWheel().entries;
+    }
+
+    // Called from entry-mutation paths after a shared-link import so the
+    // "shared" pill clears as soon as the user takes ownership of the wheel.
+    function clearImportFlag(w?: Wheel) {
+      const target = w ?? currentWheel();
+      if (target && target.importedFromShare) {
+        delete target.importedFromShare;
+        save();
+        renderPicker();
+      }
     }
 
     // entries alias targets the active wheel
@@ -2376,6 +2423,7 @@ const ogImage = "/spin/og";
                 const tc = Math.floor(w.teamCount);
                 if (tc >= 2 && tc <= 10) out.teamCount = tc;
               }
+              if (w.importedFromShare === true) out.importedFromShare = true;
               return out;
             })
             .slice(0, MAX_WHEELS);
@@ -2474,6 +2522,7 @@ const ogImage = "/spin/og";
       const trimmed = newName.trim().slice(0, MAX_WHEEL_NAME);
       if (!trimmed) return;
       w.name = trimmed;
+      if (w.importedFromShare) delete w.importedFromShare;
       save();
       renderPicker();
     }
@@ -2536,6 +2585,7 @@ const ogImage = "/spin/og";
       if (!pickerListEl || !pickerName) return;
       const cw = currentWheel();
       pickerName.textContent = cw.name;
+      if (importNotice) importNotice.hidden = !cw.importedFromShare;
       pickerListEl.innerHTML = "";
       for (const w of wheels) {
         const li = document.createElement("li");
@@ -2548,10 +2598,13 @@ const ogImage = "/spin/og";
         btn.innerHTML = `
           <svg class="spin-picker-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
           <span class="spin-picker-item-name"></span>
+          <span class="spin-picker-item-shared spin-shared-pill" hidden>shared</span>
           <span class="spin-picker-item-count"></span>
         `;
         (btn.querySelector(".spin-picker-item-name") as HTMLElement).textContent = w.name;
         (btn.querySelector(".spin-picker-item-count") as HTMLElement).textContent = String(w.entries.length);
+        const sharedEl = btn.querySelector(".spin-picker-item-shared") as HTMLElement;
+        if (sharedEl) sharedEl.hidden = !w.importedFromShare;
         btn.addEventListener("click", () => switchWheel(w.id));
         li.appendChild(btn);
         pickerListEl.appendChild(li);
@@ -2764,6 +2817,7 @@ const ogImage = "/spin/og";
       colorPicker.addEventListener("change", () => {
         if (!colorPickerTarget) return;
         colorPickerTarget.color = colorPicker.value;
+        clearImportFlag();
         renderList();
         drawWheel();
         save();
@@ -2799,6 +2853,7 @@ const ogImage = "/spin/og";
       const idx = entries.findIndex((e) => e.id === id);
       if (idx < 0) return;
       entries.splice(idx, 1);
+      clearImportFlag();
       renderList();
       drawWheel();
       save();
@@ -2833,6 +2888,7 @@ const ogImage = "/spin/og";
       const selEnd = wasLabel ? focused!.selectionEnd : null;
       const [item] = entries.splice(idx, 1);
       entries.splice(next, 0, item);
+      clearImportFlag();
       renderList();
       drawWheel();
       save();
@@ -2906,6 +2962,7 @@ const ogImage = "/spin/og";
         input.setAttribute("aria-label", `Entry ${i + 1}`);
         input.addEventListener("input", (e) => {
           entry.label = (e.target as HTMLInputElement).value;
+          clearImportFlag();
           drawWheel();
           save();
           updateDuplicateBadges();
@@ -2961,6 +3018,7 @@ const ogImage = "/spin/og";
           if (!Number.isFinite(v)) v = 1;
           v = Math.max(1, Math.min(10, Math.round(v)));
           weight.value = String(v);
+          clearImportFlag();
           if (v > 1) {
             entry.weight = v;
             weight.dataset.custom = "true";
@@ -3004,6 +3062,7 @@ const ogImage = "/spin/og";
       const clean = label.trim();
       if (!clean) return;
       entries.push({ id: newId(), label: clean });
+      clearImportFlag();
       renderList();
       drawWheel();
       save();
@@ -3026,6 +3085,7 @@ const ogImage = "/spin/og";
         .slice(0, 200);
       if (parts.length === 0) return;
       entries = parts.map((label) => ({ id: newId(), label }));
+      clearImportFlag();
       renderList();
       drawWheel();
       save();
@@ -3037,6 +3097,7 @@ const ogImage = "/spin/og";
         const j = Math.floor(Math.random() * (i + 1));
         [entries[i], entries[j]] = [entries[j], entries[i]];
       }
+      clearImportFlag();
       renderList();
       drawWheel();
       save();
@@ -3045,6 +3106,7 @@ const ogImage = "/spin/og";
     resetBtn!.addEventListener("click", () => {
       if (!confirm("Reset to the default entries?")) return;
       entries = [...DEFAULT_ENTRIES.map((e) => ({ ...e, id: newId() }))];
+      clearImportFlag();
       renderList();
       drawWheel();
       save();
@@ -4733,6 +4795,12 @@ const ogImage = "/spin/og";
           // ignore
         }
         if (created) {
+          // Mark + persist so the picker shows a "shared" pill until the
+          // user edits. Auto-clears on label edit, add/remove/move, bulk
+          // paste, reset, or rename via clearImportFlag().
+          created.importedFromShare = true;
+          save();
+          renderPicker();
           setTimeout(() => showToast(`Imported "${created.name}"`), 300);
         }
       } else if (hasShareParam()) {
