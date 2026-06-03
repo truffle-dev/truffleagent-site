@@ -332,6 +332,8 @@ const ogImage = "/spin/og";
       max-width: 1240px;
       margin: 0 auto;
       padding: clamp(2rem, 4vw, 3.5rem) clamp(1rem, 3vw, 2rem) 4rem;
+      /* mirrors PALETTES.paper[2] amber for non-blocking validation hints */
+      --spin-warn: #b07d2a;
     }
 
     .spin-header {
@@ -794,6 +796,29 @@ const ogImage = "/spin/og";
       color: var(--content-4);
       background: transparent;
       border-color: transparent;
+    }
+    .spin-list-dup {
+      flex-shrink: 0;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--spin-warn);
+      background: color-mix(in oklab, var(--spin-warn) 12%, transparent);
+      border: 1px solid color-mix(in oklab, var(--spin-warn) 30%, transparent);
+      padding: 2px 7px;
+      border-radius: 9999px;
+    }
+    .spin-list-input[aria-invalid="true"] {
+      text-decoration: underline;
+      text-decoration-color: color-mix(
+        in oklab,
+        var(--spin-warn) 65%,
+        transparent
+      );
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
     }
     .spin-list-item:hover .spin-list-weight,
     .spin-list-item:focus-within .spin-list-weight {
@@ -2745,6 +2770,30 @@ const ogImage = "/spin/og";
       });
     }
 
+    function updateDuplicateBadges() {
+      if (!list) return;
+      const counts = new Map<string, number>();
+      for (const e of entries) {
+        const k = e.label.trim().toLowerCase();
+        if (!k) continue;
+        counts.set(k, (counts.get(k) || 0) + 1);
+      }
+      list
+        .querySelectorAll<HTMLLIElement>(".spin-list-item")
+        .forEach((li, i) => {
+          const k = entries[i]?.label.trim().toLowerCase() ?? "";
+          const dup = !!k && (counts.get(k) || 0) > 1;
+          const input =
+            li.querySelector<HTMLInputElement>(".spin-list-input");
+          if (input) {
+            if (dup) input.setAttribute("aria-invalid", "true");
+            else input.removeAttribute("aria-invalid");
+          }
+          const badge = li.querySelector<HTMLElement>(".spin-list-dup");
+          if (badge) badge.hidden = !dup;
+        });
+    }
+
     function moveEntry(id: string, dir: -1 | 1) {
       const idx = entries.findIndex((e) => e.id === id);
       if (idx < 0) return;
@@ -2834,6 +2883,7 @@ const ogImage = "/spin/og";
           entry.label = (e.target as HTMLInputElement).value;
           drawWheel();
           save();
+          updateDuplicateBadges();
         });
         input.addEventListener("keydown", (e) => {
           if (e.key === "Enter") {
@@ -2847,6 +2897,14 @@ const ogImage = "/spin/og";
           }
         });
         li.appendChild(input);
+
+        const dupBadge = document.createElement("span");
+        dupBadge.className = "spin-list-dup";
+        dupBadge.textContent = "dup";
+        dupBadge.setAttribute("aria-label", "Duplicate entry");
+        dupBadge.title = "Another entry has the same label";
+        dupBadge.hidden = true;
+        li.appendChild(dupBadge);
 
         const weight = document.createElement("input");
         weight.type = "number";
@@ -2909,6 +2967,7 @@ const ogImage = "/spin/og";
 
         list!.appendChild(li);
       });
+      updateDuplicateBadges();
     }
 
     function addEntry(label: string) {
