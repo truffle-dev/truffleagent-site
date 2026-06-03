@@ -3182,6 +3182,26 @@ const faqJsonLd = {
       }
     }
 
+    // Debounced wrapper for hot paths (per-keystroke label edits).
+    // The in-memory entries are mutated immediately by the caller; only
+    // the serialize+localStorage.setItem is deferred. flushPendingSave()
+    // forces an immediate write on blur / pagehide to avoid losing the
+    // last keystroke.
+    let saveDebounceTimer: number | null = null;
+    function saveDebounced() {
+      if (saveDebounceTimer) window.clearTimeout(saveDebounceTimer);
+      saveDebounceTimer = window.setTimeout(() => {
+        saveDebounceTimer = null;
+        save();
+      }, 200);
+    }
+    function flushPendingSave() {
+      if (saveDebounceTimer === null) return;
+      window.clearTimeout(saveDebounceTimer);
+      saveDebounceTimer = null;
+      save();
+    }
+
     function switchWheel(id: string) {
       if (spinning) {
         showToast(t("toast.wait_for_spin"));
@@ -3816,9 +3836,10 @@ const faqJsonLd = {
           entry.label = (e.target as HTMLInputElement).value;
           clearImportFlag();
           drawWheel();
-          save();
+          saveDebounced();
           updateDuplicateBadges();
         });
+        input.addEventListener("blur", flushPendingSave);
         input.addEventListener("keydown", (e) => {
           if (e.key === "Enter") {
             e.preventDefault();
@@ -5872,6 +5893,13 @@ const faqJsonLd = {
     applyWheelSize();
     applySound();
     applyScene();
+
+    // Flush any pending debounced save before the page unloads so the
+    // last keystroke isn't lost on mobile background, tab close, or nav.
+    window.addEventListener("pagehide", flushPendingSave);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushPendingSave();
+    });
 
     if (historyClear) {
       historyClear.addEventListener("click", () => {
