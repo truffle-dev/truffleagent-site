@@ -4054,6 +4054,15 @@ const ogImage = "/spin/og";
       return `${location.origin}/spin/share/${b64}/`;
     }
 
+    function hasShareParam(): boolean {
+      try {
+        const v = new URLSearchParams(location.search).get("w");
+        return v !== null && v.length > 0;
+      } catch {
+        return false;
+      }
+    }
+
     function tryDecodeShareParam(): { name: string; entries: Entry[] } | null {
       try {
         const params = new URLSearchParams(location.search);
@@ -4713,17 +4722,31 @@ const ogImage = "/spin/og";
       if (shared && shared.entries.length > 0) {
         // Import as a NEW wheel so existing wheels are never clobbered
         const created = createWheel(shared.name, shared.entries);
-        // Strip ?w= to keep the URL clean for further sharing
+        // Strip ?w= to keep the URL clean for further sharing. Use
+        // window.history because a local `history` array shadows the
+        // DOM global inside this script scope.
         try {
           const url = new URL(location.href);
           url.searchParams.delete("w");
-          history.replaceState({}, "", url.toString());
+          window.history.replaceState({}, "", url.toString());
         } catch {
           // ignore
         }
         if (created) {
           setTimeout(() => showToast(`Imported "${created.name}"`), 300);
         }
+      } else if (hasShareParam()) {
+        // ?w= present but decoding failed (truncated link, mangled base64,
+        // missing entries). Strip it so the URL stops carrying broken state
+        // and tell the recipient instead of silently dropping to the default.
+        try {
+          const url = new URL(location.href);
+          url.searchParams.delete("w");
+          window.history.replaceState({}, "", url.toString());
+        } catch {
+          // ignore
+        }
+        setTimeout(() => showToast("Couldn't read shared wheel link"), 300);
       }
     })();
 
