@@ -335,7 +335,7 @@ const ogImage = "/spin/og";
   </div>
 
   <canvas id="spin-confetti" class="spin-confetti" aria-hidden="true"></canvas>
-  <div id="spin-toast" class="spin-toast" hidden aria-live="polite"></div>
+  <div id="spin-toast" class="spin-toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <style is:global>
     .spin-page {
@@ -2128,9 +2128,6 @@ const ogImage = "/spin/og";
     .spin-toast.is-visible {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
-    }
-    .spin-toast[hidden] {
-      display: none;
     }
 
     /* Reduce motion */
@@ -4693,22 +4690,19 @@ const ogImage = "/spin/og";
     }
 
     // === Toast ===
+    // The toast is a live region. Keep it permanently in the
+    // accessibility tree so screen readers fire announcements when
+    // textContent changes. Visual hide is via opacity only.
     let toastTimer: number | null = null;
     function showToast(msg: string) {
       if (!toast) return;
       toast.textContent = msg;
-      toast.hidden = false;
       // Force reflow so the transition fires
       void toast.offsetWidth;
       toast.classList.add("is-visible");
       if (toastTimer) window.clearTimeout(toastTimer);
       toastTimer = window.setTimeout(() => {
         toast.classList.remove("is-visible");
-        window.setTimeout(() => {
-          if (toast && !toast.classList.contains("is-visible")) {
-            toast.hidden = true;
-          }
-        }, 220);
       }, 2200);
     }
 
