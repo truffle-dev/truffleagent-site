@@ -746,9 +746,54 @@ const ogImage = "/spin/og";
       padding: 6px 8px;
       border-radius: 8px;
       transition: background 0.12s;
+      touch-action: pan-y;
     }
     .spin-list-item:hover {
       background: var(--surface-3);
+    }
+    .spin-list-grip {
+      flex-shrink: 0;
+      width: 14px;
+      height: 24px;
+      margin-left: -4px;
+      margin-right: -4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      cursor: grab;
+      color: var(--content-4);
+      opacity: 0.45;
+      touch-action: none;
+      border-radius: 4px;
+      transition: opacity 0.12s, color 0.12s, background 0.12s;
+    }
+    .spin-list-item:hover .spin-list-grip,
+    .spin-list-item:focus-within .spin-list-grip {
+      opacity: 1;
+    }
+    .spin-list-grip:hover {
+      color: var(--content-2);
+      background: var(--surface);
+    }
+    .spin-list-grip:active,
+    .spin-list-item-dragging .spin-list-grip {
+      cursor: grabbing;
+      color: var(--content);
+    }
+    .spin-list-item-dragging {
+      opacity: 0.55;
+      background: var(--surface-3);
+      z-index: 2;
+      position: relative;
+    }
+    .spin-list-item-drop-before {
+      box-shadow: inset 0 2px 0 0 var(--accent);
+    }
+    .spin-list-item-drop-after {
+      box-shadow: inset 0 -2px 0 0 var(--accent);
     }
     .spin-list-color {
       width: 18px;
@@ -2910,6 +2955,118 @@ const ogImage = "/spin/og";
       }
     }
 
+    type DragState = {
+      pointerId: number;
+      draggedId: string;
+      draggedLi: HTMLLIElement;
+      startY: number;
+      dropTargetId: string | null;
+      dropBefore: boolean;
+    };
+    let dragState: DragState | null = null;
+
+    function clearDropMarkers() {
+      list?.querySelectorAll<HTMLLIElement>(
+        ".spin-list-item-drop-before, .spin-list-item-drop-after",
+      ).forEach((r) => {
+        r.classList.remove(
+          "spin-list-item-drop-before",
+          "spin-list-item-drop-after",
+        );
+      });
+    }
+
+    function onGripMove(e: PointerEvent) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      const dy = e.clientY - dragState.startY;
+      dragState.draggedLi.style.transform = `translateY(${dy}px)`;
+      const rows = list!.querySelectorAll<HTMLLIElement>(".spin-list-item");
+      let closest: HTMLLIElement | null = null;
+      let closestDist = Infinity;
+      let dropBefore = false;
+      rows.forEach((r) => {
+        if (r === dragState!.draggedLi) return;
+        const rect = r.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        const dist = Math.abs(e.clientY - mid);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = r;
+          dropBefore = e.clientY < mid;
+        }
+      });
+      clearDropMarkers();
+      if (closest) {
+        (closest as HTMLLIElement).classList.add(
+          dropBefore
+            ? "spin-list-item-drop-before"
+            : "spin-list-item-drop-after",
+        );
+        const input = (closest as HTMLLIElement).querySelector<HTMLInputElement>(
+          ".spin-list-input",
+        );
+        dragState.dropTargetId = input?.dataset.id || null;
+        dragState.dropBefore = dropBefore;
+      } else {
+        dragState.dropTargetId = null;
+      }
+    }
+
+    function onGripEnd(e: PointerEvent) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      const grip = e.currentTarget as HTMLButtonElement;
+      grip.removeEventListener("pointermove", onGripMove);
+      grip.removeEventListener("pointerup", onGripEnd);
+      grip.removeEventListener("pointercancel", onGripEnd);
+      if (grip.hasPointerCapture(e.pointerId)) {
+        grip.releasePointerCapture(e.pointerId);
+      }
+      const { draggedId, draggedLi, dropTargetId, dropBefore } = dragState;
+      draggedLi.style.transform = "";
+      draggedLi.classList.remove("spin-list-item-dragging");
+      clearDropMarkers();
+      dragState = null;
+      if (!dropTargetId || dropTargetId === draggedId) return;
+      const fromIdx = entries.findIndex((x) => x.id === draggedId);
+      const targetIdx = entries.findIndex((x) => x.id === dropTargetId);
+      if (fromIdx < 0 || targetIdx < 0) return;
+      let toIdx = dropBefore ? targetIdx : targetIdx + 1;
+      if (fromIdx < toIdx) toIdx -= 1;
+      if (toIdx === fromIdx) return;
+      const [item] = entries.splice(fromIdx, 1);
+      entries.splice(toIdx, 0, item);
+      clearImportFlag();
+      renderList();
+      drawWheel();
+      save();
+    }
+
+    function startGripDrag(
+      e: PointerEvent,
+      entryId: string,
+      li: HTMLLIElement,
+      grip: HTMLButtonElement,
+    ) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (dragState) return;
+      e.preventDefault();
+      try {
+        grip.setPointerCapture(e.pointerId);
+      } catch {}
+      dragState = {
+        pointerId: e.pointerId,
+        draggedId: entryId,
+        draggedLi: li,
+        startY: e.clientY,
+        dropTargetId: null,
+        dropBefore: false,
+      };
+      li.classList.add("spin-list-item-dragging");
+      grip.addEventListener("pointermove", onGripMove);
+      grip.addEventListener("pointerup", onGripEnd);
+      grip.addEventListener("pointercancel", onGripEnd);
+    }
+
     function renderList() {
       list!.innerHTML = "";
       countEl!.textContent = String(entries.length);
@@ -2917,6 +3074,26 @@ const ogImage = "/spin/og";
       entries.forEach((entry, i) => {
         const li = document.createElement("li");
         li.className = "spin-list-item";
+
+        const grip = document.createElement("button");
+        grip.type = "button";
+        grip.className = "spin-list-grip";
+        grip.tabIndex = -1;
+        grip.setAttribute("aria-hidden", "true");
+        grip.title = "Drag to reorder";
+        grip.innerHTML =
+          '<svg viewBox="0 0 8 14" width="8" height="14" aria-hidden="true">' +
+          '<circle cx="2" cy="3" r="1.1" fill="currentColor"/>' +
+          '<circle cx="6" cy="3" r="1.1" fill="currentColor"/>' +
+          '<circle cx="2" cy="7" r="1.1" fill="currentColor"/>' +
+          '<circle cx="6" cy="7" r="1.1" fill="currentColor"/>' +
+          '<circle cx="2" cy="11" r="1.1" fill="currentColor"/>' +
+          '<circle cx="6" cy="11" r="1.1" fill="currentColor"/>' +
+          "</svg>";
+        grip.addEventListener("pointerdown", (e) => {
+          startGripDrag(e, entry.id, li, grip);
+        });
+        li.appendChild(grip);
 
         const color = document.createElement("button");
         color.type = "button";
