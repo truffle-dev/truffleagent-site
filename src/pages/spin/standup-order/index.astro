@@ -1,0 +1,410 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+const SHARE_PAYLOAD =
+  "eyJuIjoiU3RhbmR1cCBvcmRlciIsImUiOlsiUGVyc29uIDEiLCJQZXJzb24gMiIsIlBlcnNvbiAzIiwiUGVyc29uIDQiXX0";
+const SPIN_URL = `/spin/?w=${SHARE_PAYLOAD}`;
+
+const useCases = [
+  {
+    title: "Daily standup speaking order.",
+    body: "Drop in your team. Spin once. The wheel produces a full order in one go, so no one has to guess who's next or who already spoke.",
+  },
+  {
+    title: "Workshop and icebreaker rotation.",
+    body: "Twelve names, one round, fair order. Save the wheel under your team's name so the same group loads in a tap next session.",
+  },
+  {
+    title: "Retro facilitator picker.",
+    body: "Pick who runs the retro this week without anyone feeling singled out. The wheel is the bad guy, not you.",
+  },
+];
+
+const faqs = [
+  {
+    q: "Can the wheel produce a full speaking order, not just one winner?",
+    a: "Yes. Open the wheel, toggle Order mode from the actions row, then spin once. The wheel produces a ranked order of every entry, displayed top to bottom. Great for a four-person standup or a twelve-person workshop.",
+  },
+  {
+    q: "How do I add my team's actual names?",
+    a: "Open the wheel, edit each entry inline, or paste a newline-separated list into the bulk-add panel. You can also rename the wheel to your team's name so it shows up in the picker.",
+  },
+  {
+    q: "Will it remember who already went today?",
+    a: "Yes. Turn on Eliminate mode and each spin removes its winner from the wheel. After a four-person standup you'll have an empty wheel and a clean slate for tomorrow. Or just use Order mode and read the list top to bottom.",
+  },
+  {
+    q: "Can I save my team and reload it next time?",
+    a: "Yes. Each wheel has a name and persists locally. Save one per team — backend, design, mobile — and switch between them from the picker in the actions row.",
+  },
+];
+
+const jsonLdApp = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Standup Order Wheel",
+  url: "https://truffleagent.com/spin/standup-order/",
+  description:
+    "Free standup order picker. Spin a wheel to pick who speaks first at your daily standup, or generate a full speaking order in one spin. No ads, no tracking, no signup.",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires JavaScript and a modern browser.",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
+const jsonLdFaq = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+<BaseLayout
+  title="Standup Order Wheel · Free Random Speaking Order Picker"
+  description="Free standup order picker. Spin a wheel to pick who speaks first at your daily standup, or generate a full speaking order in one spin. No ads, no signup."
+  canonical="https://truffleagent.com/spin/standup-order/"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdApp)} slot="head" />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdFaq)} slot="head" />
+
+  <article class="so-page">
+    <header class="so-head">
+      <div class="so-container">
+        <p class="so-eyebrow">Spin</p>
+        <h1 class="so-display">
+          Who goes <em>first?</em>
+        </h1>
+        <p class="so-lead">
+          A fair speaking order for your daily standup. Drop in your
+          team, spin once, get the whole order. No login, no ads, no
+          tracker.
+        </p>
+        <div class="so-cta-row">
+          <a class="so-cta-primary" href={SPIN_URL}>
+            Pick standup order
+            <span aria-hidden="true">→</span>
+          </a>
+          <a class="so-cta-secondary" href="/spin/">
+            Build a custom wheel
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <section class="so-section">
+      <div class="so-container">
+        <h2 class="so-h2"><em>When to use it.</em></h2>
+        <ul class="so-uses">
+          {useCases.map((u) => (
+            <li class="so-use">
+              <p class="so-use-title">{u.title}</p>
+              <p class="so-use-body">{u.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="so-section">
+      <div class="so-container">
+        <h2 class="so-h2"><em>Frequently asked.</em></h2>
+        <div class="so-faq">
+          {faqs.map((f, i) => (
+            <details class="so-faq-item" open={i === 0}>
+              <summary class="so-faq-q">{f.q}</summary>
+              <p class="so-faq-a">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="so-section so-section-end">
+      <div class="so-container">
+        <a class="so-cta-primary so-cta-end" href={SPIN_URL}>
+          Spin a standup order
+          <span aria-hidden="true">→</span>
+        </a>
+        <p class="so-fineprint">
+          The wheel runs in your browser. Your team and spins stay on
+          your device.
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .so-page {
+    background-color: var(--color-paper-50);
+    color: var(--color-paper-900);
+    min-height: 60vh;
+  }
+
+  .so-container {
+    max-width: 64ch;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .so-head {
+    padding: 4rem 0 3rem;
+  }
+
+  .so-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-paper-500);
+    margin: 0 0 1rem;
+  }
+
+  .so-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.05;
+    margin: 0 0 1.25rem;
+    color: var(--color-paper-900);
+  }
+
+  .so-display em {
+    font-style: italic;
+    color: #4850c4;
+  }
+
+  .so-lead {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    line-height: 1.55;
+    max-width: 48ch;
+    color: var(--color-paper-700);
+    margin: 0 0 2rem;
+  }
+
+  .so-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .so-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background-color: #4850c4;
+    color: var(--color-paper-50);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .so-cta-primary:hover {
+    background-color: #3a41a6;
+    transform: translateY(-1px);
+  }
+
+  .so-cta-primary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .so-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.875rem 1.25rem;
+    color: var(--color-paper-700);
+    border: 1px solid var(--color-paper-300);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-decoration: none;
+    background-color: transparent;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .so-cta-secondary:hover {
+    border-color: var(--color-paper-500);
+    color: var(--color-paper-900);
+  }
+
+  .so-cta-secondary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .so-section {
+    padding: 2.5rem 0;
+    border-top: 1px solid var(--color-paper-200);
+  }
+
+  .so-section-end {
+    padding: 3.5rem 0 5rem;
+    text-align: center;
+  }
+
+  .so-h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    line-height: 1.15;
+    margin: 0 0 1.5rem;
+  }
+
+  .so-h2 em {
+    font-style: italic;
+    color: var(--color-paper-700);
+  }
+
+  .so-uses {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .so-use {
+    padding: 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .so-use-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 0.4rem;
+    color: var(--color-paper-900);
+  }
+
+  .so-use-body {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0;
+  }
+
+  .so-faq {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .so-faq-item {
+    padding: 1rem 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .so-faq-item[open] {
+    background-color: var(--color-paper-50);
+    border-color: var(--color-paper-300);
+  }
+
+  .so-faq-q {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-paper-900);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .so-faq-q::marker,
+  .so-faq-q::-webkit-details-marker {
+    display: none;
+  }
+
+  .so-faq-q::after {
+    content: "+";
+    float: right;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    color: var(--color-paper-500);
+    transition: transform 150ms ease;
+    margin-left: 0.5rem;
+  }
+
+  .so-faq-item[open] .so-faq-q::after {
+    content: "–";
+  }
+
+  .so-faq-q:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .so-faq-a {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0.75rem 0 0;
+  }
+
+  .so-cta-end {
+    font-size: 1.0625rem;
+    padding: 1rem 1.75rem;
+  }
+
+  .so-fineprint {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--color-paper-500);
+    margin: 1.25rem 0 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .so-page {
+      background-color: var(--color-paper-950);
+      color: var(--color-paper-100);
+    }
+    .so-display { color: var(--color-paper-50); }
+    .so-display em { color: #8b91e3; }
+    .so-lead { color: var(--color-paper-300); }
+    .so-h2 em { color: var(--color-paper-400); }
+    .so-section { border-top-color: var(--color-paper-800); }
+    .so-use,
+    .so-faq-item {
+      background-color: var(--color-paper-900);
+      border-color: var(--color-paper-800);
+    }
+    .so-faq-item[open] {
+      background-color: var(--color-paper-950);
+      border-color: var(--color-paper-700);
+    }
+    .so-use-title,
+    .so-faq-q { color: var(--color-paper-50); }
+    .so-use-body,
+    .so-faq-a { color: var(--color-paper-300); }
+    .so-cta-primary {
+      background-color: #8b91e3;
+      color: var(--color-paper-950);
+    }
+    .so-cta-primary:hover { background-color: #a3a7eb; }
+    .so-cta-secondary {
+      color: var(--color-paper-300);
+      border-color: var(--color-paper-800);
+    }
+    .so-cta-secondary:hover {
+      border-color: var(--color-paper-500);
+      color: var(--color-paper-50);
+    }
+    .so-fineprint { color: var(--color-paper-500); }
+  }
+</style>
