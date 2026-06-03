@@ -318,6 +318,7 @@ const ogImage = "/spin/og";
         <div class="spin-help-row"><dt><kbd class="spin-kbd">?</kbd></dt><dd>Toggle this cheatsheet</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Enter</kbd></dt><dd>Add entry (while typing)</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Tab</kbd></dt><dd>Move through entries</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">Alt</kbd> + <kbd class="spin-kbd">↑</kbd> / <kbd class="spin-kbd">↓</kbd></dt><dd>Reorder entry up / down</dd></div>
       </dl>
       <p class="spin-help-foot">Shortcuts skip when an input is focused.</p>
     </div>
@@ -2744,6 +2745,36 @@ const ogImage = "/spin/og";
       });
     }
 
+    function moveEntry(id: string, dir: -1 | 1) {
+      const idx = entries.findIndex((e) => e.id === id);
+      if (idx < 0) return;
+      const next = idx + dir;
+      if (next < 0 || next >= entries.length) return;
+      const focused = document.activeElement as HTMLInputElement | null;
+      const wasLabel =
+        focused?.tagName === "INPUT" &&
+        focused.classList.contains("spin-list-input") &&
+        focused.dataset.id === id;
+      const selStart = wasLabel ? focused!.selectionStart : null;
+      const selEnd = wasLabel ? focused!.selectionEnd : null;
+      const [item] = entries.splice(idx, 1);
+      entries.splice(next, 0, item);
+      renderList();
+      drawWheel();
+      save();
+      const after = list?.querySelector<HTMLInputElement>(
+        `.spin-list-input[data-id="${CSS.escape(id)}"]`,
+      );
+      if (after) {
+        after.focus();
+        if (selStart !== null && selEnd !== null) {
+          try {
+            after.setSelectionRange(selStart, selEnd);
+          } catch {}
+        }
+      }
+    }
+
     function renderList() {
       list!.innerHTML = "";
       countEl!.textContent = String(entries.length);
@@ -2808,6 +2839,11 @@ const ogImage = "/spin/og";
           if (e.key === "Enter") {
             e.preventDefault();
             addInput!.focus();
+            return;
+          }
+          if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+            e.preventDefault();
+            moveEntry(entry.id, e.key === "ArrowUp" ? -1 : 1);
           }
         });
         li.appendChild(input);
