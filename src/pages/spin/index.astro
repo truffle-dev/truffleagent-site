@@ -3920,7 +3920,13 @@ const ogImage = "/spin/og";
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=+$/, "");
-      return `${location.origin}/spin/?w=${b64}`;
+      // Emit the share-route form so OG crawlers (Twitter, Discord,
+      // Slack, iMessage) get a per-wheel preview card. The
+      // /spin/share/<payload>/ Function returns HTML whose og:image
+      // points at /spin/og?w=<payload> and then redirects humans to
+      // /spin/?w=<payload>. Old /spin/?w=<payload> links still work
+      // because tryDecodeShareParam still reads ?w= from search.
+      return `${location.origin}/spin/share/${b64}/`;
     }
 
     function tryDecodeShareParam(): { name: string; entries: Entry[] } | null {
