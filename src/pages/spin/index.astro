@@ -107,6 +107,10 @@ const ogImage = "/spin/og";
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                   Embed code
                 </button>
+                <button type="button" id="spin-picker-clear-entries" class="spin-picker-action spin-picker-action-danger" role="menuitem" hidden>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="14" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="14" y2="18"/><line x1="18" y1="9" x2="22" y2="13"/><line x1="22" y1="9" x2="18" y2="13"/></svg>
+                  <span id="spin-picker-clear-entries-label">Clear entries</span>
+                </button>
                 <button type="button" id="spin-picker-delete" class="spin-picker-action spin-picker-action-danger" role="menuitem">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                   Delete
@@ -2293,6 +2297,8 @@ const ogImage = "/spin/og";
     const helpCloseX = document.getElementById("spin-help-close-x") as HTMLButtonElement | null;
     const historyClear = document.getElementById("spin-history-clear") as HTMLButtonElement | null;
     const pickerResetCounts = document.getElementById("spin-picker-reset-counts") as HTMLButtonElement | null;
+    const pickerClearEntries = document.getElementById("spin-picker-clear-entries") as HTMLButtonElement | null;
+    const pickerClearEntriesLabel = document.getElementById("spin-picker-clear-entries-label") as HTMLSpanElement | null;
     const modalLabelEl = document.getElementById("spin-modal-label");
     const hintEl = document.getElementById("spin-hint");
     const modal = document.getElementById("spin-winner") as HTMLDivElement | null;
@@ -2663,6 +2669,7 @@ const ogImage = "/spin/og";
       updateEliminateBtn();
       updateAccumulateBtn();
       updatePickerResetCounts();
+      updatePickerClearEntries();
     }
 
     function openPicker() {
@@ -4151,6 +4158,18 @@ const ogImage = "/spin/og";
       pickerResetCounts.hidden = !show;
     }
 
+    function updatePickerClearEntries() {
+      if (!pickerClearEntries) return;
+      const cw = currentWheel();
+      const show = cw.entries.length >= 2;
+      pickerClearEntries.hidden = !show;
+      if (pickerClearEntriesLabel) {
+        pickerClearEntriesLabel.textContent = cw.eliminate
+          ? "Clear remaining"
+          : "Clear entries";
+      }
+    }
+
     function updateEliminateBtn() {
       if (!eliminateBtn) return;
       const on = !!currentWheel().eliminate;
@@ -4713,6 +4732,38 @@ const ogImage = "/spin/og";
         showToast(`Reset ${touched} win count${touched === 1 ? "" : "s"}`);
       });
     }
+    if (pickerClearEntries) {
+      pickerClearEntries.addEventListener("click", () => {
+        if (spinning) {
+          showToast("Wait for the spin to finish");
+          return;
+        }
+        const cw = currentWheel();
+        const n = cw.entries.length;
+        if (n < 2) {
+          updatePickerClearEntries();
+          closePicker();
+          return;
+        }
+        const prompt = cw.eliminate
+          ? `Clear ${n} remaining entries? This can't be undone.`
+          : `Clear all ${n} entries? This can't be undone.`;
+        if (!confirm(prompt)) return;
+        entries.length = 0;
+        clearImportFlag();
+        save();
+        renderList();
+        drawWheel();
+        updatePickerResetCounts();
+        updatePickerClearEntries();
+        closePicker();
+        showToast(
+          cw.eliminate
+            ? `Cleared ${n} remaining`
+            : `Cleared ${n} entries`,
+        );
+      });
+    }
 
     // === Wheel picker wiring ===
     if (pickerBtn) {
@@ -5008,6 +5059,7 @@ const ogImage = "/spin/og";
     updateEliminateBtn();
     updateAccumulateBtn();
     updatePickerResetCounts();
+    updatePickerClearEntries();
     fitConfetti();
     renderPicker();
     renderList();
