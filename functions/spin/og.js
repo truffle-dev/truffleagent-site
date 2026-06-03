@@ -8,11 +8,26 @@
 // mirrors the share-link contract in src/pages/spin/index.astro:
 // {n: name, e: entries[], c?: colors[], w?: weights[]}.
 // Falls back to the static card when ?w is invalid.
+//
+// Crawlers that don't render SVG OG images (Facebook, LinkedIn,
+// Pinterest) are detected by User-Agent and always get the branded
+// static card so their preview cards stay valid rather than going
+// blank. Twitter/X, Slack, Discord, iMessage, and human browsers
+// still get the per-wheel SVG when ?w is valid. The Vary header
+// keeps the CDN from cross-serving the SVG payload to a PNG-only
+// crawler downstream of a browser cache hit.
 
 const CACHE_HEADERS = {
   "cache-control": "public, max-age=86400, s-maxage=86400",
   "x-content-type-options": "nosniff",
+  vary: "user-agent",
 };
+
+// User-Agent substrings of the OG crawlers that won't render SVG.
+// Source: facebookexternalhit (Facebook + Instagram + WhatsApp),
+// LinkedInBot, Pinterest (rich pins crawler).
+const PNG_ONLY_CRAWLERS =
+  /facebookexternalhit|linkedinbot|pinterest/i;
 
 // Warm-paper palette tokens, mirrored from src/pages/spin/index.astro
 // (PALETTES.paper). Used when the share payload omits per-entry
@@ -203,7 +218,8 @@ async function serveStaticCard(env, request) {
 export async function onRequestGet({ env, request }) {
   const url = new URL(request.url);
   const w = url.searchParams.get("w");
-  if (w) {
+  const ua = request.headers.get("user-agent") || "";
+  if (w && !PNG_ONLY_CRAWLERS.test(ua)) {
     const svgRes = await servePerWheelSvg(w);
     if (svgRes) return svgRes;
   }
