@@ -151,126 +151,160 @@ const faqJsonLd = {
 
       <aside class="spin-side" aria-label="Entries">
         <div class="spin-side-head">
-          <div class="spin-wheel-picker">
-            <button id="spin-picker-btn" type="button" class="spin-picker-btn" aria-haspopup="true" aria-expanded="false" aria-controls="spin-picker-panel">
-              <span id="spin-picker-name" class="spin-picker-name">My wheel</span>
-              <svg class="spin-picker-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <span id="spin-count" class="spin-count">0</span>
-            <div id="spin-picker-panel" class="spin-picker-panel" hidden role="menu" aria-label="Wheels">
-              <ul id="spin-picker-list" class="spin-picker-list" role="none"></ul>
-              <div class="spin-picker-divider"></div>
-              <div class="spin-picker-grouplabel">Presets</div>
-              <div class="spin-picker-presets" role="none">
-                <button type="button" id="spin-preset-yes-no" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15 16 9"/></svg>
-                  Yes / No
-                </button>
-                <button type="button" id="spin-preset-coin-flip" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="13" r="5.5"/><circle cx="15" cy="11" r="5.5"/></svg>
-                  Coin flip
-                </button>
-                <button type="button" id="spin-preset-standup-order" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="7" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="5" cy="19" r="1.5"/><line x1="10" y1="7" x2="20" y2="7"/><line x1="10" y1="13" x2="20" y2="13"/><line x1="10" y1="19" x2="20" y2="19"/></svg>
-                  Standup order
-                </button>
-                <button type="button" id="spin-preset-restaurant-picker" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v8m0 0a2 2 0 0 0 2-2V3M4 3v6a2 2 0 0 0 2 2"/><path d="M6 11v10"/><path d="M14 21V13a4 4 0 0 1 4-4V3"/><path d="M18 13H14"/></svg>
-                  Restaurant picker
-                </button>
-                <button type="button" id="spin-preset-birthday-month" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><line x1="3" y1="11" x2="21" y2="11"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
-                  Birthday month
-                </button>
+          <div class="spin-head-row spin-head-row-top">
+            <div class="spin-wheel-picker">
+              <button id="spin-picker-btn" type="button" class="spin-picker-btn" aria-haspopup="true" aria-expanded="false" aria-controls="spin-picker-panel">
+                <span id="spin-picker-name" class="spin-picker-name">My wheel</span>
+                <svg class="spin-picker-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <span id="spin-count" class="spin-count-chip">0</span>
+              <div id="spin-picker-panel" class="spin-picker-panel" hidden role="menu" aria-label="Wheels">
+                <ul id="spin-picker-list" class="spin-picker-list" role="none"></ul>
+                <div class="spin-picker-divider"></div>
+                <div class="spin-picker-grouplabel">Presets</div>
+                <div class="spin-picker-presets" role="none">
+                  <button type="button" id="spin-preset-yes-no" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15 16 9"/></svg>
+                    Yes / No
+                  </button>
+                  <button type="button" id="spin-preset-coin-flip" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="13" r="5.5"/><circle cx="15" cy="11" r="5.5"/></svg>
+                    Coin flip
+                  </button>
+                  <button type="button" id="spin-preset-standup-order" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="7" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="5" cy="19" r="1.5"/><line x1="10" y1="7" x2="20" y2="7"/><line x1="10" y1="13" x2="20" y2="13"/><line x1="10" y1="19" x2="20" y2="19"/></svg>
+                    Standup order
+                  </button>
+                  <button type="button" id="spin-preset-restaurant-picker" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v8m0 0a2 2 0 0 0 2-2V3M4 3v6a2 2 0 0 0 2 2"/><path d="M6 11v10"/><path d="M14 21V13a4 4 0 0 1 4-4V3"/><path d="M18 13H14"/></svg>
+                    Restaurant picker
+                  </button>
+                  <button type="button" id="spin-preset-birthday-month" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><line x1="3" y1="11" x2="21" y2="11"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
+                    Birthday month
+                  </button>
+                </div>
+                <div class="spin-picker-divider"></div>
+                <div class="spin-picker-actions" role="none">
+                  <button type="button" id="spin-picker-new" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New wheel
+                  </button>
+                  <button type="button" id="spin-picker-rename" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    Rename
+                  </button>
+                  <button type="button" id="spin-picker-dupe" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Duplicate
+                  </button>
+                  <button type="button" id="spin-picker-shuffle" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                    Shuffle entries
+                  </button>
+                  <button type="button" id="spin-picker-reset-counts" class="spin-picker-action" role="menuitem" hidden>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Reset win counts
+                  </button>
+                  <button type="button" id="spin-picker-export" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export JSON
+                  </button>
+                  <button type="button" id="spin-picker-import" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Import JSON
+                  </button>
+                  <button type="button" id="spin-picker-embed" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    Embed code
+                  </button>
+                  <button type="button" id="spin-picker-reset-defaults" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Reset look
+                  </button>
+                  <button type="button" id="spin-picker-clear-entries" class="spin-picker-action spin-picker-action-danger" role="menuitem" hidden>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="14" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="14" y2="18"/><line x1="18" y1="9" x2="22" y2="13"/><line x1="22" y1="9" x2="18" y2="13"/></svg>
+                    <span id="spin-picker-clear-entries-label">Clear entries</span>
+                  </button>
+                  <button type="button" id="spin-picker-delete" class="spin-picker-action spin-picker-action-danger" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    Delete
+                  </button>
+                </div>
               </div>
-              <div class="spin-picker-divider"></div>
-              <div class="spin-picker-actions" role="none">
-                <button type="button" id="spin-picker-new" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  New wheel
-                </button>
-                <button type="button" id="spin-picker-rename" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  Rename
-                </button>
-                <button type="button" id="spin-picker-dupe" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                  Duplicate
-                </button>
-                <button type="button" id="spin-picker-reset-counts" class="spin-picker-action" role="menuitem" hidden>
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-                  Reset win counts
-                </button>
-                <button type="button" id="spin-picker-export" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Export JSON
-                </button>
-                <button type="button" id="spin-picker-import" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  Import JSON
-                </button>
-                <button type="button" id="spin-picker-embed" class="spin-picker-action" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                  Embed code
-                </button>
-                <button type="button" id="spin-picker-clear-entries" class="spin-picker-action spin-picker-action-danger" role="menuitem" hidden>
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="14" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="14" y2="18"/><line x1="18" y1="9" x2="22" y2="13"/><line x1="22" y1="9" x2="18" y2="13"/></svg>
-                  <span id="spin-picker-clear-entries-label">Clear entries</span>
-                </button>
-                <button type="button" id="spin-picker-delete" class="spin-picker-action spin-picker-action-danger" role="menuitem">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                  Delete
-                </button>
-              </div>
+              <input type="file" id="spin-import-file" accept=".json,application/json" hidden />
+              <input type="color" id="spin-color-picker" hidden aria-hidden="true" tabindex="-1" />
             </div>
-            <input type="file" id="spin-import-file" accept=".json,application/json" hidden />
-            <input type="color" id="spin-color-picker" hidden aria-hidden="true" tabindex="-1" />
+            <div class="spin-head-actions">
+              <button id="spin-share" type="button" class="spin-cta-chip" title="Copy share link" aria-label="Copy share link">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <span>Share</span>
+              </button>
+              <button id="spin-mute" type="button" class="spin-icon-btn spin-icon-btn-pill" title="Mute sound" aria-label="Mute sound" aria-pressed="false">
+                <svg class="spin-mute-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                <svg class="spin-mute-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+              </button>
+            </div>
           </div>
-          <div class="spin-side-actions">
-            <button id="spin-share" type="button" class="spin-icon-btn" title="Copy share link" aria-label="Copy share link">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            </button>
-            <button id="spin-mute" type="button" class="spin-icon-btn" title="Mute sound" aria-label="Mute sound" aria-pressed="false">
-              <svg class="spin-mute-on" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-              <svg class="spin-mute-off" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-            </button>
-            <button id="spin-eliminate" type="button" class="spin-icon-btn spin-icon-mode" title="Eliminate mode — winner removed each spin" aria-label="Eliminate mode" aria-pressed="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            </button>
-            <button id="spin-accumulate" type="button" class="spin-icon-btn spin-icon-mode" title="Accumulate mode — track win counts" aria-label="Accumulate mode" aria-pressed="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="20" x2="4" y2="13"/><line x1="10" y1="20" x2="10" y2="8"/><line x1="16" y1="20" x2="16" y2="11"/><line x1="3" y1="20" x2="17" y2="20"/></svg>
-            </button>
-            <button id="spin-order" type="button" class="spin-icon-btn" title="Spin for order — random ordering of all entries" aria-label="Spin for order">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><path d="M4 4h1.5v4"/><path d="M4 14h2.5c0 1-2 2-2 3h2"/></svg>
-            </button>
-            <button id="spin-teams" type="button" class="spin-icon-btn" title="Split into teams" aria-label="Split into teams" aria-expanded="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/><path d="M11 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/></svg>
-            </button>
-            <button id="spin-pointer-btn" type="button" class="spin-icon-btn" title="Pointer settings" aria-label="Pointer settings" aria-expanded="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 3 8.5 8.5 15.5 8.5"/><circle cx="12" cy="15" r="5"/></svg>
-            </button>
-            <button id="spin-labelrot-btn" type="button" class="spin-icon-btn" title="Label rotation" aria-label="Label rotation" aria-expanded="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19 L9 5 L13 19"/><line x1="6.5" y1="14" x2="11.5" y2="14"/><path d="M15 9 a4 4 0 0 1 4 4 a4 4 0 0 1 -4 4"/><polyline points="13 15 15 17 17 15"/></svg>
-            </button>
-            <button id="spin-palette-btn" type="button" class="spin-icon-btn" title="Theme palette" aria-label="Theme palette" aria-expanded="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2 0-1.5-1.5-2-1.5-3.5 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4 9 9 0 0 0-9-7z"/><circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7" r="1"/><circle cx="15.5" cy="8" r="1"/><circle cx="17.5" cy="12.5" r="1"/></svg>
-            </button>
-            <button id="spin-size-btn" type="button" class="spin-icon-btn" title="Wheel size" aria-label="Wheel size" aria-expanded="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
-            </button>
-            <button id="spin-sound-btn" type="button" class="spin-icon-btn" title="Sound style" aria-label="Sound style" aria-expanded="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12 L7 12 L11 7 L11 17 L7 12"/><path d="M14 9 a4 4 0 0 1 0 6"/><path d="M17 6 a8 8 0 0 1 0 12"/></svg>
-            </button>
-            <button id="spin-scene-btn" type="button" class="spin-icon-btn" title="Background scene" aria-label="Background scene" aria-expanded="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 14 l5 -4 l4 3 l3 -2 l6 5"/><circle cx="8" cy="9" r="1.4"/></svg>
-            </button>
-            <button id="spin-shuffle" type="button" class="spin-icon-btn" title="Shuffle order" aria-label="Shuffle order">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-            </button>
-            <button id="spin-reset" type="button" class="spin-icon-btn" title="Reset to defaults" aria-label="Reset to defaults">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-            </button>
+
+          <div class="spin-toolbar-section">
+            <span class="spin-toolbar-grouplabel">Mode</span>
+            <div class="spin-mode-chips" role="group" aria-label="Spin mode">
+              <button id="spin-mode-single" type="button" class="spin-mode-chip" aria-pressed="true" title="One winner per spin">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8.5"/></svg>
+                <span>Single</span>
+              </button>
+              <button id="spin-eliminate" type="button" class="spin-mode-chip" aria-pressed="false" title="Winner removed each spin">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <span>Eliminate</span>
+              </button>
+              <button id="spin-accumulate" type="button" class="spin-mode-chip" aria-pressed="false" title="Track win counts">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="20" x2="4" y2="13"/><line x1="10" y1="20" x2="10" y2="8"/><line x1="16" y1="20" x2="16" y2="11"/><line x1="3" y1="20" x2="17" y2="20"/></svg>
+                <span>Accumulate</span>
+              </button>
+              <button id="spin-order" type="button" class="spin-mode-chip" title="Spin for full ordering">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><path d="M4 4h1.5v4"/><path d="M4 14h2.5c0 1-2 2-2 3h2"/></svg>
+                <span>Order</span>
+              </button>
+              <button id="spin-teams" type="button" class="spin-mode-chip" aria-expanded="false" title="Split into teams">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/><path d="M11 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/></svg>
+                <span>Teams</span>
+              </button>
+            </div>
           </div>
+
+          <div class="spin-toolbar-section">
+            <span class="spin-toolbar-grouplabel">Look</span>
+            <div class="spin-style-icons" role="group" aria-label="Wheel look settings">
+              <button id="spin-palette-btn" type="button" class="spin-icon-btn" title="Palette" aria-label="Color palette" aria-expanded="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2 0-1.5-1.5-2-1.5-3.5 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4 9 9 0 0 0-9-7z"/><circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7" r="1"/><circle cx="15.5" cy="8" r="1"/><circle cx="17.5" cy="12.5" r="1"/></svg>
+                <span class="spin-icon-label">Palette</span>
+              </button>
+              <button id="spin-pointer-btn" type="button" class="spin-icon-btn" title="Pointer" aria-label="Pointer settings" aria-expanded="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 3 8.5 8.5 15.5 8.5"/><circle cx="12" cy="15" r="5"/></svg>
+                <span class="spin-icon-label">Pointer</span>
+              </button>
+              <button id="spin-labelrot-btn" type="button" class="spin-icon-btn" title="Labels" aria-label="Label rotation" aria-expanded="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19 L9 5 L13 19"/><line x1="6.5" y1="14" x2="11.5" y2="14"/><path d="M15 9 a4 4 0 0 1 4 4 a4 4 0 0 1 -4 4"/><polyline points="13 15 15 17 17 15"/></svg>
+                <span class="spin-icon-label">Labels</span>
+              </button>
+              <button id="spin-size-btn" type="button" class="spin-icon-btn" title="Size" aria-label="Wheel size" aria-expanded="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg>
+                <span class="spin-icon-label">Size</span>
+              </button>
+              <button id="spin-sound-btn" type="button" class="spin-icon-btn" title="Sound" aria-label="Sound style" aria-expanded="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12 L7 12 L11 7 L11 17 L7 12"/><path d="M14 9 a4 4 0 0 1 0 6"/><path d="M17 6 a8 8 0 0 1 0 12"/></svg>
+                <span class="spin-icon-label">Sound</span>
+              </button>
+              <button id="spin-scene-btn" type="button" class="spin-icon-btn" title="Scene" aria-label="Background scene" aria-expanded="false">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 14 l5 -4 l4 3 l3 -2 l6 5"/><circle cx="8" cy="9" r="1.4"/></svg>
+                <span class="spin-icon-label">Scene</span>
+              </button>
+            </div>
+          </div>
+
+          <button id="spin-shuffle" type="button" class="spin-hidden-handle" aria-hidden="true" tabindex="-1"></button>
+          <button id="spin-reset" type="button" class="spin-hidden-handle" aria-hidden="true" tabindex="-1"></button>
         </div>
 
         <div id="spin-import-notice" class="spin-import-notice" hidden role="status">
@@ -502,17 +536,17 @@ const faqJsonLd = {
 
   <style is:global>
     .spin-page {
-      max-width: 1240px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: clamp(2rem, 4vw, 3.5rem) clamp(1rem, 3vw, 2rem) 4rem;
+      padding: clamp(2rem, 4vw, 3.5rem) clamp(1rem, 3vw, 2rem) 5rem;
       /* mirrors PALETTES.paper[2] amber for non-blocking validation hints */
       --spin-warn: #b07d2a;
     }
 
     .spin-header {
       text-align: center;
-      max-width: 720px;
-      margin: 0 auto 2.5rem;
+      max-width: 760px;
+      margin: 0 auto 3rem;
     }
     .spin-eyebrow {
       font-family: var(--font-mono);
@@ -550,7 +584,8 @@ const faqJsonLd = {
     }
     @media (min-width: 880px) {
       .spin-stage {
-        grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
+        grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+        gap: clamp(2rem, 3.5vw, 3rem);
       }
     }
 
@@ -558,26 +593,28 @@ const faqJsonLd = {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.75rem;
+      gap: 1rem;
+      padding-top: 0.5rem;
     }
 
     .spin-wheel-frame {
       position: relative;
       width: 100%;
-      max-width: 640px;
+      max-width: 720px;
       aspect-ratio: 1 / 1;
+      margin-inline: auto;
       transition: max-width var(--motion-base, 150ms) var(--ease-out, cubic-bezier(0.25, 0.46, 0.45, 0.94));
     }
-    .spin-wheel-frame[data-size="s"] { max-width: 360px; }
-    .spin-wheel-frame[data-size="m"] { max-width: 480px; }
-    .spin-wheel-frame[data-size="l"] { max-width: 640px; }
+    .spin-wheel-frame[data-size="s"] { max-width: 400px; }
+    .spin-wheel-frame[data-size="m"] { max-width: 560px; }
+    .spin-wheel-frame[data-size="l"] { max-width: 720px; }
     .spin-wheel-frame[data-size="full"] { max-width: none; }
 
     #spin-canvas {
       width: 100%;
       height: 100%;
       display: block;
-      filter: drop-shadow(0 12px 32px rgba(20, 17, 11, 0.12));
+      filter: drop-shadow(0 14px 40px rgba(20, 17, 11, 0.14));
     }
 
     .spin-pointer {
@@ -657,23 +694,40 @@ const faqJsonLd = {
     }
 
     .spin-side {
-      background: var(--surface-2);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 1.25rem;
+      border-radius: 16px;
+      padding: 1.1rem 1.1rem 1.25rem;
       display: flex;
       flex-direction: column;
       gap: 1rem;
+      box-shadow: 0 1px 2px rgba(20, 17, 11, 0.04), 0 4px 14px -10px rgba(20, 17, 11, 0.10);
     }
 
     .spin-side-head {
       display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    }
+    .spin-head-row {
+      display: flex;
       align-items: center;
-      justify-content: space-between;
       gap: 0.5rem;
       flex-wrap: wrap;
       row-gap: 0.5rem;
     }
+    .spin-head-row-top {
+      justify-content: space-between;
+    }
+    .spin-head-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
     .spin-side-title {
       font-family: var(--font-serif);
       font-size: 1.25rem;
@@ -681,19 +735,179 @@ const faqJsonLd = {
       margin: 0;
       color: var(--content);
     }
-    .spin-count {
+
+    .spin-count-chip {
       font-family: var(--font-mono);
-      font-size: 12px;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
       color: var(--content-3);
-      margin-left: 0.5rem;
-      font-weight: 400;
+      background: var(--surface-3);
+      border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+      padding: 2px 8px;
+      border-radius: 9999px;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
     }
-    .spin-side-actions {
+
+    .spin-toolbar-section {
       display: flex;
-      gap: 0.25rem;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .spin-toolbar-grouplabel {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--content-4);
+      font-weight: 600;
+    }
+
+    /* Segmented mode chips */
+    .spin-mode-chips {
+      display: flex;
+      gap: 2px;
       flex-wrap: wrap;
-      justify-content: flex-end;
-      row-gap: 0.25rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 3px;
+    }
+    .spin-mode-chip {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 0;
+      background: transparent;
+      color: var(--content-3);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+      white-space: nowrap;
+    }
+    .spin-mode-chip svg {
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+    .spin-mode-chip:hover {
+      color: var(--content);
+      background: var(--surface);
+    }
+    .spin-mode-chip:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 50%, transparent);
+    }
+    .spin-mode-chip[aria-pressed="true"] {
+      background: var(--surface);
+      color: var(--content);
+      box-shadow: 0 1px 2px rgba(20, 17, 11, 0.06), 0 0 0 1px color-mix(in oklab, var(--border) 80%, transparent);
+    }
+    .spin-mode-chip[aria-pressed="true"] svg {
+      color: var(--accent);
+      opacity: 1;
+    }
+
+    /* Look icon row */
+    .spin-style-icons {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 2px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 3px;
+    }
+    .spin-style-icons .spin-icon-btn {
+      width: 100%;
+      height: 38px;
+      min-width: 0;
+      border-radius: 6px;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 2px;
+      color: var(--content-3);
+    }
+    .spin-style-icons .spin-icon-btn:hover {
+      background: var(--surface);
+      color: var(--content);
+      border-color: transparent;
+    }
+    .spin-style-icons .spin-icon-btn[aria-expanded="true"] {
+      background: var(--surface);
+      color: var(--content);
+      box-shadow: 0 1px 2px rgba(20, 17, 11, 0.06), 0 0 0 1px color-mix(in oklab, var(--border) 80%, transparent);
+    }
+    .spin-icon-label {
+      font-family: var(--font-sans);
+      font-size: 9.5px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+
+    /* Hidden handle buttons (kept for JS wiring only) */
+    .spin-hidden-handle {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      border: 0;
+      padding: 0;
+      margin: -1px;
+      background: transparent;
+    }
+
+    /* Share CTA chip */
+    .spin-cta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content);
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .spin-cta-chip:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .spin-cta-chip:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 28%, transparent);
+    }
+    .spin-cta-chip svg { flex-shrink: 0; }
+
+    /* Pill-shape variant of icon button (used in head row for mute) */
+    .spin-icon-btn-pill {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .spin-icon-btn-pill:hover {
+      background: var(--surface-3);
+    }
+    #spin-mute.spin-icon-btn-pill[aria-pressed="true"] {
+      color: var(--content-4);
+      background: var(--surface-2);
     }
 
     .spin-wheel-picker {
@@ -913,23 +1127,27 @@ const faqJsonLd = {
       list-style: none;
       padding: 0;
       margin: 0;
-      max-height: clamp(320px, 50vh, 520px);
+      max-height: clamp(340px, 52vh, 560px);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
+      scrollbar-width: thin;
     }
     .spin-list-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 6px 8px;
-      border-radius: 8px;
+      gap: 0.6rem;
+      padding: 8px 10px;
+      border-radius: 9px;
       transition: background 0.12s;
       touch-action: pan-y;
     }
     .spin-list-item:hover {
       background: var(--surface-3);
+    }
+    .spin-list-item:focus-within {
+      background: color-mix(in oklab, var(--accent) 5%, var(--surface-3));
     }
     .spin-list-grip {
       flex-shrink: 0;
@@ -976,15 +1194,16 @@ const faqJsonLd = {
       box-shadow: inset 0 -2px 0 0 var(--accent);
     }
     .spin-list-color {
-      width: 18px;
-      height: 18px;
-      border-radius: 5px;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
       flex-shrink: 0;
       border: 1px solid rgba(20, 17, 11, 0.18);
       padding: 0;
       cursor: pointer;
       position: relative;
       transition: transform 0.12s, box-shadow 0.12s;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
     }
     .spin-list-color:hover {
       transform: scale(1.12);
@@ -1009,10 +1228,14 @@ const faqJsonLd = {
       border: 0;
       background: transparent;
       font-family: var(--font-sans);
-      font-size: 14px;
+      font-size: 14.5px;
+      line-height: 1.35;
       color: var(--content);
       padding: 4px 0;
       min-width: 0;
+    }
+    .spin-list-input::placeholder {
+      color: var(--content-4);
     }
     .spin-list-input:focus {
       outline: none;
@@ -1096,9 +1319,9 @@ const faqJsonLd = {
       box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 35%, transparent);
     }
     .spin-list-remove {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
       border: 0;
       background: transparent;
       color: var(--content-4);
@@ -1960,68 +2183,130 @@ const faqJsonLd = {
       outline-offset: 2px;
     }
 
-    /* === Background scenes — local-only overrides on the spin page === */
-    .spin-page[data-scene] {
-      position: relative;
-      isolation: isolate;
+    /* === Background scenes — full-viewport via body :has() ===
+       The .spin-page container is max-width:1280px and centered, so any
+       background scoped to it only paints behind a narrow strip. Apply
+       the gradient to body so it covers the whole viewport (nav + page
+       + footer + side gutters) and use background-attachment:fixed so
+       it stays painted while scrolling. */
+    html:has(.spin-page[data-scene]),
+    body:has(.spin-page[data-scene]) {
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center top;
+      background-attachment: fixed;
+      transition: background-color 320ms ease;
     }
-    .spin-page[data-scene]::before {
-      content: "";
-      position: absolute;
-      inset: -10% -10% auto -10%;
-      height: clamp(360px, 70vh, 720px);
-      z-index: -1;
-      background: var(--scene-bg, transparent);
-      filter: blur(0.5px);
-      opacity: var(--scene-bg-opacity, 1);
-      pointer-events: none;
-      transition: opacity 320ms ease, background 320ms ease;
+    html:has(.spin-page[data-scene="paper"]) {
+      background-color: var(--surface);
     }
-    .spin-page[data-scene="paper"] {
-      --scene-bg: radial-gradient(60% 60% at 50% 30%, color-mix(in oklab, var(--accent) 6%, transparent), transparent 70%);
-      --scene-bg-opacity: 0.85;
+    body:has(.spin-page[data-scene="paper"]) {
+      background-color: transparent;
+      background-image:
+        radial-gradient(80% 60% at 50% 20%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 75%),
+        linear-gradient(180deg, color-mix(in oklab, var(--accent) 4%, var(--surface)) 0%, var(--surface) 60%);
     }
-    .spin-page[data-scene="ink"] {
-      --scene-bg: radial-gradient(70% 60% at 50% 20%, #2a2f5c, #11142e 70%);
-      --scene-bg-opacity: 0.85;
+    html:has(.spin-page[data-scene="ink"]) { background-color: #0d1024; }
+    body:has(.spin-page[data-scene="ink"]) {
+      background-color: #0d1024;
+      background-image:
+        radial-gradient(60% 50% at 50% 0%, #2e3673 0%, transparent 70%),
+        linear-gradient(180deg, #1a1f4c 0%, #0d1024 70%);
     }
-    .spin-page[data-scene="ocean"] {
-      --scene-bg: radial-gradient(80% 70% at 50% 25%, #1a708a 0%, #0e3a52 55%, #082035 90%);
-      --scene-bg-opacity: 0.8;
+    html:has(.spin-page[data-scene="ocean"]) { background-color: #051a2a; }
+    body:has(.spin-page[data-scene="ocean"]) {
+      background-color: #051a2a;
+      background-image:
+        radial-gradient(70% 55% at 50% 0%, #1c7a92 0%, transparent 65%),
+        linear-gradient(180deg, #0f4e6b 0%, #082035 55%, #051a2a 100%);
     }
-    .spin-page[data-scene="sunset"] {
-      --scene-bg: radial-gradient(80% 70% at 50% 25%, #ffba6e 0%, #e07a4a 45%, #6b2a48 95%);
-      --scene-bg-opacity: 0.75;
+    html:has(.spin-page[data-scene="sunset"]) { background-color: #3a1a3e; }
+    body:has(.spin-page[data-scene="sunset"]) {
+      background-color: #3a1a3e;
+      background-image:
+        radial-gradient(70% 55% at 50% 0%, #ffb56a 0%, transparent 60%),
+        linear-gradient(180deg, #e07a4a 0%, #6b2a48 65%, #3a1a3e 100%);
     }
+    html:has(.spin-page[data-scene="noir"]) { background-color: #06060a; }
+    body:has(.spin-page[data-scene="noir"]) {
+      background-color: #06060a;
+      background-image:
+        radial-gradient(60% 50% at 50% 0%, #303036 0%, transparent 70%),
+        linear-gradient(180deg, #161618 0%, #06060a 75%);
+    }
+
+    /* Tinted-scene text + chrome adjustments */
+    .spin-page[data-scene="ink"],
+    .spin-page[data-scene="ocean"],
+    .spin-page[data-scene="sunset"],
     .spin-page[data-scene="noir"] {
-      --scene-bg: radial-gradient(80% 70% at 50% 20%, #2c2c30 0%, #161618 60%, #0a0a0c 100%);
-      --scene-bg-opacity: 0.92;
+      --content: #f7f1e6;
+      --content-2: color-mix(in oklab, #f7f1e6 85%, transparent);
+      --content-3: color-mix(in oklab, #f7f1e6 65%, transparent);
+      --content-4: color-mix(in oklab, #f7f1e6 50%, transparent);
+      --surface: color-mix(in oklab, #f7f1e6 8%, transparent);
+      --surface-2: color-mix(in oklab, #f7f1e6 12%, transparent);
+      --surface-3: color-mix(in oklab, #f7f1e6 16%, transparent);
+      --border: color-mix(in oklab, #f7f1e6 18%, transparent);
     }
-    /* Lift wheel frame against tinted scenes */
+    html:has(.spin-page[data-scene="ink"]),
+    html:has(.spin-page[data-scene="ocean"]),
+    html:has(.spin-page[data-scene="sunset"]),
+    html:has(.spin-page[data-scene="noir"]),
+    body:has(.spin-page[data-scene="ink"]),
+    body:has(.spin-page[data-scene="ocean"]),
+    body:has(.spin-page[data-scene="sunset"]),
+    body:has(.spin-page[data-scene="noir"]) {
+      --content: #f7f1e6;
+      --content-2: color-mix(in oklab, #f7f1e6 85%, transparent);
+      --content-3: color-mix(in oklab, #f7f1e6 65%, transparent);
+      --content-4: color-mix(in oklab, #f7f1e6 50%, transparent);
+      --surface: color-mix(in oklab, #f7f1e6 8%, transparent);
+      --surface-2: color-mix(in oklab, #f7f1e6 12%, transparent);
+      --surface-3: color-mix(in oklab, #f7f1e6 16%, transparent);
+      --border: color-mix(in oklab, #f7f1e6 18%, transparent);
+      color: #f7f1e6;
+    }
+    body:has(.spin-page[data-scene="ink"]) .site-header,
+    body:has(.spin-page[data-scene="ocean"]) .site-header,
+    body:has(.spin-page[data-scene="sunset"]) .site-header,
+    body:has(.spin-page[data-scene="noir"]) .site-header {
+      background: color-mix(in oklab, #f7f1e6 6%, transparent);
+      backdrop-filter: saturate(140%) blur(14px);
+      -webkit-backdrop-filter: saturate(140%) blur(14px);
+      border-bottom: 1px solid color-mix(in oklab, #f7f1e6 14%, transparent);
+    }
+    body:has(.spin-page[data-scene="ink"]) .site-footer,
+    body:has(.spin-page[data-scene="ocean"]) .site-footer,
+    body:has(.spin-page[data-scene="sunset"]) .site-footer,
+    body:has(.spin-page[data-scene="noir"]) .site-footer {
+      border-top: 1px solid color-mix(in oklab, #f7f1e6 14%, transparent);
+      background: linear-gradient(to bottom, transparent, color-mix(in oklab, #f7f1e6 6%, transparent));
+    }
     .spin-page[data-scene="ink"] .spin-wheel-frame,
     .spin-page[data-scene="ocean"] .spin-wheel-frame,
     .spin-page[data-scene="sunset"] .spin-wheel-frame,
     .spin-page[data-scene="noir"] .spin-wheel-frame {
-      box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.55), 0 8px 28px -16px rgba(0, 0, 0, 0.45);
+      filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55));
     }
-    .spin-page[data-scene="ink"] .spin-header,
-    .spin-page[data-scene="ocean"] .spin-header,
-    .spin-page[data-scene="sunset"] .spin-header,
-    .spin-page[data-scene="noir"] .spin-header {
-      color: #f7f1e6;
+    .spin-page[data-scene="ink"] #spin-canvas,
+    .spin-page[data-scene="ocean"] #spin-canvas,
+    .spin-page[data-scene="sunset"] #spin-canvas,
+    .spin-page[data-scene="noir"] #spin-canvas {
+      filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55));
     }
-    .spin-page[data-scene="ink"] .spin-header .spin-eyebrow,
-    .spin-page[data-scene="ocean"] .spin-header .spin-eyebrow,
-    .spin-page[data-scene="sunset"] .spin-header .spin-eyebrow,
-    .spin-page[data-scene="noir"] .spin-header .spin-eyebrow,
-    .spin-page[data-scene="ink"] .spin-lede,
-    .spin-page[data-scene="ocean"] .spin-lede,
-    .spin-page[data-scene="sunset"] .spin-lede,
-    .spin-page[data-scene="noir"] .spin-lede {
-      color: color-mix(in oklab, #f7f1e6 80%, transparent);
+    .spin-page[data-scene="ink"] .spin-side,
+    .spin-page[data-scene="ocean"] .spin-side,
+    .spin-page[data-scene="sunset"] .spin-side,
+    .spin-page[data-scene="noir"] .spin-side {
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+      background: color-mix(in oklab, #f7f1e6 8%, transparent);
+      box-shadow: 0 1px 0 color-mix(in oklab, #f7f1e6 14%, transparent) inset,
+                  0 16px 48px -24px rgba(0, 0, 0, 0.45);
     }
     @media (prefers-reduced-motion: reduce) {
-      .spin-page[data-scene]::before { transition: none; }
+      body:has(.spin-page[data-scene]) { transition: none; }
     }
 
     .spin-about {
@@ -2652,6 +2937,7 @@ const faqJsonLd = {
       "toast.eliminate_off": "Eliminate mode off",
       "toast.accumulate_on": "Accumulate mode on",
       "toast.accumulate_off": "Accumulate mode off",
+      "toast.mode_single": "Single-winner mode",
       "toast.reset_wins": "Reset {n} win count{s}",
       "toast.cleared_remaining": "Cleared {n} remaining",
       "toast.cleared_entries": "Cleared {n} entries",
@@ -3019,6 +3305,9 @@ const faqJsonLd = {
     const pickerExport = document.getElementById("spin-picker-export");
     const pickerImport = document.getElementById("spin-picker-import");
     const pickerEmbed = document.getElementById("spin-picker-embed");
+    const pickerShuffle = document.getElementById("spin-picker-shuffle");
+    const pickerResetDefaults = document.getElementById("spin-picker-reset-defaults");
+    const modeSingleBtn = document.getElementById("spin-mode-single") as HTMLButtonElement | null;
     const embedModal = document.getElementById("spin-embed-modal") as HTMLDivElement | null;
     const embedCode = document.getElementById("spin-embed-code") as HTMLTextAreaElement | null;
     const embedX = document.getElementById("spin-embed-x") as HTMLButtonElement | null;
@@ -3388,6 +3677,7 @@ const faqJsonLd = {
       if (pickerDelete) pickerDelete.disabled = wheels.length <= 1;
       updateEliminateBtn();
       updateAccumulateBtn();
+      updateModeSingleBtn();
       updatePickerResetCounts();
       updatePickerClearEntries();
     }
@@ -5047,6 +5337,13 @@ const faqJsonLd = {
       );
     }
 
+    function updateModeSingleBtn() {
+      if (!modeSingleBtn) return;
+      const cw = currentWheel();
+      const on = !cw.eliminate && !cw.accumulate;
+      modeSingleBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
     // === Confetti ===
     type Particle = {
       x: number;
@@ -5542,6 +5839,7 @@ const faqJsonLd = {
         }
         save();
         updateEliminateBtn();
+        updateModeSingleBtn();
         showToast(t(cw.eliminate ? "toast.eliminate_on" : "toast.eliminate_off"));
       });
     }
@@ -5559,6 +5857,7 @@ const faqJsonLd = {
         }
         save();
         updateAccumulateBtn();
+        updateModeSingleBtn();
         renderList();
         updatePickerResetCounts();
         showToast(t(cw.accumulate ? "toast.accumulate_on" : "toast.accumulate_off"));
@@ -5706,6 +6005,36 @@ const faqJsonLd = {
       pickerImport.addEventListener("click", () => {
         closePicker();
         importFileInput?.click();
+      });
+    }
+    if (pickerShuffle) {
+      pickerShuffle.addEventListener("click", () => {
+        closePicker();
+        const shuffleBtn = document.getElementById("spin-shuffle") as HTMLButtonElement | null;
+        shuffleBtn?.click();
+      });
+    }
+    if (pickerResetDefaults) {
+      pickerResetDefaults.addEventListener("click", () => {
+        closePicker();
+        const resetBtn = document.getElementById("spin-reset") as HTMLButtonElement | null;
+        resetBtn?.click();
+      });
+    }
+    if (modeSingleBtn) {
+      modeSingleBtn.addEventListener("click", () => {
+        const cw = currentWheel();
+        if (!cw.eliminate && !cw.accumulate) {
+          updateModeSingleBtn();
+          return;
+        }
+        if (cw.eliminate) delete cw.eliminate;
+        if (cw.accumulate) delete cw.accumulate;
+        save();
+        updateEliminateBtn();
+        updateAccumulateBtn();
+        updateModeSingleBtn();
+        showToast(t("toast.mode_single"));
       });
     }
     if (importFileInput) {
@@ -5933,6 +6262,7 @@ const faqJsonLd = {
     updateMuteBtn();
     updateEliminateBtn();
     updateAccumulateBtn();
+    updateModeSingleBtn();
     updatePickerResetCounts();
     updatePickerClearEntries();
     fitConfetti();
