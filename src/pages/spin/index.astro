@@ -2177,6 +2177,62 @@ const ogImage = "/spin/og";
       { id: "5", label: "Burger" },
       { id: "6", label: "Salad" },
     ];
+
+    // === i18n: English source-of-truth. Replace this object to localize. ===
+    // Placeholders use `{name}` syntax. Plural-aware strings take a `{s}` arg.
+    const STRINGS: Record<string, string> = {
+      "toast.wait_for_spin": "Wait for the spin to finish",
+      "toast.switched_to": "Switched to {name}",
+      "toast.max_wheels": "Max {n} wheels",
+      "toast.max_wheels_room": "Max {n} wheels — make room first",
+      "toast.duplicated_to": "Duplicated to {name}",
+      "toast.cannot_delete_only": "Cannot delete the only wheel",
+      "toast.deleted": "Deleted {name}",
+      "toast.need_4_teams": "Need at least 4 entries to split teams",
+      "toast.champion": "Champion: {name}",
+      "toast.all_eliminated": "All entries eliminated",
+      "toast.need_2": "Need at least 2 entries",
+      "toast.add_first": "Add an entry first",
+      "toast.share_copied": "Share link copied",
+      "toast.share_copy_failed": "Could not copy. URL: {url}…",
+      "toast.embed_copied": "Embed code copied",
+      "toast.copy_manual": "Select the code and copy manually",
+      "toast.image_build_failed": "Could not build image",
+      "toast.image_copied": "Image copied to clipboard",
+      "toast.image_downloaded": "Image downloaded",
+      "toast.image_save_failed": "Could not save image",
+      "toast.sound_on": "Sound on",
+      "toast.sound_off": "Sound off",
+      "toast.eliminate_on": "Eliminate mode on",
+      "toast.eliminate_off": "Eliminate mode off",
+      "toast.accumulate_on": "Accumulate mode on",
+      "toast.accumulate_off": "Accumulate mode off",
+      "toast.reset_wins": "Reset {n} win count{s}",
+      "toast.cleared_remaining": "Cleared {n} remaining",
+      "toast.cleared_entries": "Cleared {n} entries",
+      "toast.created": "Created {name}",
+      "toast.renamed": "Renamed",
+      "toast.file_read_failed": "Could not read file",
+      "toast.exported": "Exported {n} wheel{s}",
+      "toast.bad_json": "Not valid JSON",
+      "toast.no_wheels": "No wheels found in file",
+      "toast.imported": 'Imported "{name}"',
+      "toast.imported_n": "Imported {n} wheel{s}",
+      "toast.imported_n_skipped": "Imported {n} wheel{s} ({skipped} skipped: max reached)",
+      "toast.share_decode_failed": "Couldn't read shared wheel link",
+      "toast.history_cleared": "History cleared",
+    };
+
+    function t(key: string, vars?: Record<string, string | number>): string {
+      let s = STRINGS[key] ?? key;
+      if (vars) {
+        for (const k in vars) {
+          s = s.split(`{${k}}`).join(String(vars[k]));
+        }
+      }
+      return s;
+    }
+
     const PALETTES: Record<Palette, string[]> = {
       paper: [
         "#4850c4", // truffle indigo
@@ -2521,7 +2577,7 @@ const ogImage = "/spin/og";
 
     function switchWheel(id: string) {
       if (spinning) {
-        showToast("Wait for the spin to finish");
+        showToast(t("toast.wait_for_spin"));
         return;
       }
       const w = wheels.find((x) => x.id === id);
@@ -2540,16 +2596,16 @@ const ogImage = "/spin/og";
       renderList();
       drawWheel();
       closePicker();
-      showToast(`Switched to ${w.name}`);
+      showToast(t("toast.switched_to", { name: w.name }));
     }
 
     function createWheel(name?: string, withEntries?: Entry[]): Wheel | null {
       if (spinning) {
-        showToast("Wait for the spin to finish");
+        showToast(t("toast.wait_for_spin"));
         return null;
       }
       if (wheels.length >= MAX_WHEELS) {
-        showToast(`Max ${MAX_WHEELS} wheels`);
+        showToast(t("toast.max_wheels", { n: MAX_WHEELS }));
         return null;
       }
       const finalName = (name ?? "").trim().slice(0, MAX_WHEEL_NAME) || `Wheel ${wheels.length + 1}`;
@@ -2587,7 +2643,7 @@ const ogImage = "/spin/og";
       const w = wheels.find((x) => x.id === id);
       if (!w) return;
       if (wheels.length >= MAX_WHEELS) {
-        showToast(`Max ${MAX_WHEELS} wheels`);
+        showToast(t("toast.max_wheels", { n: MAX_WHEELS }));
         return;
       }
       const copy: Wheel = {
@@ -2606,16 +2662,16 @@ const ogImage = "/spin/og";
       renderPicker();
       renderList();
       drawWheel();
-      showToast(`Duplicated to ${copy.name}`);
+      showToast(t("toast.duplicated_to", { name: copy.name }));
     }
 
     function deleteWheel(id: string) {
       if (spinning) {
-        showToast("Wait for the spin to finish");
+        showToast(t("toast.wait_for_spin"));
         return;
       }
       if (wheels.length <= 1) {
-        showToast("Cannot delete the only wheel");
+        showToast(t("toast.cannot_delete_only"));
         return;
       }
       const idx = wheels.findIndex((x) => x.id === id);
@@ -2634,7 +2690,7 @@ const ogImage = "/spin/og";
       renderPicker();
       renderList();
       drawWheel();
-      showToast(`Deleted ${removedName}`);
+      showToast(t("toast.deleted", { name: removedName }));
     }
 
     function renderPicker() {
@@ -3438,7 +3494,7 @@ const ogImage = "/spin/og";
 
     function openTeamsConfig() {
       if (entries.length < 4) {
-        showToast("Need at least 4 entries to split teams");
+        showToast(t("toast.need_4_teams"));
         return;
       }
       if (!teamsConfig) return;
@@ -3863,9 +3919,9 @@ const ogImage = "/spin/og";
         save();
         drawWheel();
         if (entries.length === 1) {
-          showToast(`Champion: ${entries[0].label}`);
+          showToast(t("toast.champion", { name: entries[0].label }));
         } else if (entries.length === 0) {
-          showToast("All entries eliminated");
+          showToast(t("toast.all_eliminated"));
         }
       }
       pendingEliminate = false;
@@ -3882,11 +3938,11 @@ const ogImage = "/spin/og";
     if (orderBtn) {
       orderBtn.addEventListener("click", () => {
         if (spinning) {
-          showToast("Wait for the spin to finish");
+          showToast(t("toast.wait_for_spin"));
           return;
         }
         if (entries.length < 2) {
-          showToast("Need at least 2 entries");
+          showToast(t("toast.need_2"));
           return;
         }
         orderSpinPending = true;
@@ -3897,7 +3953,7 @@ const ogImage = "/spin/og";
     if (teamsBtn) {
       teamsBtn.addEventListener("click", () => {
         if (spinning) {
-          showToast("Wait for the spin to finish");
+          showToast(t("toast.wait_for_spin"));
           return;
         }
         if (teamsConfig && !teamsConfig.hidden) closeTeamsConfig();
@@ -3916,11 +3972,11 @@ const ogImage = "/spin/og";
     if (teamsGo) {
       teamsGo.addEventListener("click", () => {
         if (spinning) {
-          showToast("Wait for the spin to finish");
+          showToast(t("toast.wait_for_spin"));
           return;
         }
         if (entries.length < 4) {
-          showToast("Need at least 4 entries to split teams");
+          showToast(t("toast.need_4_teams"));
           return;
         }
         closeTeamsConfig();
@@ -4367,14 +4423,14 @@ const ogImage = "/spin/og";
 
     async function copyShareLink() {
       if (entries.length === 0) {
-        showToast("Add an entry first");
+        showToast(t("toast.add_first"));
         return;
       }
       const url = buildShareUrl();
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(url);
-          showToast("Share link copied");
+          showToast(t("toast.share_copied"));
         } else {
           // Fallback for non-secure contexts
           const ta = document.createElement("textarea");
@@ -4385,10 +4441,10 @@ const ogImage = "/spin/og";
           ta.select();
           document.execCommand("copy");
           document.body.removeChild(ta);
-          showToast("Share link copied");
+          showToast(t("toast.share_copied"));
         }
       } catch {
-        showToast("Could not copy. URL: " + url.slice(0, 40) + "…");
+        showToast(t("toast.share_copy_failed", { url: url.slice(0, 40) }));
       }
     }
 
@@ -4417,7 +4473,7 @@ const ogImage = "/spin/og";
     function openEmbedModal() {
       if (!embedModal || !embedCode) return;
       if (entries.length === 0) {
-        showToast("Add an entry first");
+        showToast(t("toast.add_first"));
         return;
       }
       embedCode.value = buildEmbedSnippet();
@@ -4449,14 +4505,14 @@ const ogImage = "/spin/og";
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(code);
-          showToast("Embed code copied");
+          showToast(t("toast.embed_copied"));
         } else {
           embedCode.select();
           document.execCommand("copy");
-          showToast("Embed code copied");
+          showToast(t("toast.embed_copied"));
         }
       } catch {
-        showToast("Select the code and copy manually");
+        showToast(t("toast.copy_manual"));
       }
     });
 
@@ -4600,11 +4656,11 @@ const ogImage = "/spin/og";
           out.toBlob((b) => resolve(b), "image/png"),
         );
       } catch {
-        showToast("Could not build image");
+        showToast(t("toast.image_build_failed"));
         return;
       }
       if (!blob) {
-        showToast("Could not build image");
+        showToast(t("toast.image_build_failed"));
         return;
       }
       const isSecure = window.isSecureContext;
@@ -4617,7 +4673,7 @@ const ogImage = "/spin/og";
           await navigator.clipboard.write([
             new ClipboardItem({ "image/png": blob }),
           ]);
-          showToast("Image copied to clipboard");
+          showToast(t("toast.image_copied"));
           return;
         } catch {}
       }
@@ -4630,9 +4686,9 @@ const ogImage = "/spin/og";
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast("Image downloaded");
+        showToast(t("toast.image_downloaded"));
       } catch {
-        showToast("Could not save image");
+        showToast(t("toast.image_save_failed"));
       }
     }
 
@@ -4667,13 +4723,13 @@ const ogImage = "/spin/og";
         muted = !muted;
         save();
         updateMuteBtn();
-        showToast(muted ? "Sound off" : "Sound on");
+        showToast(t(muted ? "toast.sound_off" : "toast.sound_on"));
       });
     }
     if (eliminateBtn) {
       eliminateBtn.addEventListener("click", () => {
         if (spinning) {
-          showToast("Wait for the spin to finish");
+          showToast(t("toast.wait_for_spin"));
           return;
         }
         const cw = currentWheel();
@@ -4684,13 +4740,13 @@ const ogImage = "/spin/og";
         }
         save();
         updateEliminateBtn();
-        showToast(cw.eliminate ? "Eliminate mode on" : "Eliminate mode off");
+        showToast(t(cw.eliminate ? "toast.eliminate_on" : "toast.eliminate_off"));
       });
     }
     if (accumulateBtn) {
       accumulateBtn.addEventListener("click", () => {
         if (spinning) {
-          showToast("Wait for the spin to finish");
+          showToast(t("toast.wait_for_spin"));
           return;
         }
         const cw = currentWheel();
@@ -4703,13 +4759,13 @@ const ogImage = "/spin/og";
         updateAccumulateBtn();
         renderList();
         updatePickerResetCounts();
-        showToast(cw.accumulate ? "Accumulate mode on" : "Accumulate mode off");
+        showToast(t(cw.accumulate ? "toast.accumulate_on" : "toast.accumulate_off"));
       });
     }
     if (pickerResetCounts) {
       pickerResetCounts.addEventListener("click", () => {
         if (spinning) {
-          showToast("Wait for the spin to finish");
+          showToast(t("toast.wait_for_spin"));
           return;
         }
         const cw = currentWheel();
@@ -4729,13 +4785,13 @@ const ogImage = "/spin/og";
         renderList();
         updatePickerResetCounts();
         closePicker();
-        showToast(`Reset ${touched} win count${touched === 1 ? "" : "s"}`);
+        showToast(t("toast.reset_wins", { n: touched, s: touched === 1 ? "" : "s" }));
       });
     }
     if (pickerClearEntries) {
       pickerClearEntries.addEventListener("click", () => {
         if (spinning) {
-          showToast("Wait for the spin to finish");
+          showToast(t("toast.wait_for_spin"));
           return;
         }
         const cw = currentWheel();
@@ -4758,9 +4814,7 @@ const ogImage = "/spin/og";
         updatePickerClearEntries();
         closePicker();
         showToast(
-          cw.eliminate
-            ? `Cleared ${n} remaining`
-            : `Cleared ${n} entries`,
+          t(cw.eliminate ? "toast.cleared_remaining" : "toast.cleared_entries", { n }),
         );
       });
     }
@@ -4790,7 +4844,7 @@ const ogImage = "/spin/og";
         const name = window.prompt("Name for the new wheel?", `Wheel ${wheels.length + 1}`);
         if (name === null) return;
         const created = createWheel(name, []);
-        if (created) showToast(`Created ${created.name}`);
+        if (created) showToast(t("toast.created", { name: created.name }));
       });
     }
     if (pickerRename) {
@@ -4802,7 +4856,7 @@ const ogImage = "/spin/og";
         const trimmed = name.trim();
         if (!trimmed) return;
         renameWheel(cw.id, trimmed);
-        showToast("Renamed");
+        showToast(t("toast.renamed"));
       });
     }
     if (pickerDupe) {
@@ -4816,7 +4870,7 @@ const ogImage = "/spin/og";
         closePicker();
         const cw = currentWheel();
         if (wheels.length <= 1) {
-          showToast("Cannot delete the only wheel");
+          showToast(t("toast.cannot_delete_only"));
           return;
         }
         if (!confirm(`Delete "${cw.name}"? This cannot be undone.`)) return;
@@ -4843,7 +4897,7 @@ const ogImage = "/spin/og";
           const text = await file.text();
           importFromJson(text);
         } catch {
-          showToast("Could not read file");
+          showToast(t("toast.file_read_failed"));
         }
         importFileInput.value = "";
       });
@@ -4878,19 +4932,19 @@ const ogImage = "/spin/og";
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1500);
-      showToast(`Exported ${wheels.length} wheel${wheels.length === 1 ? "" : "s"}`);
+      showToast(t("toast.exported", { n: wheels.length, s: wheels.length === 1 ? "" : "s" }));
     }
 
     function importFromJson(text: string) {
       if (spinning) {
-        showToast("Wait for the spin to finish");
+        showToast(t("toast.wait_for_spin"));
         return;
       }
       let parsed: unknown;
       try {
         parsed = JSON.parse(text);
       } catch {
-        showToast("Not valid JSON");
+        showToast(t("toast.bad_json"));
         return;
       }
       // Accept either the full export shape or a single wheel
@@ -4949,13 +5003,13 @@ const ogImage = "/spin/og";
         }
       }
       if (incoming.length === 0) {
-        showToast("No wheels found in file");
+        showToast(t("toast.no_wheels"));
         return;
       }
       const slots = MAX_WHEELS - wheels.length;
       const toAdd = incoming.slice(0, Math.max(0, slots));
       if (toAdd.length === 0) {
-        showToast(`Max ${MAX_WHEELS} wheels — make room first`);
+        showToast(t("toast.max_wheels_room", { n: MAX_WHEELS }));
         return;
       }
       // Persist active wheel's edits before appending
@@ -4993,9 +5047,11 @@ const ogImage = "/spin/og";
       drawWheel();
       const skipped = incoming.length - toAdd.length;
       showToast(
-        skipped > 0
-          ? `Imported ${toAdd.length} wheel${toAdd.length === 1 ? "" : "s"} (${skipped} skipped: max reached)`
-          : `Imported ${toAdd.length} wheel${toAdd.length === 1 ? "" : "s"}`,
+        t(skipped > 0 ? "toast.imported_n_skipped" : "toast.imported_n", {
+          n: toAdd.length,
+          s: toAdd.length === 1 ? "" : "s",
+          skipped,
+        }),
       );
     }
 
@@ -5034,7 +5090,7 @@ const ogImage = "/spin/og";
           created.importedFromShare = true;
           save();
           renderPicker();
-          setTimeout(() => showToast(`Imported "${created.name}"`), 300);
+          setTimeout(() => showToast(t("toast.imported", { name: created.name })), 300);
         }
       } else if (hasShareParam()) {
         // ?w= present but decoding failed (truncated link, mangled base64,
@@ -5047,7 +5103,7 @@ const ogImage = "/spin/og";
         } catch {
           // ignore
         }
-        setTimeout(() => showToast("Couldn't read shared wheel link"), 300);
+        setTimeout(() => showToast(t("toast.share_decode_failed")), 300);
       }
     })();
 
@@ -5077,7 +5133,7 @@ const ogImage = "/spin/og";
         history = [];
         saveHistory();
         renderHistory();
-        showToast("History cleared");
+        showToast(t("toast.history_cleared"));
       });
     }
 
