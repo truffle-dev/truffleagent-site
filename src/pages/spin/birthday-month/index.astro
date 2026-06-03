@@ -1,0 +1,409 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+const SHARE_PAYLOAD =
+  "eyJuIjoiQmlydGhkYXkgbW9udGgiLCJlIjpbIkphbnVhcnkiLCJGZWJydWFyeSIsIk1hcmNoIiwiQXByaWwiLCJNYXkiLCJKdW5lIiwiSnVseSIsIkF1Z3VzdCIsIlNlcHRlbWJlciIsIk9jdG9iZXIiLCJOb3ZlbWJlciIsIkRlY2VtYmVyIl19";
+const SPIN_URL = `/spin/?w=${SHARE_PAYLOAD}`;
+
+const useCases = [
+  {
+    title: "Classroom and group icebreakers.",
+    body: "Spin the wheel, call the month, and whoever's birthday lands answers the question. Faster than going around the room and the wheel never picks the same kid every time.",
+  },
+  {
+    title: "Year-long activity planner.",
+    body: "Twelve slices, one for each month. Spin to pick when a club's reading club or a team's quarterly dinner happens. The choice belongs to the wheel, not the calendar war.",
+  },
+  {
+    title: "Party games and trivia.",
+    body: "Birthday-month bingo, monthly toast lottery, secret-santa-style rotation. The wheel is the random source; the social rules are up to you.",
+  },
+];
+
+const faqs = [
+  {
+    q: "Is each month equally likely?",
+    a: "Yes. Every spin draws a uniformly random angle in software, then animates the wheel to land on it. All twelve slices are the same size, so each month has a 1-in-12 chance every spin.",
+  },
+  {
+    q: "Can I weight some months heavier?",
+    a: "Yes. Each entry has a per-entry weight from 1 to 10. If your group skews summer-birthday, leave the summer months at 1 and bump up the under-represented winter ones so the spin feels fairer in practice.",
+  },
+  {
+    q: "Can I narrow it to a season or quarter?",
+    a: "Yes. Delete the months you don't want or paste a custom list (Summer, Fall, Winter, Spring or Q1, Q2, Q3, Q4) over the defaults. The bulk-paste panel splits on newlines and commas.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. The wheel runs entirely in your browser and works offline once loaded. You can install it as a PWA from your browser menu so it lives on your home screen.",
+  },
+];
+
+const jsonLdApp = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Birthday Month Wheel",
+  url: "https://truffleagent.com/spin/birthday-month/",
+  description:
+    "Free birthday-month spinner. Spin a wheel with all twelve months for classroom icebreakers, party games, or year-long planning. No ads, no tracking, no signup.",
+  applicationCategory: "LifestyleApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires JavaScript and a modern browser.",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
+const jsonLdFaq = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+<BaseLayout
+  title="Birthday Month Wheel · Free Random Month Spinner"
+  description="Free birthday-month spinner. Spin a wheel with all twelve months for classroom icebreakers, party games, or year-long planning. No ads, no signup."
+  canonical="https://truffleagent.com/spin/birthday-month/"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdApp)} slot="head" />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdFaq)} slot="head" />
+
+  <article class="bm-page">
+    <header class="bm-head">
+      <div class="bm-container">
+        <p class="bm-eyebrow">Spin</p>
+        <h1 class="bm-display">
+          Which <em>month?</em>
+        </h1>
+        <p class="bm-lead">
+          A 12-slice wheel for classroom icebreakers, party games, and
+          year-long planning. One spin, one month. No login, no ads,
+          no tracker.
+        </p>
+        <div class="bm-cta-row">
+          <a class="bm-cta-primary" href={SPIN_URL}>
+            Pick a month
+            <span aria-hidden="true">→</span>
+          </a>
+          <a class="bm-cta-secondary" href="/spin/">
+            Build a custom wheel
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <section class="bm-section">
+      <div class="bm-container">
+        <h2 class="bm-h2"><em>When to use it.</em></h2>
+        <ul class="bm-uses">
+          {useCases.map((u) => (
+            <li class="bm-use">
+              <p class="bm-use-title">{u.title}</p>
+              <p class="bm-use-body">{u.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="bm-section">
+      <div class="bm-container">
+        <h2 class="bm-h2"><em>Frequently asked.</em></h2>
+        <div class="bm-faq">
+          {faqs.map((f, i) => (
+            <details class="bm-faq-item" open={i === 0}>
+              <summary class="bm-faq-q">{f.q}</summary>
+              <p class="bm-faq-a">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="bm-section bm-section-end">
+      <div class="bm-container">
+        <a class="bm-cta-primary bm-cta-end" href={SPIN_URL}>
+          Spin a month
+          <span aria-hidden="true">→</span>
+        </a>
+        <p class="bm-fineprint">
+          The wheel runs in your browser. Your spins stay on your device.
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .bm-page {
+    background-color: var(--color-paper-50);
+    color: var(--color-paper-900);
+    min-height: 60vh;
+  }
+
+  .bm-container {
+    max-width: 64ch;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .bm-head {
+    padding: 4rem 0 3rem;
+  }
+
+  .bm-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-paper-500);
+    margin: 0 0 1rem;
+  }
+
+  .bm-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.05;
+    margin: 0 0 1.25rem;
+    color: var(--color-paper-900);
+  }
+
+  .bm-display em {
+    font-style: italic;
+    color: #4850c4;
+  }
+
+  .bm-lead {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    line-height: 1.55;
+    max-width: 48ch;
+    color: var(--color-paper-700);
+    margin: 0 0 2rem;
+  }
+
+  .bm-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .bm-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background-color: #4850c4;
+    color: var(--color-paper-50);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .bm-cta-primary:hover {
+    background-color: #3a41a6;
+    transform: translateY(-1px);
+  }
+
+  .bm-cta-primary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .bm-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.875rem 1.25rem;
+    color: var(--color-paper-700);
+    border: 1px solid var(--color-paper-300);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-decoration: none;
+    background-color: transparent;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .bm-cta-secondary:hover {
+    border-color: var(--color-paper-500);
+    color: var(--color-paper-900);
+  }
+
+  .bm-cta-secondary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .bm-section {
+    padding: 2.5rem 0;
+    border-top: 1px solid var(--color-paper-200);
+  }
+
+  .bm-section-end {
+    padding: 3.5rem 0 5rem;
+    text-align: center;
+  }
+
+  .bm-h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    line-height: 1.15;
+    margin: 0 0 1.5rem;
+  }
+
+  .bm-h2 em {
+    font-style: italic;
+    color: var(--color-paper-700);
+  }
+
+  .bm-uses {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .bm-use {
+    padding: 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .bm-use-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 0.4rem;
+    color: var(--color-paper-900);
+  }
+
+  .bm-use-body {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0;
+  }
+
+  .bm-faq {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .bm-faq-item {
+    padding: 1rem 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .bm-faq-item[open] {
+    background-color: var(--color-paper-50);
+    border-color: var(--color-paper-300);
+  }
+
+  .bm-faq-q {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-paper-900);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .bm-faq-q::marker,
+  .bm-faq-q::-webkit-details-marker {
+    display: none;
+  }
+
+  .bm-faq-q::after {
+    content: "+";
+    float: right;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    color: var(--color-paper-500);
+    transition: transform 150ms ease;
+    margin-left: 0.5rem;
+  }
+
+  .bm-faq-item[open] .bm-faq-q::after {
+    content: "–";
+  }
+
+  .bm-faq-q:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .bm-faq-a {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0.75rem 0 0;
+  }
+
+  .bm-cta-end {
+    font-size: 1.0625rem;
+    padding: 1rem 1.75rem;
+  }
+
+  .bm-fineprint {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--color-paper-500);
+    margin: 1.25rem 0 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .bm-page {
+      background-color: var(--color-paper-950);
+      color: var(--color-paper-100);
+    }
+    .bm-display { color: var(--color-paper-50); }
+    .bm-display em { color: #8b91e3; }
+    .bm-lead { color: var(--color-paper-300); }
+    .bm-h2 em { color: var(--color-paper-400); }
+    .bm-section { border-top-color: var(--color-paper-800); }
+    .bm-use,
+    .bm-faq-item {
+      background-color: var(--color-paper-900);
+      border-color: var(--color-paper-800);
+    }
+    .bm-faq-item[open] {
+      background-color: var(--color-paper-950);
+      border-color: var(--color-paper-700);
+    }
+    .bm-use-title,
+    .bm-faq-q { color: var(--color-paper-50); }
+    .bm-use-body,
+    .bm-faq-a { color: var(--color-paper-300); }
+    .bm-cta-primary {
+      background-color: #8b91e3;
+      color: var(--color-paper-950);
+    }
+    .bm-cta-primary:hover { background-color: #a3a7eb; }
+    .bm-cta-secondary {
+      color: var(--color-paper-300);
+      border-color: var(--color-paper-800);
+    }
+    .bm-cta-secondary:hover {
+      border-color: var(--color-paper-500);
+      color: var(--color-paper-50);
+    }
+    .bm-fineprint { color: var(--color-paper-500); }
+  }
+</style>
