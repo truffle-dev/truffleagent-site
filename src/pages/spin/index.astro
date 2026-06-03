@@ -460,6 +460,23 @@ const faqJsonLd = {
       </ul>
     </section>
 
+    <section class="spin-presets" aria-labelledby="spin-presets-title">
+      <h2 id="spin-presets-title" class="spin-presets-h">
+        Start with a <em>ready-made wheel.</em>
+      </h2>
+      <p class="spin-presets-lead">
+        Five canonical wheels, each with its own page, its own answers,
+        and a one-tap launch into a fresh saved wheel.
+      </p>
+      <ul class="spin-presets-grid">
+        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/yes-no/"><span class="spin-preset-title">Yes / No</span><span class="spin-preset-blurb">50 / 50 for the small calls.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/coin-flip/"><span class="spin-preset-title">Coin flip</span><span class="spin-preset-blurb">Heads or tails, one tap.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/standup-order/"><span class="spin-preset-title">Standup order</span><span class="spin-preset-blurb">Speaking order for daily standup.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/restaurant-picker/"><span class="spin-preset-title">Restaurant picker</span><span class="spin-preset-blurb">Cuisines, weighted by appetite.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/birthday-month/"><span class="spin-preset-title">Birthday month</span><span class="spin-preset-blurb">Twelve months, uniform odds.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+      </ul>
+    </section>
+
     <section class="spin-faq" aria-labelledby="spin-faq-title">
       <h2 id="spin-faq-title" class="spin-faq-h">Frequently asked questions</h2>
       <div class="spin-faq-list">
@@ -2425,7 +2442,89 @@ const faqJsonLd = {
       color: var(--content-2);
     }
     .spin-page.spin-is-embed .spin-about,
-    .spin-page.spin-is-embed .spin-faq { display: none; }
+    .spin-page.spin-is-embed .spin-faq,
+    .spin-page.spin-is-embed .spin-presets { display: none; }
+
+    .spin-presets {
+      margin: 2.5rem auto 0;
+      max-width: 760px;
+      padding: 0 0.25rem;
+    }
+    .spin-presets-h {
+      font-family: var(--font-serif);
+      font-weight: 400;
+      font-size: clamp(1.35rem, 2vw, 1.65rem);
+      line-height: 1.2;
+      margin: 0 0 0.6rem;
+      color: var(--content);
+    }
+    .spin-presets-h em {
+      color: var(--accent);
+      font-style: italic;
+    }
+    .spin-presets-lead {
+      margin: 0 0 1rem;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--content-2);
+    }
+    .spin-presets-grid {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.5rem;
+    }
+    .spin-preset-card { margin: 0; }
+    .spin-preset-link {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-areas: "title arrow" "blurb arrow";
+      align-items: center;
+      gap: 0 0.5rem;
+      padding: 0.75rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--content);
+      text-decoration: none;
+      transition: border-color 150ms ease, transform 150ms ease;
+    }
+    .spin-preset-link:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .spin-preset-link:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .spin-preset-title {
+      grid-area: title;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--content);
+    }
+    .spin-preset-blurb {
+      grid-area: blurb;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: var(--content-2);
+    }
+    .spin-preset-arrow {
+      grid-area: arrow;
+      font-family: var(--font-sans);
+      font-size: 16px;
+      color: var(--content-3);
+      transition: color 150ms ease, transform 150ms ease;
+    }
+    .spin-preset-link:hover .spin-preset-arrow {
+      color: var(--accent);
+      transform: translateX(2px);
+    }
 
     .spin-foot {
       margin-top: 3rem;
