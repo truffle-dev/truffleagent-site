@@ -1,0 +1,410 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+const SHARE_PAYLOAD =
+  "eyJuIjoiUmVzdGF1cmFudCBwaWNrZXIiLCJlIjpbIkl0YWxpYW4iLCJNZXhpY2FuIiwiSmFwYW5lc2UiLCJUaGFpIiwiQW1lcmljYW4iLCJJbmRpYW4iXX0";
+const SPIN_URL = `/spin/?w=${SHARE_PAYLOAD}`;
+
+const useCases = [
+  {
+    title: "Break the dinner deadlock.",
+    body: "Two people, both saying \"I don't care.\" Drop in three or four options you'd both eat at, spin once, and start walking. The wheel removes the worst part of dinner: deciding.",
+  },
+  {
+    title: "Friday team lunch.",
+    body: "Eight people, eight opinions, one budget. Put up a shortlist on a screen, spin in front of everyone, and the choice belongs to the wheel — not the loudest person in the room.",
+  },
+  {
+    title: "Date night fallback.",
+    body: "Save your favorite places once. Next time you don't know where to go, you're one tap from a decision that already passed both your vetoes.",
+  },
+];
+
+const faqs = [
+  {
+    q: "Can I add my actual favorite restaurants?",
+    a: "Yes. The starter wheel lists six cuisines, but you can rename each entry inline or paste a list of restaurant names from your notes app. The bulk-paste panel splits on newlines, commas, and tabs.",
+  },
+  {
+    q: "Can I weight the places I want more?",
+    a: "Yes. Each entry has a per-entry weight from 1 to 10. The pizza place you love gets a 10; the salad spot you tolerate gets a 1. The wheel sizes the slices proportionally, so weighted entries land more often without being unfair.",
+  },
+  {
+    q: "Can I save the wheel for next time?",
+    a: "Yes. Name it (\"Date night,\" \"Friday lunch,\" \"Just delivery\") and it persists locally. Switch between wheels from the picker in the actions row. You can have one wheel per occasion.",
+  },
+  {
+    q: "Does it work on my phone?",
+    a: "Yes. The wheel is mobile-first and runs offline once loaded. You can install it as a PWA from your browser menu so it lives on your home screen like a native app.",
+  },
+];
+
+const jsonLdApp = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Restaurant Picker Wheel",
+  url: "https://truffleagent.com/spin/restaurant-picker/",
+  description:
+    "Free restaurant picker wheel. Spin to decide where to eat tonight. Add your favorites, weight the ones you want more, and save the wheel for next time. No ads, no tracking, no signup.",
+  applicationCategory: "LifestyleApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires JavaScript and a modern browser.",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
+const jsonLdFaq = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+<BaseLayout
+  title="Restaurant Picker Wheel · Free Where-to-Eat Decision Spinner"
+  description="Free restaurant picker wheel. Spin to decide where to eat tonight. Add your favorites, weight the ones you want more, save the wheel for next time. No ads."
+  canonical="https://truffleagent.com/spin/restaurant-picker/"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdApp)} slot="head" />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdFaq)} slot="head" />
+
+  <article class="rp-page">
+    <header class="rp-head">
+      <div class="rp-container">
+        <p class="rp-eyebrow">Spin</p>
+        <h1 class="rp-display">
+          Where are we <em>eating?</em>
+        </h1>
+        <p class="rp-lead">
+          A restaurant picker for the night you can't decide and
+          you're getting hungry. Add your favorites, weight the ones
+          you love, spin once. No login, no ads, no tracker.
+        </p>
+        <div class="rp-cta-row">
+          <a class="rp-cta-primary" href={SPIN_URL}>
+            Pick a restaurant
+            <span aria-hidden="true">→</span>
+          </a>
+          <a class="rp-cta-secondary" href="/spin/">
+            Build a custom wheel
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <section class="rp-section">
+      <div class="rp-container">
+        <h2 class="rp-h2"><em>When to use it.</em></h2>
+        <ul class="rp-uses">
+          {useCases.map((u) => (
+            <li class="rp-use">
+              <p class="rp-use-title">{u.title}</p>
+              <p class="rp-use-body">{u.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="rp-section">
+      <div class="rp-container">
+        <h2 class="rp-h2"><em>Frequently asked.</em></h2>
+        <div class="rp-faq">
+          {faqs.map((f, i) => (
+            <details class="rp-faq-item" open={i === 0}>
+              <summary class="rp-faq-q">{f.q}</summary>
+              <p class="rp-faq-a">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="rp-section rp-section-end">
+      <div class="rp-container">
+        <a class="rp-cta-primary rp-cta-end" href={SPIN_URL}>
+          Spin where-to-eat
+          <span aria-hidden="true">→</span>
+        </a>
+        <p class="rp-fineprint">
+          The wheel runs in your browser. Your saved restaurants stay
+          on your device.
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .rp-page {
+    background-color: var(--color-paper-50);
+    color: var(--color-paper-900);
+    min-height: 60vh;
+  }
+
+  .rp-container {
+    max-width: 64ch;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .rp-head {
+    padding: 4rem 0 3rem;
+  }
+
+  .rp-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-paper-500);
+    margin: 0 0 1rem;
+  }
+
+  .rp-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.05;
+    margin: 0 0 1.25rem;
+    color: var(--color-paper-900);
+  }
+
+  .rp-display em {
+    font-style: italic;
+    color: #4850c4;
+  }
+
+  .rp-lead {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    line-height: 1.55;
+    max-width: 48ch;
+    color: var(--color-paper-700);
+    margin: 0 0 2rem;
+  }
+
+  .rp-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .rp-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background-color: #4850c4;
+    color: var(--color-paper-50);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .rp-cta-primary:hover {
+    background-color: #3a41a6;
+    transform: translateY(-1px);
+  }
+
+  .rp-cta-primary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .rp-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.875rem 1.25rem;
+    color: var(--color-paper-700);
+    border: 1px solid var(--color-paper-300);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-decoration: none;
+    background-color: transparent;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .rp-cta-secondary:hover {
+    border-color: var(--color-paper-500);
+    color: var(--color-paper-900);
+  }
+
+  .rp-cta-secondary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .rp-section {
+    padding: 2.5rem 0;
+    border-top: 1px solid var(--color-paper-200);
+  }
+
+  .rp-section-end {
+    padding: 3.5rem 0 5rem;
+    text-align: center;
+  }
+
+  .rp-h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    line-height: 1.15;
+    margin: 0 0 1.5rem;
+  }
+
+  .rp-h2 em {
+    font-style: italic;
+    color: var(--color-paper-700);
+  }
+
+  .rp-uses {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .rp-use {
+    padding: 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .rp-use-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 0.4rem;
+    color: var(--color-paper-900);
+  }
+
+  .rp-use-body {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0;
+  }
+
+  .rp-faq {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .rp-faq-item {
+    padding: 1rem 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .rp-faq-item[open] {
+    background-color: var(--color-paper-50);
+    border-color: var(--color-paper-300);
+  }
+
+  .rp-faq-q {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-paper-900);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .rp-faq-q::marker,
+  .rp-faq-q::-webkit-details-marker {
+    display: none;
+  }
+
+  .rp-faq-q::after {
+    content: "+";
+    float: right;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    color: var(--color-paper-500);
+    transition: transform 150ms ease;
+    margin-left: 0.5rem;
+  }
+
+  .rp-faq-item[open] .rp-faq-q::after {
+    content: "–";
+  }
+
+  .rp-faq-q:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .rp-faq-a {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0.75rem 0 0;
+  }
+
+  .rp-cta-end {
+    font-size: 1.0625rem;
+    padding: 1rem 1.75rem;
+  }
+
+  .rp-fineprint {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--color-paper-500);
+    margin: 1.25rem 0 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .rp-page {
+      background-color: var(--color-paper-950);
+      color: var(--color-paper-100);
+    }
+    .rp-display { color: var(--color-paper-50); }
+    .rp-display em { color: #8b91e3; }
+    .rp-lead { color: var(--color-paper-300); }
+    .rp-h2 em { color: var(--color-paper-400); }
+    .rp-section { border-top-color: var(--color-paper-800); }
+    .rp-use,
+    .rp-faq-item {
+      background-color: var(--color-paper-900);
+      border-color: var(--color-paper-800);
+    }
+    .rp-faq-item[open] {
+      background-color: var(--color-paper-950);
+      border-color: var(--color-paper-700);
+    }
+    .rp-use-title,
+    .rp-faq-q { color: var(--color-paper-50); }
+    .rp-use-body,
+    .rp-faq-a { color: var(--color-paper-300); }
+    .rp-cta-primary {
+      background-color: #8b91e3;
+      color: var(--color-paper-950);
+    }
+    .rp-cta-primary:hover { background-color: #a3a7eb; }
+    .rp-cta-secondary {
+      color: var(--color-paper-300);
+      border-color: var(--color-paper-800);
+    }
+    .rp-cta-secondary:hover {
+      border-color: var(--color-paper-500);
+      color: var(--color-paper-50);
+    }
+    .rp-fineprint { color: var(--color-paper-500); }
+  }
+</style>
