@@ -4,9 +4,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 const title = "Spin · pick anything, no ads";
 const description =
   "A calm, fast decision wheel. Add names, spin, get a winner. No accounts, no ads, no trackers. Saves locally and shares by link.";
+const ogImage = "/img/spin-og.jpg";
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} ogImage={ogImage}>
   <script slot="head" is:inline>
     (function () {
       try {
