@@ -15,6 +15,29 @@ const description =
           document.documentElement.dataset.embed = "1";
         }
       } catch (e) {}
+      try {
+        var m = document.querySelector('link[rel="manifest"]');
+        if (m) {
+          m.href = "/spin/manifest.webmanifest";
+        } else {
+          m = document.createElement("link");
+          m.rel = "manifest";
+          m.href = "/spin/manifest.webmanifest";
+          document.head.appendChild(m);
+        }
+      } catch (e) {}
+      try {
+        if (
+          "serviceWorker" in navigator &&
+          document.documentElement.dataset.embed !== "1"
+        ) {
+          window.addEventListener("load", function () {
+            navigator.serviceWorker
+              .register("/spin/sw.js", { scope: "/spin/" })
+              .catch(function () {});
+          });
+        }
+      } catch (e) {}
     })();
   </script>
   <section class="spin-page" aria-labelledby="spin-title">
