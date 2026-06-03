@@ -319,6 +319,7 @@ const ogImage = "/spin/og";
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Enter</kbd></dt><dd>Add entry (while typing)</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Tab</kbd></dt><dd>Move through entries</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Alt</kbd> + <kbd class="spin-kbd">↑</kbd> / <kbd class="spin-kbd">↓</kbd></dt><dd>Reorder entry up / down</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">Backspace</kbd></dt><dd>Delete entry (when input is empty)</dd></div>
       </dl>
       <p class="spin-help-foot">Shortcuts skip when an input is focused.</p>
     </div>
@@ -2794,6 +2795,30 @@ const ogImage = "/spin/og";
         });
     }
 
+    function deleteEntry(id: string) {
+      const idx = entries.findIndex((e) => e.id === id);
+      if (idx < 0) return;
+      entries.splice(idx, 1);
+      renderList();
+      drawWheel();
+      save();
+      const inputs = list?.querySelectorAll<HTMLInputElement>(
+        ".spin-list-input",
+      );
+      if (inputs && inputs.length > 0) {
+        const targetIdx = Math.min(idx, inputs.length - 1);
+        const target = inputs[targetIdx];
+        if (target) {
+          target.focus();
+          try {
+            target.setSelectionRange(target.value.length, target.value.length);
+          } catch {}
+        }
+      } else {
+        addInput?.focus();
+      }
+    }
+
     function moveEntry(id: string, dir: -1 | 1) {
       const idx = entries.findIndex((e) => e.id === id);
       if (idx < 0) return;
@@ -2894,6 +2919,16 @@ const ogImage = "/spin/og";
           if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
             e.preventDefault();
             moveEntry(entry.id, e.key === "ArrowUp" ? -1 : 1);
+            return;
+          }
+          if (
+            e.key === "Backspace" &&
+            input.value === "" &&
+            !e.ctrlKey &&
+            !e.metaKey
+          ) {
+            e.preventDefault();
+            deleteEntry(entry.id);
           }
         });
         li.appendChild(input);
@@ -2957,12 +2992,7 @@ const ogImage = "/spin/og";
         rm.setAttribute("aria-label", `Remove ${entry.label}`);
         rm.innerHTML =
           '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-        rm.addEventListener("click", () => {
-          entries = entries.filter((e) => e.id !== entry.id);
-          renderList();
-          drawWheel();
-          save();
-        });
+        rm.addEventListener("click", () => deleteEntry(entry.id));
         li.appendChild(rm);
 
         list!.appendChild(li);
