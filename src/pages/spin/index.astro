@@ -219,7 +219,7 @@ const faqJsonLd = {
                     Embed code
                   </button>
                   <button type="button" id="spin-picker-reset-defaults" class="spin-picker-action" role="menuitem">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
                     Reset look
                   </button>
                   <button type="button" id="spin-picker-clear-entries" class="spin-picker-action spin-picker-action-danger" role="menuitem" hidden>
@@ -2954,6 +2954,7 @@ const faqJsonLd = {
       "toast.history_cleared": "History cleared",
       "toast.sound_pack_changed": "Sound: {name}",
       "toast.scene_changed": "Scene: {name}",
+      "toast.look_reset": "Look reset to defaults",
     };
 
     function t(key: string, vars?: Record<string, string | number>): string {
@@ -6017,9 +6018,27 @@ const faqJsonLd = {
     if (pickerResetDefaults) {
       pickerResetDefaults.addEventListener("click", () => {
         closePicker();
-        const resetBtn = document.getElementById("spin-reset") as HTMLButtonElement | null;
-        resetBtn?.click();
+        resetLook();
       });
+    }
+
+    function resetLook() {
+      palette = DEFAULT_PALETTE;
+      scene = DEFAULT_SCENE;
+      pointerCfg = { ...DEFAULT_POINTER };
+      labelRotation = DEFAULT_LABEL_ROTATION;
+      wheelSize = DEFAULT_WHEEL_SIZE;
+      soundPack = DEFAULT_SOUND_PACK;
+      renderPaletteChips();
+      applyPalette();
+      applyScene();
+      applyPointer();
+      applyLabelRotation();
+      applyWheelSize();
+      applySound();
+      drawWheel();
+      save();
+      showToast(t("toast.look_reset"));
     }
     if (modeSingleBtn) {
       modeSingleBtn.addEventListener("click", () => {
