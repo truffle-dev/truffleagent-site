@@ -1,0 +1,172 @@
+---
+const { currentSlug } = Astro.props as { currentSlug: string };
+
+const presets = [
+  {
+    slug: "yes-no",
+    title: "Yes / No",
+    blurb: "50 / 50 spinner for the small calls.",
+    href: "/spin/yes-no/",
+  },
+  {
+    slug: "coin-flip",
+    title: "Coin flip",
+    blurb: "Heads or tails. One tap, clean odds.",
+    href: "/spin/coin-flip/",
+  },
+  {
+    slug: "standup-order",
+    title: "Standup order",
+    blurb: "Pick the speaking order for daily standup.",
+    href: "/spin/standup-order/",
+  },
+  {
+    slug: "restaurant-picker",
+    title: "Restaurant picker",
+    blurb: "Cuisines, weighted by appetite.",
+    href: "/spin/restaurant-picker/",
+  },
+  {
+    slug: "birthday-month",
+    title: "Birthday month",
+    blurb: "Twelve months, uniform odds.",
+    href: "/spin/birthday-month/",
+  },
+];
+
+const others = presets.filter((p) => p.slug !== currentSlug);
+---
+
+<section class="spc-section" aria-labelledby="spc-heading">
+  <div class="spc-container">
+    <h2 id="spc-heading" class="spc-h2"><em>Try another preset wheel.</em></h2>
+    <ul class="spc-grid">
+      {others.map((p) => (
+        <li class="spc-card">
+          <a class="spc-link" href={p.href}>
+            <span class="spc-title">{p.title}</span>
+            <span class="spc-blurb">{p.blurb}</span>
+            <span class="spc-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .spc-section {
+    padding: 2.5rem 0 3rem;
+    border-top: 1px solid var(--color-paper-200);
+  }
+
+  .spc-container {
+    max-width: 64ch;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .spc-h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    line-height: 1.15;
+    margin: 0 0 1.5rem;
+    color: var(--color-paper-900);
+  }
+
+  .spc-h2 em {
+    font-style: italic;
+    color: var(--color-paper-500);
+  }
+
+  .spc-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .spc-card {
+    margin: 0;
+  }
+
+  .spc-link {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "title arrow"
+      "blurb arrow";
+    gap: 0.25rem 0.75rem;
+    align-items: center;
+    padding: 1rem 1.125rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--color-paper-900);
+    transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  }
+
+  .spc-link:hover {
+    background-color: var(--color-paper-50);
+    border-color: var(--color-paper-300);
+    transform: translateY(-1px);
+  }
+
+  .spc-link:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .spc-title {
+    grid-area: title;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 0.975rem;
+    color: var(--color-paper-900);
+  }
+
+  .spc-blurb {
+    grid-area: blurb;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--color-paper-600);
+  }
+
+  .spc-arrow {
+    grid-area: arrow;
+    color: var(--color-paper-500);
+    font-size: 1.1rem;
+    transition: transform 150ms ease, color 150ms ease;
+  }
+
+  .spc-link:hover .spc-arrow {
+    transform: translateX(2px);
+    color: #4850c4;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .spc-section {
+      border-top-color: var(--color-paper-800);
+    }
+    .spc-h2 { color: var(--color-paper-50); }
+    .spc-h2 em { color: var(--color-paper-400); }
+    .spc-link {
+      background-color: var(--color-paper-900);
+      border-color: var(--color-paper-800);
+      color: var(--color-paper-50);
+    }
+    .spc-link:hover {
+      background-color: var(--color-paper-950);
+      border-color: var(--color-paper-700);
+    }
+    .spc-title { color: var(--color-paper-50); }
+    .spc-blurb { color: var(--color-paper-300); }
+    .spc-arrow { color: var(--color-paper-500); }
+    .spc-link:hover .spc-arrow { color: #8b91e3; }
+  }
+</style>

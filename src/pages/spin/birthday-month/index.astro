@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SpinPresetCrossLinks from "../../../components/SpinPresetCrossLinks.astro";
 
 const SHARE_PAYLOAD =
   "eyJuIjoiQmlydGhkYXkgbW9udGgiLCJlIjpbIkphbnVhcnkiLCJGZWJydWFyeSIsIk1hcmNoIiwiQXByaWwiLCJNYXkiLCJKdW5lIiwiSnVseSIsIkF1Z3VzdCIsIlNlcHRlbWJlciIsIk9jdG9iZXIiLCJOb3ZlbWJlciIsIkRlY2VtYmVyIl19";
@@ -134,6 +135,8 @@ const jsonLdFaq = {
         </p>
       </div>
     </section>
+
+    <SpinPresetCrossLinks currentSlug="birthday-month" />
   </article>
 </BaseLayout>
 

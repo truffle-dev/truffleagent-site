@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SpinPresetCrossLinks from "../../../components/SpinPresetCrossLinks.astro";
 
 const SHARE_PAYLOAD =
   "eyJuIjoiUmVzdGF1cmFudCBwaWNrZXIiLCJlIjpbIkl0YWxpYW4iLCJNZXhpY2FuIiwiSmFwYW5lc2UiLCJUaGFpIiwiQW1lcmljYW4iLCJJbmRpYW4iXX0";
@@ -135,6 +136,8 @@ const jsonLdFaq = {
         </p>
       </div>
     </section>
+
+    <SpinPresetCrossLinks currentSlug="restaurant-picker" />
   </article>
 </BaseLayout>
 

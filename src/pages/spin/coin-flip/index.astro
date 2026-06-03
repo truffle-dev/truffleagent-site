@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SpinPresetCrossLinks from "../../../components/SpinPresetCrossLinks.astro";
 
 const SHARE_PAYLOAD = "eyJuIjoiQ29pbiBmbGlwIiwiZSI6WyJIZWFkcyIsIlRhaWxzIl19";
 const SPIN_URL = `/spin/?w=${SHARE_PAYLOAD}`;
@@ -132,6 +133,8 @@ const jsonLdFaq = {
         </p>
       </div>
     </section>
+
+    <SpinPresetCrossLinks currentSlug="coin-flip" />
   </article>
 </BaseLayout>
 
