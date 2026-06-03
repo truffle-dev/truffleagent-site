@@ -44,13 +44,16 @@ const PAPER_PALETTE = [
 ];
 
 const BG = "#fbfaf5";
+const BG_TOP = "#fdfaf2";
+const BG_BOTTOM = "#f2eadb";
 const INK = "#2a2622";
 const INK_MUTED = "#6b6358";
 const INDIGO = "#4850c4";
 const PAPER_300 = "#e3dccb";
+const PAPER_200 = "#eee5d1";
 
-const MAX_TITLE_CHARS = 26;
-const MAX_ENTRY_CHARS = 32;
+const MAX_TITLE_CHARS = 22;
+const MAX_ENTRY_CHARS = 30;
 const MAX_ENTRIES_SHOWN = 6;
 
 function decodePayload(w) {
@@ -142,14 +145,17 @@ function renderWheelIllustration(cx, cy, r, entries) {
       slices.push(`<path d="${d}" fill="${fill}" />`);
     }
   }
-  const pointerTopY = cy - r - 8;
-  const pointerH = 26;
-  const pointer = `<path d="M ${cx - 14} ${pointerTopY} L ${cx + 14} ${pointerTopY} L ${cx} ${
+  const shadow = `<ellipse cx="${cx}" cy="${cy + r + 14}" rx="${(r * 0.78).toFixed(1)}" ry="14" fill="${INK}" opacity="0.10" />`;
+  const wheelGroup = `<g filter="url(#wheel-shadow)">${slices.join("")}</g>`;
+  const pointerTopY = cy - r - 10;
+  const pointerH = 28;
+  const pointer = `<path d="M ${cx - 15} ${pointerTopY} L ${cx + 15} ${pointerTopY} L ${cx} ${
     pointerTopY + pointerH
   } Z" fill="${INK}" />`;
-  const ring = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${INK}" stroke-width="2" opacity="0.18" />`;
-  const hub = `<circle cx="${cx}" cy="${cy}" r="${(r * 0.16).toFixed(1)}" fill="${BG}" stroke="${INK}" stroke-width="1.5" opacity="0.85" />`;
-  return slices.join("") + ring + hub + pointer;
+  const ring = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${INK}" stroke-width="2" opacity="0.20" />`;
+  const hub = `<circle cx="${cx}" cy="${cy}" r="${(r * 0.16).toFixed(1)}" fill="${BG_TOP}" stroke="${INK}" stroke-width="1.5" opacity="0.92" />`;
+  const hubDot = `<circle cx="${cx}" cy="${cy}" r="${(r * 0.04).toFixed(1)}" fill="${INK}" opacity="0.45" />`;
+  return shadow + wheelGroup + ring + hub + hubDot + pointer;
 }
 
 function renderSvg({ name, entries }) {
@@ -173,19 +179,39 @@ function renderSvg({ name, entries }) {
       ? `<text x="80" y="${330 + shown.length * 42}" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="${INDIGO}">+ ${overflow} more</text>`
       : "";
 
-  const wheel = renderWheelIllustration(960, 315, 200, entries);
+  const wheel = renderWheelIllustration(960, 305, 215, entries);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Spin wheel: ${safeName}">
-  <rect width="1200" height="630" fill="${BG}" />
+  <defs>
+    <linearGradient id="bg-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${BG_TOP}" />
+      <stop offset="1" stop-color="${BG_BOTTOM}" />
+    </linearGradient>
+    <radialGradient id="bg-vignette" cx="50%" cy="40%" r="80%">
+      <stop offset="0" stop-color="${BG_TOP}" stop-opacity="0" />
+      <stop offset="1" stop-color="${INK}" stop-opacity="0.06" />
+    </radialGradient>
+    <filter id="wheel-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6" />
+      <feOffset dx="0" dy="6" result="off" />
+      <feComponentTransfer><feFuncA type="linear" slope="0.22" /></feComponentTransfer>
+      <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg-gradient)" />
+  <rect width="1200" height="630" fill="url(#bg-vignette)" />
   <rect x="0" y="624" width="1200" height="6" fill="${PAPER_300}" />
-  <text x="80" y="116" font-family="Helvetica, Arial, sans-serif" font-size="18" letter-spacing="3" fill="${INK_MUTED}">SPIN</text>
-  <text x="80" y="222" font-family="Georgia, 'Iowan Old Style', 'Times New Roman', serif" font-style="italic" font-size="64" fill="${INK}">${safeName}</text>
-  <text x="80" y="270" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="${INK_MUTED}">${countLabel}</text>
+  <rect x="80" y="100" width="44" height="3" fill="${INDIGO}" />
+  <text x="80" y="138" font-family="Helvetica, Arial, sans-serif" font-size="18" letter-spacing="3" fill="${INK_MUTED}">SPIN THE WHEEL</text>
+  <text x="80" y="232" font-family="Georgia, 'Iowan Old Style', 'Times New Roman', serif" font-style="italic" font-size="68" fill="${INK}">${safeName}</text>
+  <text x="80" y="278" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="${INK_MUTED}">${countLabel}</text>
+  <line x1="80" y1="300" x2="160" y2="300" stroke="${PAPER_300}" stroke-width="2" />
   ${entryLines}
   ${overflowLine}
   ${wheel}
-  <text x="1120" y="592" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="${INK_MUTED}" text-anchor="end">truffleagent.com/spin</text>
+  <text x="80" y="592" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="${INK_MUTED}">truffleagent.com/spin</text>
+  <text x="1120" y="592" font-family="Helvetica, Arial, sans-serif" font-size="18" letter-spacing="2" fill="${INK_MUTED}" text-anchor="end">FREE · NO ADS · NO LOGIN</text>
 </svg>`;
 }
 
