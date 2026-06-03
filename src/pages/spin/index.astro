@@ -270,6 +270,10 @@ const faqJsonLd = {
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/><path d="M11 19c.5-2.5 2.5-4 5-4s4.5 1.5 5 4"/></svg>
                 <span>Teams</span>
               </button>
+              <button id="spin-rotation" type="button" class="spin-mode-chip" aria-pressed="false" title="Weekly rotation — winner removed and the roster rehydrates when empty">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8"/><polyline points="20 4 20 8 16 8"/></svg>
+                <span>Rotation</span>
+              </button>
             </div>
           </div>
 
@@ -383,6 +387,14 @@ const faqJsonLd = {
           <button id="spin-scene-cancel" type="button" class="spin-scene-cancel" aria-label="Close scene settings">×</button>
         </div>
 
+        <div id="spin-rotation-bar" class="spin-rotation-bar" hidden>
+          <div class="spin-rotation-bar-line">
+            <span id="spin-rotation-status" class="spin-rotation-status"></span>
+            <button id="spin-rotation-rehydrate" type="button" class="spin-rotation-rehydrate" hidden>Start new cycle</button>
+          </div>
+          <p id="spin-rotation-hint" class="spin-rotation-hint" hidden></p>
+        </div>
+
         <ul id="spin-list" class="spin-list" aria-label="Entries list"></ul>
 
         <form id="spin-add-form" class="spin-add">
@@ -469,11 +481,11 @@ const faqJsonLd = {
         and a one-tap launch into a fresh saved wheel.
       </p>
       <ul class="spin-presets-grid">
-        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/yes-no/"><span class="spin-preset-title">Yes / No</span><span class="spin-preset-blurb">50 / 50 for the small calls.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
-        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/coin-flip/"><span class="spin-preset-title">Coin flip</span><span class="spin-preset-blurb">Heads or tails, one tap.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
-        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/standup-order/"><span class="spin-preset-title">Standup order</span><span class="spin-preset-blurb">Speaking order for daily standup.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
-        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/restaurant-picker/"><span class="spin-preset-title">Restaurant picker</span><span class="spin-preset-blurb">Cuisines, weighted by appetite.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
-        <li class="spin-preset-card"><a class="spin-preset-link" href="/spin/birthday-month/"><span class="spin-preset-title">Birthday month</span><span class="spin-preset-blurb">Twelve months, uniform odds.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" data-preset="yes-no" href="/spin/yes-no/"><span class="spin-preset-title">Yes / No</span><span class="spin-preset-blurb">50 / 50 for the small calls.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" data-preset="coin-flip" href="/spin/coin-flip/"><span class="spin-preset-title">Coin flip</span><span class="spin-preset-blurb">Heads or tails, one tap.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" data-preset="standup-order" href="/spin/standup-order/"><span class="spin-preset-title">Standup order</span><span class="spin-preset-blurb">Speaking order for daily standup.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" data-preset="restaurant-picker" href="/spin/restaurant-picker/"><span class="spin-preset-title">Restaurant picker</span><span class="spin-preset-blurb">Cuisines, weighted by appetite.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li class="spin-preset-card"><a class="spin-preset-link" data-preset="birthday-month" href="/spin/birthday-month/"><span class="spin-preset-title">Birthday month</span><span class="spin-preset-blurb">Twelve months, uniform odds.</span><span class="spin-preset-arrow" aria-hidden="true">&rarr;</span></a></li>
       </ul>
     </section>
 
@@ -2933,6 +2945,56 @@ const faqJsonLd = {
       border-color: color-mix(in oklab, var(--accent) 30%, transparent);
     }
 
+    /* Rotation roster bar */
+    .spin-rotation-bar {
+      margin: 0 0 0.65rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 12px;
+      background: color-mix(in oklab, var(--accent) 7%, var(--surface));
+      border: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
+      font-family: var(--font-sans);
+      font-size: 13px;
+    }
+    .spin-rotation-bar-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .spin-rotation-status {
+      color: var(--content);
+      font-weight: 500;
+    }
+    .spin-rotation-status em {
+      font-style: normal;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .spin-rotation-rehydrate {
+      appearance: none;
+      border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+      background: var(--accent);
+      color: white;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter var(--motion-fast, 100ms);
+    }
+    .spin-rotation-rehydrate:hover { filter: brightness(1.08); }
+    .spin-rotation-rehydrate:focus-visible {
+      outline: 3px solid color-mix(in oklab, var(--accent) 40%, transparent);
+      outline-offset: 2px;
+    }
+    .spin-rotation-hint {
+      margin: 0.4rem 0 0;
+      color: var(--content-3);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     /* Toast */
     .spin-toast {
       position: fixed;
@@ -2973,8 +3035,8 @@ const faqJsonLd = {
   </style>
 
   <script>
-    type Entry = { id: string; label: string; color?: string; weight?: number; wins?: number };
-    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean; accumulate?: boolean; teamCount?: number; importedFromShare?: boolean };
+    type Entry = { id: string; label: string; color?: string; weight?: number; wins?: number; lastPickedAt?: number };
+    type Wheel = { id: string; name: string; entries: Entry[]; eliminate?: boolean; accumulate?: boolean; rotation?: boolean; rosterSnapshot?: string[]; teamCount?: number; importedFromShare?: boolean };
     type PointerPos = "top" | "right";
     type PointerColor = "ink" | "accent" | "amber";
     type PointerCfg = { pos: PointerPos; color: PointerColor };
@@ -3036,6 +3098,11 @@ const faqJsonLd = {
       "toast.eliminate_off": "Eliminate mode off",
       "toast.accumulate_on": "Accumulate mode on",
       "toast.accumulate_off": "Accumulate mode off",
+      "toast.rotation_on": "Rotation mode on — roster saved",
+      "toast.rotation_off": "Rotation mode off",
+      "toast.rotation_cycle_complete": "Cycle complete — start a new one",
+      "toast.rotation_rehydrated": "New cycle — {n} on the roster",
+      "toast.rotation_roster_empty": "Add at least one entry first",
       "toast.mode_single": "Single-winner mode",
       "toast.reset_wins": "Reset {n} win count{s}",
       "toast.cleared_remaining": "Cleared {n} remaining",
@@ -3335,6 +3402,7 @@ const faqJsonLd = {
     const muteBtn = document.getElementById("spin-mute");
     const eliminateBtn = document.getElementById("spin-eliminate");
     const accumulateBtn = document.getElementById("spin-accumulate");
+    const rotationBtn = document.getElementById("spin-rotation");
     const orderBtn = document.getElementById("spin-order");
     const orderList = document.getElementById("spin-order-list") as HTMLOListElement | null;
     const teamsBtn = document.getElementById("spin-teams") as HTMLButtonElement | null;
@@ -3564,6 +3632,13 @@ const faqJsonLd = {
               };
               if (w.eliminate === true) out.eliminate = true;
               if (w.accumulate === true) out.accumulate = true;
+              if (w.rotation === true) out.rotation = true;
+              if (Array.isArray(w.rosterSnapshot)) {
+                out.rosterSnapshot = w.rosterSnapshot
+                  .filter((s) => typeof s === "string")
+                  .map((s) => s.slice(0, 80))
+                  .slice(0, 200);
+              }
               if (typeof w.teamCount === "number" && Number.isFinite(w.teamCount)) {
                 const tc = Math.floor(w.teamCount);
                 if (tc >= 2 && tc <= 10) out.teamCount = tc;
@@ -3777,7 +3852,9 @@ const faqJsonLd = {
       if (pickerDelete) pickerDelete.disabled = wheels.length <= 1;
       updateEliminateBtn();
       updateAccumulateBtn();
+      updateRotationBtn();
       updateModeSingleBtn();
+      updateRotationBar();
       updatePickerResetCounts();
       updatePickerClearEntries();
     }
@@ -4019,11 +4096,19 @@ const faqJsonLd = {
     function deleteEntry(id: string) {
       const idx = entries.findIndex((e) => e.id === id);
       if (idx < 0) return;
+      const removed = entries[idx];
       entries.splice(idx, 1);
+      const cw = currentWheel();
+      if (cw.rotation && cw.rosterSnapshot && removed) {
+        const dropLabel = removed.label.trim();
+        const snapIdx = cw.rosterSnapshot.indexOf(dropLabel);
+        if (snapIdx >= 0) cw.rosterSnapshot.splice(snapIdx, 1);
+      }
       clearImportFlag();
       renderList();
       drawWheel();
       save();
+      updateRotationBar();
       const inputs = list?.querySelectorAll<HTMLInputElement>(
         ".spin-list-input",
       );
@@ -4258,9 +4343,19 @@ const faqJsonLd = {
         input.value = entry.label;
         input.maxLength = 80;
         input.dataset.id = entry.id;
+        input.dataset.priorLabel = entry.label;
         input.setAttribute("aria-label", `Entry ${i + 1}`);
         input.addEventListener("input", (e) => {
-          entry.label = (e.target as HTMLInputElement).value;
+          const target = e.target as HTMLInputElement;
+          const newLabel = target.value;
+          const oldLabel = target.dataset.priorLabel ?? "";
+          entry.label = newLabel;
+          const cw = currentWheel();
+          if (cw?.rotation && Array.isArray(cw.rosterSnapshot) && oldLabel) {
+            const idx = cw.rosterSnapshot.indexOf(oldLabel);
+            if (idx >= 0) cw.rosterSnapshot[idx] = newLabel.slice(0, 80);
+          }
+          target.dataset.priorLabel = newLabel;
           clearImportFlag();
           drawWheel();
           saveDebounced();
@@ -4363,9 +4458,11 @@ const faqJsonLd = {
       if (!clean) return;
       entries.push({ id: newId(), label: clean });
       clearImportFlag();
+      syncRotationRoster();
       renderList();
       drawWheel();
       save();
+      updateRotationBar();
     }
 
     addForm!.addEventListener("submit", (e) => {
@@ -4385,10 +4482,13 @@ const faqJsonLd = {
         .slice(0, 200);
       if (parts.length === 0) return;
       entries = parts.map((label) => ({ id: newId(), label }));
+      const cw = currentWheel();
+      if (cw.rotation) cw.rosterSnapshot = parts.slice();
       clearImportFlag();
       renderList();
       drawWheel();
       save();
+      updateRotationBar();
       bulkInput!.value = "";
     });
 
@@ -4406,10 +4506,13 @@ const faqJsonLd = {
     resetBtn!.addEventListener("click", () => {
       if (!confirm("Reset to the default entries?")) return;
       entries = [...DEFAULT_ENTRIES.map((e) => ({ ...e, id: newId() }))];
+      const cw = currentWheel();
+      if (cw.rotation) cw.rosterSnapshot = entries.map((e) => e.label);
       clearImportFlag();
       renderList();
       drawWheel();
       save();
+      updateRotationBar();
     });
 
     function easeOutCubicBezier(t: number): number {
@@ -5052,7 +5155,8 @@ const faqJsonLd = {
         }
       }
       pushHistory(entry);
-      const eliminateMode = !!cw.eliminate;
+      const rotationMode = !!cw.rotation;
+      const eliminateMode = !!cw.eliminate || rotationMode;
       const accumulateMode = !!cw.accumulate;
       // Increment count BEFORE rendering so the modal can show the new total.
       if (accumulateMode) {
@@ -5068,13 +5172,19 @@ const faqJsonLd = {
       if (orderList) orderList.hidden = true;
       modal!.hidden = false;
       modal!.setAttribute("aria-hidden", "false");
-      // Once we remove this entry the wheel will only contain the champion.
-      const isFinal = eliminateMode && entries.length === 1;
+      // Once we remove this entry the wheel will only contain the champion (single eliminate mode only).
+      const isFinal = eliminateMode && !rotationMode && entries.length === 1;
       pendingEliminate = eliminateMode && !isFinal;
       if (modalLabelEl) {
-        modalLabelEl.textContent = isFinal ? "Champion" : eliminateMode ? "Eliminated" : "Winner";
+        modalLabelEl.textContent = isFinal
+          ? "Champion"
+          : rotationMode
+            ? "Up next"
+            : eliminateMode
+              ? "Eliminated"
+              : "Winner";
       }
-      // The "Remove + spin" button is redundant in eliminate mode.
+      // The "Remove + spin" button is redundant in eliminate/rotation mode.
       if (removeBtn) (removeBtn as HTMLButtonElement).hidden = eliminateMode;
       if (againBtn) {
         (againBtn as HTMLButtonElement).hidden = isFinal;
@@ -5094,12 +5204,20 @@ const faqJsonLd = {
 
     function hideWinner() {
       if (pendingEliminate && lastWinnerIdx !== null && entries[lastWinnerIdx]) {
-        const removedId = entries[lastWinnerIdx].id;
+        const cw = currentWheel();
+        const removedEntry = entries[lastWinnerIdx];
+        const removedId = removedEntry.id;
+        removedEntry.lastPickedAt = Date.now();
         entries = entries.filter((e) => e.id !== removedId);
         renderList();
         save();
         drawWheel();
-        if (entries.length === 1) {
+        updateRotationBar();
+        if (cw.rotation) {
+          if (entries.length === 0) {
+            showToast(t("toast.rotation_cycle_complete"));
+          }
+        } else if (entries.length === 1) {
           showToast(t("toast.champion", { name: entries[0].label }));
         } else if (entries.length === 0) {
           showToast(t("toast.all_eliminated"));
@@ -5437,10 +5555,89 @@ const faqJsonLd = {
       );
     }
 
+    function updateRotationBtn() {
+      if (!rotationBtn) return;
+      const on = !!currentWheel().rotation;
+      rotationBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      rotationBtn.setAttribute(
+        "title",
+        on
+          ? "Rotation mode on — roster rehydrates when all picked"
+          : "Rotation mode — weekly team rotation",
+      );
+      rotationBtn.setAttribute(
+        "aria-label",
+        on ? "Rotation mode (on)" : "Rotation mode (off)",
+      );
+    }
+
+    const rotationBarEl = document.getElementById("spin-rotation-bar") as HTMLDivElement | null;
+    const rotationStatusEl = document.getElementById("spin-rotation-status") as HTMLSpanElement | null;
+    const rotationRehydrateBtn = document.getElementById("spin-rotation-rehydrate") as HTMLButtonElement | null;
+    const rotationHintEl = document.getElementById("spin-rotation-hint") as HTMLParagraphElement | null;
+
+    function syncRotationRoster() {
+      const cw = currentWheel();
+      if (!cw.rotation) return;
+      const labels = entries.map((e) => e.label.trim()).filter((l) => l.length > 0);
+      if (!cw.rosterSnapshot) {
+        cw.rosterSnapshot = labels.slice();
+        return;
+      }
+      const snap = new Set(cw.rosterSnapshot);
+      let mutated = false;
+      for (const l of labels) {
+        if (!snap.has(l)) {
+          cw.rosterSnapshot.push(l);
+          snap.add(l);
+          mutated = true;
+        }
+      }
+      if (mutated) cw.rosterSnapshot = cw.rosterSnapshot.slice(0, 200);
+    }
+
+    function updateRotationBar() {
+      if (!rotationBarEl || !rotationStatusEl || !rotationRehydrateBtn || !rotationHintEl) return;
+      const cw = currentWheel();
+      if (!cw.rotation) {
+        rotationBarEl.hidden = true;
+        return;
+      }
+      rotationBarEl.hidden = false;
+      const total = cw.rosterSnapshot?.length ?? entries.length;
+      const remaining = entries.length;
+      const picked = Math.max(0, total - remaining);
+      rotationStatusEl.innerHTML = remaining === 0
+        ? `<em>Cycle complete.</em> ${total} on the roster, all picked.`
+        : `<em>${remaining}</em> of ${total} on the roster${picked > 0 ? ` · ${picked} picked` : ""}.`;
+      rotationRehydrateBtn.hidden = remaining > 0;
+      const hintVisible = remaining === 0 || (remaining > 0 && remaining === total);
+      rotationHintEl.hidden = !hintVisible;
+      rotationHintEl.textContent = remaining === 0
+        ? "Click Start new cycle to put everyone back on the wheel."
+        : "Spin to pick the next person. They drop off the wheel and the others stay.";
+    }
+
+    function rehydrateRotation() {
+      const cw = currentWheel();
+      if (!cw.rotation) return;
+      const roster = cw.rosterSnapshot ?? [];
+      if (roster.length === 0) {
+        showToast(t("toast.rotation_roster_empty"));
+        return;
+      }
+      entries = roster.map((label) => ({ id: newId(), label }));
+      renderList();
+      save();
+      drawWheel();
+      updateRotationBar();
+      showToast(t("toast.rotation_rehydrated", { n: roster.length }));
+    }
+
     function updateModeSingleBtn() {
       if (!modeSingleBtn) return;
       const cw = currentWheel();
-      const on = !cw.eliminate && !cw.accumulate;
+      const on = !cw.eliminate && !cw.accumulate && !cw.rotation;
       modeSingleBtn.setAttribute("aria-pressed", on ? "true" : "false");
     }
 
@@ -5963,6 +6160,41 @@ const faqJsonLd = {
         showToast(t(cw.accumulate ? "toast.accumulate_on" : "toast.accumulate_off"));
       });
     }
+    if (rotationBtn) {
+      rotationBtn.addEventListener("click", () => {
+        if (spinning) {
+          showToast(t("toast.wait_for_spin"));
+          return;
+        }
+        const cw = currentWheel();
+        if (cw.rotation) {
+          delete cw.rotation;
+          delete cw.rosterSnapshot;
+        } else {
+          cw.rotation = true;
+          delete cw.eliminate;
+          delete cw.accumulate;
+          cw.rosterSnapshot = entries.map((e) => e.label.trim()).filter((l) => l.length > 0);
+        }
+        save();
+        updateRotationBtn();
+        updateEliminateBtn();
+        updateAccumulateBtn();
+        updateModeSingleBtn();
+        updateRotationBar();
+        renderList();
+        showToast(t(cw.rotation ? "toast.rotation_on" : "toast.rotation_off"));
+      });
+    }
+    if (rotationRehydrateBtn) {
+      rotationRehydrateBtn.addEventListener("click", () => {
+        if (spinning) {
+          showToast(t("toast.wait_for_spin"));
+          return;
+        }
+        rehydrateRotation();
+      });
+    }
     if (pickerResetCounts) {
       pickerResetCounts.addEventListener("click", () => {
         if (spinning) {
@@ -6048,23 +6280,42 @@ const faqJsonLd = {
         if (created) showToast(t("toast.created", { name: created.name }));
       });
     }
-    const PRESET_WHEELS: Array<{ id: string; name: string; entries: string[] }> = [
-      { id: "spin-preset-yes-no", name: "Yes / No", entries: ["Yes", "No"] },
-      { id: "spin-preset-coin-flip", name: "Coin flip", entries: ["Heads", "Tails"] },
-      { id: "spin-preset-standup-order", name: "Standup order", entries: ["Person 1", "Person 2", "Person 3", "Person 4"] },
-      { id: "spin-preset-restaurant-picker", name: "Restaurant picker", entries: ["Italian", "Mexican", "Japanese", "Thai", "American", "Indian"] },
-      { id: "spin-preset-birthday-month", name: "Birthday month", entries: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] },
+    const PRESET_WHEELS: Array<{ id: string; slug: string; name: string; entries: string[] }> = [
+      { id: "spin-preset-yes-no", slug: "yes-no", name: "Yes / No", entries: ["Yes", "No"] },
+      { id: "spin-preset-coin-flip", slug: "coin-flip", name: "Coin flip", entries: ["Heads", "Tails"] },
+      { id: "spin-preset-standup-order", slug: "standup-order", name: "Standup order", entries: ["Person 1", "Person 2", "Person 3", "Person 4"] },
+      { id: "spin-preset-restaurant-picker", slug: "restaurant-picker", name: "Restaurant picker", entries: ["Italian", "Mexican", "Japanese", "Thai", "American", "Indian"] },
+      { id: "spin-preset-birthday-month", slug: "birthday-month", name: "Birthday month", entries: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] },
     ];
+    function launchPreset(slug: string) {
+      const preset = PRESET_WHEELS.find((p) => p.slug === slug);
+      if (!preset) return false;
+      const presetEntries: Entry[] = preset.entries.map((label) => ({ id: newId(), label }));
+      const created = createWheel(preset.name, presetEntries);
+      if (created) showToast(t("toast.created", { name: created.name }));
+      return !!created;
+    }
     for (const preset of PRESET_WHEELS) {
       const btn = document.getElementById(preset.id);
       if (!btn) continue;
       btn.addEventListener("click", () => {
         closePicker();
-        const presetEntries: Entry[] = preset.entries.map((label) => ({ id: newId(), label }));
-        const created = createWheel(preset.name, presetEntries);
-        if (created) showToast(t("toast.created", { name: created.name }));
+        launchPreset(preset.slug);
       });
     }
+    document.querySelectorAll<HTMLAnchorElement>(".spin-preset-link[data-preset]").forEach((link) => {
+      link.addEventListener("click", (ev) => {
+        const mouseEv = ev as MouseEvent;
+        if (mouseEv.metaKey || mouseEv.ctrlKey || mouseEv.shiftKey || mouseEv.altKey || mouseEv.button === 1) return;
+        const slug = link.dataset.preset || "";
+        if (!launchPreset(slug)) return;
+        ev.preventDefault();
+        const wheelStage = document.querySelector(".spin-stage");
+        if (wheelStage instanceof HTMLElement) {
+          wheelStage.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
     if (pickerRename) {
       pickerRename.addEventListener("click", () => {
         closePicker();
@@ -6380,7 +6631,9 @@ const faqJsonLd = {
     updateMuteBtn();
     updateEliminateBtn();
     updateAccumulateBtn();
+    updateRotationBtn();
     updateModeSingleBtn();
+    updateRotationBar();
     updatePickerResetCounts();
     updatePickerClearEntries();
     fitConfetti();
