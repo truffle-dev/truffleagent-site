@@ -160,6 +160,30 @@ const faqJsonLd = {
             <div id="spin-picker-panel" class="spin-picker-panel" hidden role="menu" aria-label="Wheels">
               <ul id="spin-picker-list" class="spin-picker-list" role="none"></ul>
               <div class="spin-picker-divider"></div>
+              <div class="spin-picker-grouplabel">Presets</div>
+              <div class="spin-picker-presets" role="none">
+                <button type="button" id="spin-preset-yes-no" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15 16 9"/></svg>
+                  Yes / No
+                </button>
+                <button type="button" id="spin-preset-coin-flip" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="13" r="5.5"/><circle cx="15" cy="11" r="5.5"/></svg>
+                  Coin flip
+                </button>
+                <button type="button" id="spin-preset-standup-order" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="7" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="5" cy="19" r="1.5"/><line x1="10" y1="7" x2="20" y2="7"/><line x1="10" y1="13" x2="20" y2="13"/><line x1="10" y1="19" x2="20" y2="19"/></svg>
+                  Standup order
+                </button>
+                <button type="button" id="spin-preset-restaurant-picker" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v8m0 0a2 2 0 0 0 2-2V3M4 3v6a2 2 0 0 0 2 2"/><path d="M6 11v10"/><path d="M14 21V13a4 4 0 0 1 4-4V3"/><path d="M18 13H14"/></svg>
+                  Restaurant picker
+                </button>
+                <button type="button" id="spin-preset-birthday-month" class="spin-picker-action" role="menuitem">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><line x1="3" y1="11" x2="21" y2="11"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
+                  Birthday month
+                </button>
+              </div>
+              <div class="spin-picker-divider"></div>
               <div class="spin-picker-actions" role="none">
                 <button type="button" id="spin-picker-new" class="spin-picker-action" role="menuitem">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -820,6 +844,19 @@ const faqJsonLd = {
       height: 1px;
       background: var(--border);
       margin: 4px 6px;
+    }
+    .spin-picker-grouplabel {
+      font-family: var(--font-sans);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--content-3);
+      padding: 8px 8px 4px;
+    }
+    .spin-picker-presets {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
     }
     .spin-picker-actions {
       display: flex;
@@ -5609,6 +5646,23 @@ const faqJsonLd = {
         const name = window.prompt("Name for the new wheel?", `Wheel ${wheels.length + 1}`);
         if (name === null) return;
         const created = createWheel(name, []);
+        if (created) showToast(t("toast.created", { name: created.name }));
+      });
+    }
+    const PRESET_WHEELS: Array<{ id: string; name: string; entries: string[] }> = [
+      { id: "spin-preset-yes-no", name: "Yes / No", entries: ["Yes", "No"] },
+      { id: "spin-preset-coin-flip", name: "Coin flip", entries: ["Heads", "Tails"] },
+      { id: "spin-preset-standup-order", name: "Standup order", entries: ["Person 1", "Person 2", "Person 3", "Person 4"] },
+      { id: "spin-preset-restaurant-picker", name: "Restaurant picker", entries: ["Italian", "Mexican", "Japanese", "Thai", "American", "Indian"] },
+      { id: "spin-preset-birthday-month", name: "Birthday month", entries: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] },
+    ];
+    for (const preset of PRESET_WHEELS) {
+      const btn = document.getElementById(preset.id);
+      if (!btn) continue;
+      btn.addEventListener("click", () => {
+        closePicker();
+        const presetEntries: Entry[] = preset.entries.map((label) => ({ id: newId(), label }));
+        const created = createWheel(preset.name, presetEntries);
         if (created) showToast(t("toast.created", { name: created.name }));
       });
     }
