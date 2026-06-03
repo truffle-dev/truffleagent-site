@@ -1,0 +1,407 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+const SHARE_PAYLOAD = "eyJuIjoiWWVzIC8gTm8iLCJlIjpbIlllcyIsIk5vIl19";
+const SPIN_URL = `/spin/?w=${SHARE_PAYLOAD}`;
+
+const useCases = [
+  {
+    title: "Settle a tiny call quickly.",
+    body: "When the decision is small and either answer is fine, give yourself permission to stop weighing and let the wheel pick.",
+  },
+  {
+    title: "Break a tie with a group.",
+    body: "Two people, two opinions, one wheel. Everyone agrees ahead of time. Spin once and move on.",
+  },
+  {
+    title: "Push past procrastination.",
+    body: "If you've been hovering over the same yes-or-no for a week, the cost of deciding is already higher than the cost of either answer.",
+  },
+];
+
+const faqs = [
+  {
+    q: "How does the yes / no wheel pick a winner?",
+    a: "Every spin draws a uniformly random angle in software, then animates the wheel to land on it. Each side gets exactly half the circle, so the odds are 50 / 50 every time.",
+  },
+  {
+    q: "Is the spinner free?",
+    a: "Yes. No account, no signup, no ads, no tracker. The wheel runs entirely in your browser and saves to your local storage if you want it to.",
+  },
+  {
+    q: "Can I add more options or change the labels?",
+    a: "Yes. Open the wheel, then edit the two entries inline or add more rows from the entry panel. Your changes save locally and survive a refresh.",
+  },
+  {
+    q: "Does it work on my phone?",
+    a: "Yes. The wheel is mobile-first and runs offline once loaded. You can also install it as a PWA from your browser menu.",
+  },
+];
+
+const jsonLdApp = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Yes or No Wheel",
+  url: "https://truffleagent.com/spin/yes-no/",
+  description:
+    "Free yes-or-no spinner. Click to spin a 50/50 wheel for any binary decision. No ads, no tracking, no signup.",
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires JavaScript and a modern browser.",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
+const jsonLdFaq = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+<BaseLayout
+  title="Yes or No Wheel · Free Random Yes/No Spinner"
+  description="Free yes-or-no spinner. Click to spin a 50/50 wheel for any binary decision. No ads, no tracking, no signup. Works offline."
+  canonical="https://truffleagent.com/spin/yes-no/"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdApp)} slot="head" />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdFaq)} slot="head" />
+
+  <article class="yn-page">
+    <header class="yn-head">
+      <div class="yn-container">
+        <p class="yn-eyebrow">Spin</p>
+        <h1 class="yn-display">
+          Yes or <em>No.</em>
+        </h1>
+        <p class="yn-lead">
+          A 50 / 50 wheel for the call you don't want to make alone. Two
+          options. One spin. No login, no ads, no tracker.
+        </p>
+        <div class="yn-cta-row">
+          <a class="yn-cta-primary" href={SPIN_URL}>
+            Spin the wheel
+            <span aria-hidden="true">→</span>
+          </a>
+          <a class="yn-cta-secondary" href="/spin/">
+            Build a custom wheel
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <section class="yn-section">
+      <div class="yn-container">
+        <h2 class="yn-h2"><em>When to use it.</em></h2>
+        <ul class="yn-uses">
+          {useCases.map((u) => (
+            <li class="yn-use">
+              <p class="yn-use-title">{u.title}</p>
+              <p class="yn-use-body">{u.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="yn-section">
+      <div class="yn-container">
+        <h2 class="yn-h2"><em>Frequently asked.</em></h2>
+        <div class="yn-faq">
+          {faqs.map((f, i) => (
+            <details class="yn-faq-item" open={i === 0}>
+              <summary class="yn-faq-q">{f.q}</summary>
+              <p class="yn-faq-a">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="yn-section yn-section-end">
+      <div class="yn-container">
+        <a class="yn-cta-primary yn-cta-end" href={SPIN_URL}>
+          Spin a yes / no wheel
+          <span aria-hidden="true">→</span>
+        </a>
+        <p class="yn-fineprint">
+          The wheel runs in your browser. Your spins stay on your device.
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .yn-page {
+    background-color: var(--color-paper-50);
+    color: var(--color-paper-900);
+    min-height: 60vh;
+  }
+
+  .yn-container {
+    max-width: 64ch;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .yn-head {
+    padding: 4rem 0 3rem;
+  }
+
+  .yn-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-paper-500);
+    margin: 0 0 1rem;
+  }
+
+  .yn-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.05;
+    margin: 0 0 1.25rem;
+    color: var(--color-paper-900);
+  }
+
+  .yn-display em {
+    font-style: italic;
+    color: #4850c4;
+  }
+
+  .yn-lead {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    line-height: 1.55;
+    max-width: 48ch;
+    color: var(--color-paper-700);
+    margin: 0 0 2rem;
+  }
+
+  .yn-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .yn-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background-color: #4850c4;
+    color: var(--color-paper-50);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .yn-cta-primary:hover {
+    background-color: #3a41a6;
+    transform: translateY(-1px);
+  }
+
+  .yn-cta-primary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .yn-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.875rem 1.25rem;
+    color: var(--color-paper-700);
+    border: 1px solid var(--color-paper-300);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-decoration: none;
+    background-color: transparent;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .yn-cta-secondary:hover {
+    border-color: var(--color-paper-500);
+    color: var(--color-paper-900);
+  }
+
+  .yn-cta-secondary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .yn-section {
+    padding: 2.5rem 0;
+    border-top: 1px solid var(--color-paper-200);
+  }
+
+  .yn-section-end {
+    padding: 3.5rem 0 5rem;
+    text-align: center;
+  }
+
+  .yn-h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    line-height: 1.15;
+    margin: 0 0 1.5rem;
+  }
+
+  .yn-h2 em {
+    font-style: italic;
+    color: var(--color-paper-700);
+  }
+
+  .yn-uses {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .yn-use {
+    padding: 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .yn-use-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 0.4rem;
+    color: var(--color-paper-900);
+  }
+
+  .yn-use-body {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0;
+  }
+
+  .yn-faq {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .yn-faq-item {
+    padding: 1rem 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .yn-faq-item[open] {
+    background-color: var(--color-paper-50);
+    border-color: var(--color-paper-300);
+  }
+
+  .yn-faq-q {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-paper-900);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .yn-faq-q::marker,
+  .yn-faq-q::-webkit-details-marker {
+    display: none;
+  }
+
+  .yn-faq-q::after {
+    content: "+";
+    float: right;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    color: var(--color-paper-500);
+    transition: transform 150ms ease;
+    margin-left: 0.5rem;
+  }
+
+  .yn-faq-item[open] .yn-faq-q::after {
+    content: "–";
+  }
+
+  .yn-faq-q:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .yn-faq-a {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0.75rem 0 0;
+  }
+
+  .yn-cta-end {
+    font-size: 1.0625rem;
+    padding: 1rem 1.75rem;
+  }
+
+  .yn-fineprint {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--color-paper-500);
+    margin: 1.25rem 0 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .yn-page {
+      background-color: var(--color-paper-950);
+      color: var(--color-paper-100);
+    }
+    .yn-display { color: var(--color-paper-50); }
+    .yn-display em { color: #8b91e3; }
+    .yn-lead { color: var(--color-paper-300); }
+    .yn-h2 em { color: var(--color-paper-400); }
+    .yn-section { border-top-color: var(--color-paper-800); }
+    .yn-use,
+    .yn-faq-item {
+      background-color: var(--color-paper-900);
+      border-color: var(--color-paper-800);
+    }
+    .yn-faq-item[open] {
+      background-color: var(--color-paper-950);
+      border-color: var(--color-paper-700);
+    }
+    .yn-use-title,
+    .yn-faq-q { color: var(--color-paper-50); }
+    .yn-use-body,
+    .yn-faq-a { color: var(--color-paper-300); }
+    .yn-cta-primary {
+      background-color: #8b91e3;
+      color: var(--color-paper-950);
+    }
+    .yn-cta-primary:hover { background-color: #a3a7eb; }
+    .yn-cta-secondary {
+      color: var(--color-paper-300);
+      border-color: var(--color-paper-800);
+    }
+    .yn-cta-secondary:hover {
+      border-color: var(--color-paper-500);
+      color: var(--color-paper-50);
+    }
+    .yn-fineprint { color: var(--color-paper-500); }
+  }
+</style>
