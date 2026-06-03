@@ -1,0 +1,407 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+const SHARE_PAYLOAD = "eyJuIjoiQ29pbiBmbGlwIiwiZSI6WyJIZWFkcyIsIlRhaWxzIl19";
+const SPIN_URL = `/spin/?w=${SHARE_PAYLOAD}`;
+
+const useCases = [
+  {
+    title: "Call a kickoff.",
+    body: "Pickup football, board-game first move, who picks the movie. Heads or tails, one spin, no arguments.",
+  },
+  {
+    title: "Resolve a clean 50 / 50.",
+    body: "When two options are genuinely equal and your only job is to stop deliberating, the coin is the cheapest possible decision.",
+  },
+  {
+    title: "Teach probability.",
+    body: "Spin a hundred times. Track the runs. The wheel is uniform, the streaks are real, and the math is more interesting than it sounds.",
+  },
+];
+
+const faqs = [
+  {
+    q: "Is the coin flip really 50 / 50?",
+    a: "Yes. Each spin draws a uniformly random angle in software, then animates the wheel to land on it. Heads and tails each get exactly half the circle, so the long-run frequency converges to 50 / 50.",
+  },
+  {
+    q: "Why a wheel instead of a coin animation?",
+    a: "Same odds, faster reading. A spinning coin needs a clear face-up frame to be readable. A wheel commits to a side as soon as the pointer stops, which is easier to share on a phone screen.",
+  },
+  {
+    q: "Can I rename Heads and Tails?",
+    a: "Yes. Open the wheel, then edit the two entries inline. Replace Heads with Pizza and Tails with Tacos, or whatever the actual decision is. Your changes save locally and survive a refresh.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. The wheel runs entirely in your browser and works offline once loaded. You can also install it as a PWA from your browser menu for a one-tap launcher.",
+  },
+];
+
+const jsonLdApp = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Coin Flip Wheel",
+  url: "https://truffleagent.com/spin/coin-flip/",
+  description:
+    "Free online coin flip. Spin a 50/50 wheel for Heads or Tails. No ads, no tracking, no signup. Works offline.",
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires JavaScript and a modern browser.",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
+const jsonLdFaq = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+<BaseLayout
+  title="Coin Flip · Free Online Heads or Tails Wheel"
+  description="Free online coin flip. Spin a 50/50 wheel for Heads or Tails. No ads, no tracking, no signup. Works offline."
+  canonical="https://truffleagent.com/spin/coin-flip/"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdApp)} slot="head" />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLdFaq)} slot="head" />
+
+  <article class="cf-page">
+    <header class="cf-head">
+      <div class="cf-container">
+        <p class="cf-eyebrow">Spin</p>
+        <h1 class="cf-display">
+          Heads or <em>Tails.</em>
+        </h1>
+        <p class="cf-lead">
+          A clean 50 / 50 spinner for the call that doesn't need a real
+          coin. Two sides. One spin. No login, no ads, no tracker.
+        </p>
+        <div class="cf-cta-row">
+          <a class="cf-cta-primary" href={SPIN_URL}>
+            Flip the coin
+            <span aria-hidden="true">→</span>
+          </a>
+          <a class="cf-cta-secondary" href="/spin/">
+            Build a custom wheel
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <section class="cf-section">
+      <div class="cf-container">
+        <h2 class="cf-h2"><em>When to use it.</em></h2>
+        <ul class="cf-uses">
+          {useCases.map((u) => (
+            <li class="cf-use">
+              <p class="cf-use-title">{u.title}</p>
+              <p class="cf-use-body">{u.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="cf-section">
+      <div class="cf-container">
+        <h2 class="cf-h2"><em>Frequently asked.</em></h2>
+        <div class="cf-faq">
+          {faqs.map((f, i) => (
+            <details class="cf-faq-item" open={i === 0}>
+              <summary class="cf-faq-q">{f.q}</summary>
+              <p class="cf-faq-a">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="cf-section cf-section-end">
+      <div class="cf-container">
+        <a class="cf-cta-primary cf-cta-end" href={SPIN_URL}>
+          Flip a coin
+          <span aria-hidden="true">→</span>
+        </a>
+        <p class="cf-fineprint">
+          The wheel runs in your browser. Your spins stay on your device.
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .cf-page {
+    background-color: var(--color-paper-50);
+    color: var(--color-paper-900);
+    min-height: 60vh;
+  }
+
+  .cf-container {
+    max-width: 64ch;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .cf-head {
+    padding: 4rem 0 3rem;
+  }
+
+  .cf-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-paper-500);
+    margin: 0 0 1rem;
+  }
+
+  .cf-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.05;
+    margin: 0 0 1.25rem;
+    color: var(--color-paper-900);
+  }
+
+  .cf-display em {
+    font-style: italic;
+    color: #4850c4;
+  }
+
+  .cf-lead {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    line-height: 1.55;
+    max-width: 48ch;
+    color: var(--color-paper-700);
+    margin: 0 0 2rem;
+  }
+
+  .cf-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .cf-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background-color: #4850c4;
+    color: var(--color-paper-50);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .cf-cta-primary:hover {
+    background-color: #3a41a6;
+    transform: translateY(-1px);
+  }
+
+  .cf-cta-primary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .cf-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.875rem 1.25rem;
+    color: var(--color-paper-700);
+    border: 1px solid var(--color-paper-300);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-decoration: none;
+    background-color: transparent;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .cf-cta-secondary:hover {
+    border-color: var(--color-paper-500);
+    color: var(--color-paper-900);
+  }
+
+  .cf-cta-secondary:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+  }
+
+  .cf-section {
+    padding: 2.5rem 0;
+    border-top: 1px solid var(--color-paper-200);
+  }
+
+  .cf-section-end {
+    padding: 3.5rem 0 5rem;
+    text-align: center;
+  }
+
+  .cf-h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    line-height: 1.15;
+    margin: 0 0 1.5rem;
+  }
+
+  .cf-h2 em {
+    font-style: italic;
+    color: var(--color-paper-700);
+  }
+
+  .cf-uses {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .cf-use {
+    padding: 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .cf-use-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 0.4rem;
+    color: var(--color-paper-900);
+  }
+
+  .cf-use-body {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0;
+  }
+
+  .cf-faq {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .cf-faq-item {
+    padding: 1rem 1.25rem;
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-200);
+    border-radius: 10px;
+  }
+
+  .cf-faq-item[open] {
+    background-color: var(--color-paper-50);
+    border-color: var(--color-paper-300);
+  }
+
+  .cf-faq-q {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-paper-900);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .cf-faq-q::marker,
+  .cf-faq-q::-webkit-details-marker {
+    display: none;
+  }
+
+  .cf-faq-q::after {
+    content: "+";
+    float: right;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    color: var(--color-paper-500);
+    transition: transform 150ms ease;
+    margin-left: 0.5rem;
+  }
+
+  .cf-faq-item[open] .cf-faq-q::after {
+    content: "–";
+  }
+
+  .cf-faq-q:focus-visible {
+    outline: 2px solid #4850c4;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .cf-faq-a {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-paper-700);
+    margin: 0.75rem 0 0;
+  }
+
+  .cf-cta-end {
+    font-size: 1.0625rem;
+    padding: 1rem 1.75rem;
+  }
+
+  .cf-fineprint {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--color-paper-500);
+    margin: 1.25rem 0 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .cf-page {
+      background-color: var(--color-paper-950);
+      color: var(--color-paper-100);
+    }
+    .cf-display { color: var(--color-paper-50); }
+    .cf-display em { color: #8b91e3; }
+    .cf-lead { color: var(--color-paper-300); }
+    .cf-h2 em { color: var(--color-paper-400); }
+    .cf-section { border-top-color: var(--color-paper-800); }
+    .cf-use,
+    .cf-faq-item {
+      background-color: var(--color-paper-900);
+      border-color: var(--color-paper-800);
+    }
+    .cf-faq-item[open] {
+      background-color: var(--color-paper-950);
+      border-color: var(--color-paper-700);
+    }
+    .cf-use-title,
+    .cf-faq-q { color: var(--color-paper-50); }
+    .cf-use-body,
+    .cf-faq-a { color: var(--color-paper-300); }
+    .cf-cta-primary {
+      background-color: #8b91e3;
+      color: var(--color-paper-950);
+    }
+    .cf-cta-primary:hover { background-color: #a3a7eb; }
+    .cf-cta-secondary {
+      color: var(--color-paper-300);
+      border-color: var(--color-paper-800);
+    }
+    .cf-cta-secondary:hover {
+      border-color: var(--color-paper-500);
+      color: var(--color-paper-50);
+    }
+    .cf-fineprint { color: var(--color-paper-500); }
+  }
+</style>
