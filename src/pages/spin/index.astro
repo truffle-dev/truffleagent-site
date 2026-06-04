@@ -251,7 +251,7 @@ const faqJsonLd = {
               <input type="color" id="spin-color-picker" hidden aria-hidden="true" tabindex="-1" />
             </div>
             <div class="spin-head-actions">
-              <button id="spin-share" type="button" class="spin-cta-chip" title="Copy share link" aria-label="Copy share link">
+              <button id="spin-share" type="button" class="spin-cta-chip" title="Share link" aria-label="Share wheel link">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 <span>Share</span>
               </button>
@@ -3474,6 +3474,7 @@ const faqJsonLd = {
       "toast.need_2": "Need at least 2 entries",
       "toast.add_first": "Add an entry first",
       "toast.share_copied": "Share link copied",
+      "toast.share_shared": "Shared",
       "toast.share_copy_failed": "Could not copy. URL: {url}…",
       "toast.embed_copied": "Embed code copied",
       "toast.copy_manual": "Select the code and copy manually",
@@ -6449,6 +6450,23 @@ const faqJsonLd = {
         return;
       }
       const url = buildShareUrl();
+      const isCoarse =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(pointer: coarse)").matches;
+      if (isCoarse && typeof navigator.share === "function") {
+        const wheelName = currentWheel().name;
+        const payload = { title: wheelName, text: wheelName, url };
+        try {
+          if (typeof navigator.canShare !== "function" || navigator.canShare(payload)) {
+            await navigator.share(payload);
+            showToast(t("toast.share_shared"));
+            return;
+          }
+        } catch (err) {
+          if (err && (err as DOMException).name === "AbortError") return;
+          // Other share errors fall through to the clipboard path.
+        }
+      }
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(url);
