@@ -438,7 +438,10 @@ const faqJsonLd = {
         <details class="spin-bulk">
           <summary>Paste a list</summary>
           <textarea id="spin-bulk-input" rows="4" placeholder="One per line, or comma-separated"></textarea>
-          <button id="spin-bulk-apply" type="button" class="spin-bulk-btn">Replace entries</button>
+          <div class="spin-bulk-actions">
+            <button id="spin-bulk-append" type="button" class="spin-bulk-btn">Append</button>
+            <button id="spin-bulk-apply" type="button" class="spin-bulk-btn">Replace entries</button>
+          </div>
         </details>
 
         <details class="spin-history">
@@ -1530,8 +1533,13 @@ const faqJsonLd = {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
     }
-    .spin-bulk-btn {
+    .spin-bulk-actions {
+      display: flex;
+      gap: 0.4rem;
       margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .spin-bulk-btn {
       padding: 0.45rem 0.85rem;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -3538,6 +3546,10 @@ const faqJsonLd = {
       "toast.look_reset": "Look reset to defaults",
       "toast.entries_sorted": "Sorted A–Z",
       "toast.entries_already_sorted": "Already sorted A–Z",
+      "toast.appended": "Added {n} new",
+      "toast.appended_dupes": "Added {n} new, {skipped} duplicate{s} skipped",
+      "toast.append_all_dupes": "Nothing new to add",
+      "toast.append_cap": "Added {n} — at max ({cap})",
     };
 
     function t(key: string, vars?: Record<string, string | number>): string {
@@ -3822,6 +3834,7 @@ const faqJsonLd = {
     const addInput = document.getElementById("spin-add-input") as HTMLInputElement | null;
     const bulkInput = document.getElementById("spin-bulk-input") as HTMLTextAreaElement | null;
     const bulkApply = document.getElementById("spin-bulk-apply");
+    const bulkAppend = document.getElementById("spin-bulk-append");
     const shuffleBtn = document.getElementById("spin-shuffle");
     const resetBtn = document.getElementById("spin-reset");
     const shareBtn = document.getElementById("spin-share");
@@ -5025,6 +5038,53 @@ const faqJsonLd = {
       save();
       updateRotationBar();
       bulkInput!.value = "";
+    });
+
+    // Paste-append: keep existing entries, dedupe new ones against current
+    // labels (case-insensitive) + against each other, respect the 200-entry
+    // cap. Toast surfaces what happened: bare added count, added-with-skips,
+    // all-duplicates no-op, or hit-the-cap. Same case-insensitive convention
+    // as updateDuplicateBadges so "Alice" and "alice" map to one entry.
+    bulkAppend!.addEventListener("click", () => {
+      const raw = bulkInput!.value || "";
+      const parts = raw
+        .split(/[\n,]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (parts.length === 0) return;
+      const CAP = 200;
+      const seen = new Set(entries.map((e) => e.label.trim().toLowerCase()));
+      const fresh: string[] = [];
+      let dupSkipped = 0;
+      let capSkipped = 0;
+      for (const label of parts) {
+        if (entries.length + fresh.length >= CAP) { capSkipped++; continue; }
+        const key = label.toLowerCase();
+        if (seen.has(key)) { dupSkipped++; continue; }
+        seen.add(key);
+        fresh.push(label);
+      }
+      if (fresh.length === 0) {
+        if (dupSkipped > 0) showToast(t("toast.append_all_dupes"));
+        return;
+      }
+      for (const label of fresh) {
+        entries.push({ id: newId(), label });
+      }
+      clearImportFlag();
+      syncRotationRoster();
+      renderList();
+      drawWheel();
+      save();
+      updateRotationBar();
+      bulkInput!.value = "";
+      if (capSkipped > 0) {
+        showToast(t("toast.append_cap", { n: fresh.length, cap: CAP }));
+      } else if (dupSkipped > 0) {
+        showToast(t("toast.appended_dupes", { n: fresh.length, skipped: dupSkipped, s: dupSkipped === 1 ? "" : "s" }));
+      } else {
+        showToast(t("toast.appended", { n: fresh.length }));
+      }
     });
 
     shuffleBtn!.addEventListener("click", () => {
