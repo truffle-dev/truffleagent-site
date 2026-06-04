@@ -6565,9 +6565,15 @@ const faqJsonLd = {
           return;
         }
         const prompt = cw.eliminate
-          ? `Clear ${n} remaining entries? This can't be undone.`
-          : `Clear all ${n} entries? This can't be undone.`;
+          ? `Clear ${n} remaining entries?`
+          : `Clear all ${n} entries?`;
         if (!confirm(prompt)) return;
+        const wasEliminate = !!cw.eliminate;
+        const wheelIdAtClear = cw.id;
+        const entrySnapshot: Entry[] = entries.map((e) => ({ ...e }));
+        const rosterSnapshot: string[] | null = Array.isArray(cw.rosterSnapshot)
+          ? cw.rosterSnapshot.slice()
+          : null;
         entries.length = 0;
         clearImportFlag();
         save();
@@ -6577,7 +6583,29 @@ const faqJsonLd = {
         updatePickerClearEntries();
         closePicker();
         showToast(
-          t(cw.eliminate ? "toast.cleared_remaining" : "toast.cleared_entries", { n }),
+          t(wasEliminate ? "toast.cleared_remaining" : "toast.cleared_entries", { n }),
+          {
+            durationMs: 5000,
+            action: {
+              label: t("toast.undo"),
+              onClick: () => {
+                const cwNow = currentWheel();
+                if (!cwNow || cwNow.id !== wheelIdAtClear) return;
+                if (entries.length > 0) return;
+                for (const entry of entrySnapshot) entries.push(entry);
+                if (rosterSnapshot) {
+                  cwNow.rosterSnapshot = rosterSnapshot.slice();
+                } else {
+                  delete cwNow.rosterSnapshot;
+                }
+                save();
+                renderList();
+                drawWheel();
+                updatePickerResetCounts();
+                updatePickerClearEntries();
+              },
+            },
+          },
         );
       });
     }
