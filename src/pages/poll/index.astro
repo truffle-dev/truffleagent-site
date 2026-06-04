@@ -1,0 +1,697 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Poll · Quick Group Poll, No Signup";
+const description =
+  "Make a quick group poll. Share by link, vote, paste votes back to tally. No accounts, no servers, works offline.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/poll/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Poll",
+  alternateName: ["Group Poll", "Quick Poll", "Vote"],
+  url: canonical,
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Create a poll with any options",
+    "Share by link, vote, paste vote codes back to tally",
+    "Single-choice or multi-choice mode",
+    "Live results bar chart",
+    "Works offline (PWA)",
+    "No ads, no signup, no servers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "How does a no-server poll work?",
+    a: "The poll definition lives in the URL. Voters open the link, pick their choice, and copy a short vote code. The poll creator pastes the codes back into the Tally box and the chart updates. No account, no server, no third-party.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit, the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "Why do I need to paste vote codes?",
+    a: "Because there is no backend. Sending votes through a shareable code is the trade for privacy and zero infrastructure. For small groups it is one extra step; for larger groups consider a real poll tool.",
+  },
+  {
+    q: "Can I do multiple-choice polls?",
+    a: "Yes. Toggle Multi-choice when creating the poll and voters can pick more than one option.",
+  },
+  {
+    q: "Is the poll anonymous?",
+    a: "Voters can optionally write a name. If they leave the name blank, the vote shows up as Anonymous in the tally.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/poll/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="poll-page">
+    <header class="poll-topbar">
+      <div class="poll-topbar-inner">
+        <div class="poll-brand">
+          <span class="poll-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="11" width="3" height="9" rx="1" />
+              <rect x="10.5" y="4" width="3" height="16" rx="1" />
+              <rect x="17" y="8" width="3" height="12" rx="1" />
+            </svg>
+          </span>
+          <span class="poll-brand-name">Poll</span>
+        </div>
+        <div class="poll-mode-switch" role="tablist" aria-label="Mode">
+          <button type="button" class="poll-tab" data-tab="create" role="tab" aria-selected="true">Create</button>
+          <button type="button" class="poll-tab" data-tab="vote" role="tab" aria-selected="false">Vote</button>
+          <button type="button" class="poll-tab" data-tab="tally" role="tab" aria-selected="false">Tally</button>
+        </div>
+      </div>
+    </header>
+
+    <section id="panel-create" class="poll-panel" role="tabpanel">
+      <h1 class="poll-h1">Make a poll</h1>
+      <p class="poll-lead">Set a question, list the options, share the link. Voters reply with a short code you paste into the Tally tab.</p>
+      <div class="poll-form">
+        <label class="poll-field">
+          <span class="poll-field-label">Question</span>
+          <input id="create-q" type="text" maxlength="120" placeholder="Where should we eat lunch?" autocomplete="off" />
+        </label>
+        <div class="poll-field">
+          <span class="poll-field-label">Options</span>
+          <div id="create-options"></div>
+          <button type="button" id="add-opt" class="poll-btn poll-btn-ghost poll-btn-sm">+ Add option</button>
+        </div>
+        <label class="poll-toggle">
+          <input type="checkbox" id="create-multi" />
+          <span>Allow voters to pick more than one option</span>
+        </label>
+        <div class="poll-form-actions">
+          <button type="button" id="create-make" class="poll-btn poll-btn-primary">Make poll link</button>
+          <button type="button" id="create-clear" class="poll-btn poll-btn-ghost">Clear</button>
+        </div>
+        <div id="create-result" class="poll-result-card" hidden>
+          <p class="poll-result-label">Share this link</p>
+          <div class="poll-share-row">
+            <input id="create-link" type="text" readonly />
+            <button type="button" id="create-copy" class="poll-btn poll-btn-primary">Copy</button>
+          </div>
+          <p class="poll-result-hint">Send it to your voters. Each voter will reply with a short code. Paste those codes into the Tally tab.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-vote" class="poll-panel" role="tabpanel" hidden>
+      <div id="vote-loaded" hidden>
+        <p class="poll-eyebrow">A poll asks</p>
+        <h1 id="vote-q" class="poll-h1"></h1>
+        <p class="poll-lead">Pick your answer<span id="vote-multi-hint" hidden> (one or more)</span>, optionally add a name, then send your code back.</p>
+        <div id="vote-options" class="poll-vote-options"></div>
+        <label class="poll-field">
+          <span class="poll-field-label">Your name (optional)</span>
+          <input id="vote-name" type="text" maxlength="40" placeholder="Anonymous" autocomplete="off" />
+        </label>
+        <div class="poll-form-actions">
+          <button type="button" id="vote-submit" class="poll-btn poll-btn-primary">Generate vote code</button>
+        </div>
+        <div id="vote-result" class="poll-result-card" hidden>
+          <p class="poll-result-label">Your vote code</p>
+          <div class="poll-share-row">
+            <input id="vote-code" type="text" readonly />
+            <button type="button" id="vote-copy" class="poll-btn poll-btn-primary">Copy</button>
+          </div>
+          <p class="poll-result-hint">Send this code back to whoever made the poll.</p>
+        </div>
+      </div>
+      <div id="vote-empty" class="poll-empty">
+        <p>Open a poll link to vote, or make one in the <button type="button" class="poll-link" data-jump="create">Create</button> tab.</p>
+      </div>
+    </section>
+
+    <section id="panel-tally" class="poll-panel" role="tabpanel" hidden>
+      <div id="tally-loaded" hidden>
+        <p class="poll-eyebrow">Live results</p>
+        <h1 id="tally-q" class="poll-h1"></h1>
+        <p class="poll-lead">Paste vote codes below. The chart updates as you paste. Voters appear under each option.</p>
+        <div class="poll-field">
+          <span class="poll-field-label">Paste a vote code</span>
+          <div class="poll-share-row">
+            <input id="tally-input" type="text" placeholder="v_abcd..." autocomplete="off" />
+            <button type="button" id="tally-add" class="poll-btn poll-btn-primary">Add vote</button>
+          </div>
+        </div>
+        <div id="tally-results" class="poll-tally-list"></div>
+        <p id="tally-meta" class="poll-tally-meta"></p>
+        <div class="poll-form-actions">
+          <button type="button" id="tally-clear" class="poll-btn poll-btn-ghost">Reset tally</button>
+          <button type="button" id="tally-export" class="poll-btn poll-btn-ghost">Copy summary</button>
+        </div>
+      </div>
+      <div id="tally-empty" class="poll-empty">
+        <p>Open a poll link first, then paste the codes voters send you.</p>
+      </div>
+    </section>
+
+    <section class="poll-why">
+      <h2>Why this exists</h2>
+      <p>
+        Group polls always come with a price: ads, signups, hostile cookies, surveillance. Poll
+        runs in your browser only. The link carries the question. The vote code carries one vote.
+        The Tally tab adds them up. It is one extra paste, and in exchange you get a poll that
+        nobody else can read.
+      </p>
+    </section>
+
+    <section class="poll-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="poll-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div id="toast" class="poll-toast" role="status" aria-live="polite" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --poll-bg: #fbfaf5;
+    --poll-fg: #1a1611;
+    --poll-muted: #6b6359;
+    --poll-line: #e5dfd0;
+    --poll-card: #ffffff;
+    --poll-accent: #2e7d6a;
+    --poll-accent-soft: #d8ece5;
+  }
+  :root[data-theme="dark"] {
+    --poll-bg: #0e0c08;
+    --poll-fg: #f1ece0;
+    --poll-muted: #9c9485;
+    --poll-line: #2a2620;
+    --poll-card: #16130d;
+    --poll-accent: #6cc4ab;
+    --poll-accent-soft: #1a2a25;
+  }
+
+  body { background: var(--poll-bg); color: var(--poll-fg); }
+  .poll-page { max-width: 820px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .poll-topbar { border-bottom: 1px solid var(--poll-line); padding: 18px 0; margin-bottom: 32px; }
+  .poll-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .poll-brand { display: flex; align-items: center; gap: 10px; }
+  .poll-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--poll-accent-soft); color: var(--poll-accent); }
+  .poll-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+
+  .poll-mode-switch { display: inline-flex; background: var(--poll-card); border: 1px solid var(--poll-line); border-radius: 999px; padding: 3px; gap: 2px; }
+  .poll-tab {
+    background: transparent; border: none; padding: 6px 14px; border-radius: 999px;
+    cursor: pointer; font: inherit; font-size: 13px; color: var(--poll-muted); transition: all .15s ease;
+  }
+  .poll-tab[aria-selected="true"] { background: var(--poll-accent); color: var(--poll-bg); font-weight: 600; }
+
+  .poll-h1 { font-family: "Fraunces", serif; font-weight: 400; font-size: clamp(28px, 5vw, 40px); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 12px; }
+  .poll-eyebrow { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--poll-muted); margin: 0 0 8px; }
+  .poll-lead { color: var(--poll-muted); font-size: 16px; line-height: 1.55; margin: 0 0 28px; max-width: 60ch; }
+
+  .poll-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--poll-line);
+    background: var(--poll-card); color: var(--poll-fg);
+    font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .poll-btn:hover { border-color: var(--poll-accent); color: var(--poll-accent); }
+  .poll-btn-primary { background: var(--poll-accent); color: var(--poll-bg); border-color: var(--poll-accent); font-weight: 600; }
+  .poll-btn-primary:hover { color: var(--poll-bg); filter: brightness(1.05); }
+  .poll-btn-ghost { background: transparent; }
+  .poll-btn-sm { padding: 5px 12px; font-size: 13px; margin-top: 8px; }
+
+  .poll-form { display: grid; gap: 18px; }
+  .poll-field { display: flex; flex-direction: column; gap: 6px; }
+  .poll-field-label { font-size: 12px; color: var(--poll-muted); font-weight: 500; }
+  .poll-field input, .poll-opt-row input {
+    font: inherit; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--poll-line); background: var(--poll-bg); color: var(--poll-fg);
+    outline: none; width: 100%;
+  }
+  .poll-field input:focus, .poll-opt-row input:focus { border-color: var(--poll-accent); }
+
+  .poll-opt-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .poll-opt-remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--poll-muted); font-size: 18px; padding: 4px 8px; line-height: 1;
+  }
+  .poll-opt-remove:hover { color: var(--poll-accent); }
+
+  .poll-toggle { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .poll-toggle input { accent-color: var(--poll-accent); }
+
+  .poll-form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .poll-result-card { background: var(--poll-accent-soft); border: 1px solid var(--poll-accent); border-radius: 14px; padding: 18px; }
+  .poll-result-label { font-size: 12px; color: var(--poll-accent); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 10px; }
+  .poll-share-row { display: flex; gap: 8px; }
+  .poll-share-row input { flex: 1; font-family: "JetBrains Mono", monospace; font-size: 13px; }
+  .poll-result-hint { font-size: 13px; color: var(--poll-muted); margin: 10px 0 0; }
+
+  .poll-vote-options { display: grid; gap: 10px; margin-bottom: 18px; }
+  .poll-vote-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: 12px;
+    border: 1px solid var(--poll-line); background: var(--poll-card);
+    cursor: pointer; transition: border-color .15s ease, background .15s ease;
+  }
+  .poll-vote-option:hover { border-color: var(--poll-accent); }
+  .poll-vote-option input { margin: 0; accent-color: var(--poll-accent); }
+  .poll-vote-option.is-selected { border-color: var(--poll-accent); background: var(--poll-accent-soft); }
+
+  .poll-empty { padding: 40px 20px; text-align: center; color: var(--poll-muted); border: 1px dashed var(--poll-line); border-radius: 14px; }
+  .poll-link { background: none; border: none; color: var(--poll-accent); cursor: pointer; font: inherit; padding: 0; text-decoration: underline; }
+
+  .poll-tally-list { display: grid; gap: 12px; margin: 24px 0; }
+  .poll-tally-row { background: var(--poll-card); border: 1px solid var(--poll-line); border-radius: 12px; padding: 14px 16px; }
+  .poll-tally-row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .poll-tally-name { font-weight: 500; }
+  .poll-tally-count { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--poll-muted); }
+  .poll-tally-bar { height: 8px; background: var(--poll-line); border-radius: 4px; overflow: hidden; }
+  .poll-tally-bar-fill { height: 100%; background: var(--poll-accent); border-radius: 4px; transition: width .3s ease; }
+  .poll-tally-voters { margin-top: 8px; font-size: 12px; color: var(--poll-muted); font-family: "JetBrains Mono", monospace; }
+  .poll-tally-meta { color: var(--poll-muted); font-size: 13px; margin: 8px 0 18px; }
+
+  .poll-why { margin-top: 64px; }
+  .poll-why h2, .poll-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .poll-why p { font-size: 16px; line-height: 1.6; color: var(--poll-fg); max-width: 64ch; margin: 0; }
+
+  .poll-faq { margin-top: 56px; }
+  .poll-faq dl { display: grid; gap: 18px; margin: 0; }
+  .poll-faq-item { background: var(--poll-card); border: 1px solid var(--poll-line); border-radius: 14px; padding: 16px 20px; }
+  .poll-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .poll-faq-item dd { color: var(--poll-muted); line-height: 1.55; margin: 0; }
+
+  .poll-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--poll-fg); color: var(--poll-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+  }
+  .poll-toast[hidden] { display: none !important; }
+
+  @media (max-width: 600px) {
+    .poll-share-row { flex-direction: column; }
+    .poll-mode-switch { width: 100%; justify-content: stretch; }
+    .poll-tab { flex: 1; }
+  }
+</style>
+
+<script>
+type PollDef = { q: string; opts: string[]; multi: boolean };
+type VoteCode = { c: number[]; n?: string };
+type TallyEntry = { name: string; choices: number[]; raw: string };
+
+const STORAGE_KEY = "poll:v1";
+type Persist = { v: 1; lastTally: TallyEntry[]; lastDef: PollDef | null };
+
+function loadPersist(): Persist {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { v: 1, lastTally: [], lastDef: null };
+    const p = JSON.parse(raw);
+    if (p && p.v === 1) return p as Persist;
+  } catch {}
+  return { v: 1, lastTally: [], lastDef: null };
+}
+
+function savePersist(p: Persist): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
+}
+
+let persist = loadPersist();
+let currentDef: PollDef | null = null;
+let selectedChoices = new Set<number>();
+
+function utf8ToB64(s: string): string {
+  const bytes = new TextEncoder().encode(s);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function b64ToUtf8(s: string): string {
+  const padded = s.replaceAll("-", "+").replaceAll("_", "/");
+  const pad = (4 - (padded.length % 4)) % 4;
+  const b = atob(padded + "=".repeat(pad));
+  const bytes = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) bytes[i] = b.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function encodePoll(def: PollDef): string {
+  return utf8ToB64(JSON.stringify({ q: def.q, o: def.opts, m: def.multi ? 1 : 0 }));
+}
+
+function decodePoll(s: string): PollDef | null {
+  try {
+    const p = JSON.parse(b64ToUtf8(s));
+    if (p && typeof p.q === "string" && Array.isArray(p.o)) {
+      return { q: p.q, opts: p.o.map(String), multi: !!p.m };
+    }
+  } catch {}
+  return null;
+}
+
+function encodeVote(v: VoteCode): string {
+  return "v_" + utf8ToB64(JSON.stringify(v));
+}
+
+function decodeVote(s: string): VoteCode | null {
+  const trimmed = s.trim();
+  if (!trimmed.startsWith("v_")) return null;
+  try {
+    const p = JSON.parse(b64ToUtf8(trimmed.slice(2)));
+    if (p && Array.isArray(p.c)) {
+      return { c: p.c.map((n: unknown) => Number(n)).filter((n) => Number.isInteger(n) && n >= 0), n: typeof p.n === "string" ? p.n : undefined };
+    }
+  } catch {}
+  return null;
+}
+
+function showToast(msg: string): void {
+  const toast = document.getElementById("toast") as HTMLElement;
+  toast.textContent = msg;
+  toast.hidden = false;
+  setTimeout(() => { toast.hidden = true; }, 2200);
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); document.body.removeChild(ta); return true; } catch { document.body.removeChild(ta); return false; }
+}
+
+function switchTab(name: string): void {
+  document.querySelectorAll<HTMLElement>(".poll-tab").forEach((t) => {
+    const active = t.dataset.tab === name;
+    t.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document.querySelectorAll<HTMLElement>(".poll-panel").forEach((p) => { p.hidden = true; });
+  const panel = document.getElementById("panel-" + name);
+  if (panel) panel.hidden = false;
+}
+
+function renderCreateOptions(values: string[] = ["", ""]): void {
+  const root = document.getElementById("create-options") as HTMLElement;
+  root.innerHTML = "";
+  values.forEach((val, i) => addCreateRow(val, i));
+}
+
+function addCreateRow(value = "", _i = -1): void {
+  const root = document.getElementById("create-options") as HTMLElement;
+  const row = document.createElement("div");
+  row.className = "poll-opt-row";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.maxLength = 80;
+  input.placeholder = `Option ${root.children.length + 1}`;
+  input.value = value;
+  input.autocomplete = "off";
+  row.appendChild(input);
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "poll-opt-remove";
+  del.setAttribute("aria-label", "Remove option");
+  del.textContent = "×";
+  del.addEventListener("click", () => {
+    if (root.children.length <= 2) { showToast("Need at least two options."); return; }
+    row.remove();
+  });
+  row.appendChild(del);
+  root.appendChild(row);
+}
+
+function readCreateForm(): PollDef | null {
+  const q = (document.getElementById("create-q") as HTMLInputElement).value.trim();
+  const multi = (document.getElementById("create-multi") as HTMLInputElement).checked;
+  const opts: string[] = [];
+  document.querySelectorAll<HTMLInputElement>("#create-options input").forEach((i) => {
+    const v = i.value.trim();
+    if (v) opts.push(v.slice(0, 80));
+  });
+  if (!q) { showToast("Add a question."); return null; }
+  if (opts.length < 2) { showToast("Add at least two options."); return null; }
+  return { q: q.slice(0, 120), opts, multi };
+}
+
+function makeShareLink(def: PollDef): string {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("p", encodePoll(def));
+  return url.toString();
+}
+
+function renderVotePanel(def: PollDef): void {
+  (document.getElementById("vote-loaded") as HTMLElement).hidden = false;
+  (document.getElementById("vote-empty") as HTMLElement).hidden = true;
+  (document.getElementById("vote-q") as HTMLElement).textContent = def.q;
+  (document.getElementById("vote-multi-hint") as HTMLElement).hidden = !def.multi;
+  const opts = document.getElementById("vote-options") as HTMLElement;
+  opts.innerHTML = "";
+  selectedChoices = new Set();
+  def.opts.forEach((label, i) => {
+    const wrap = document.createElement("label");
+    wrap.className = "poll-vote-option";
+    const input = document.createElement("input");
+    input.type = def.multi ? "checkbox" : "radio";
+    input.name = "vote-opt";
+    input.value = String(i);
+    input.addEventListener("change", () => {
+      if (def.multi) {
+        if (input.checked) selectedChoices.add(i); else selectedChoices.delete(i);
+      } else {
+        selectedChoices = new Set([i]);
+      }
+      opts.querySelectorAll(".poll-vote-option").forEach((el, idx) => {
+        el.classList.toggle("is-selected", selectedChoices.has(idx));
+      });
+    });
+    const span = document.createElement("span");
+    span.textContent = label;
+    wrap.appendChild(input);
+    wrap.appendChild(span);
+    opts.appendChild(wrap);
+  });
+}
+
+function renderTallyPanel(def: PollDef): void {
+  (document.getElementById("tally-loaded") as HTMLElement).hidden = false;
+  (document.getElementById("tally-empty") as HTMLElement).hidden = true;
+  (document.getElementById("tally-q") as HTMLElement).textContent = def.q;
+  renderTallyResults(def);
+}
+
+function renderTallyResults(def: PollDef): void {
+  const root = document.getElementById("tally-results") as HTMLElement;
+  const meta = document.getElementById("tally-meta") as HTMLElement;
+  root.innerHTML = "";
+
+  const counts: number[] = new Array(def.opts.length).fill(0);
+  const voters: string[][] = def.opts.map(() => []);
+  for (const entry of persist.lastTally) {
+    for (const c of entry.choices) {
+      if (c >= 0 && c < def.opts.length) {
+        counts[c]++;
+        voters[c].push(entry.name);
+      }
+    }
+  }
+  const max = Math.max(1, ...counts);
+
+  def.opts.forEach((label, i) => {
+    const row = document.createElement("div");
+    row.className = "poll-tally-row";
+    const head = document.createElement("div");
+    head.className = "poll-tally-row-head";
+    const name = document.createElement("div");
+    name.className = "poll-tally-name";
+    name.textContent = label;
+    const count = document.createElement("div");
+    count.className = "poll-tally-count";
+    count.textContent = String(counts[i]);
+    head.appendChild(name);
+    head.appendChild(count);
+    row.appendChild(head);
+    const bar = document.createElement("div");
+    bar.className = "poll-tally-bar";
+    const fill = document.createElement("div");
+    fill.className = "poll-tally-bar-fill";
+    fill.style.width = (counts[i] / max * 100) + "%";
+    bar.appendChild(fill);
+    row.appendChild(bar);
+    if (voters[i].length > 0) {
+      const v = document.createElement("div");
+      v.className = "poll-tally-voters";
+      v.textContent = voters[i].join(", ");
+      row.appendChild(v);
+    }
+    root.appendChild(row);
+  });
+
+  const total = persist.lastTally.length;
+  meta.textContent = total === 0 ? "No votes yet." : total === 1 ? "1 vote." : `${total} votes.`;
+}
+
+function init(): void {
+  renderCreateOptions(["", ""]);
+
+  document.querySelectorAll<HTMLButtonElement>(".poll-tab").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab ?? "create"));
+  });
+  document.querySelectorAll<HTMLButtonElement>("[data-jump]").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.jump ?? "create"));
+  });
+
+  document.getElementById("add-opt")?.addEventListener("click", () => addCreateRow());
+
+  document.getElementById("create-clear")?.addEventListener("click", () => {
+    (document.getElementById("create-q") as HTMLInputElement).value = "";
+    (document.getElementById("create-multi") as HTMLInputElement).checked = false;
+    renderCreateOptions(["", ""]);
+    (document.getElementById("create-result") as HTMLElement).hidden = true;
+  });
+
+  document.getElementById("create-make")?.addEventListener("click", () => {
+    const def = readCreateForm();
+    if (!def) return;
+    const link = makeShareLink(def);
+    (document.getElementById("create-link") as HTMLInputElement).value = link;
+    (document.getElementById("create-result") as HTMLElement).hidden = false;
+    persist.lastDef = def;
+    persist.lastTally = [];
+    savePersist(persist);
+    currentDef = def;
+    renderTallyPanel(def);
+    renderVotePanel(def);
+  });
+  document.getElementById("create-copy")?.addEventListener("click", async () => {
+    const link = (document.getElementById("create-link") as HTMLInputElement).value;
+    const ok = await copyToClipboard(link);
+    showToast(ok ? "Link copied!" : "Copy failed.");
+  });
+
+  document.getElementById("vote-submit")?.addEventListener("click", () => {
+    if (!currentDef) return;
+    if (selectedChoices.size === 0) { showToast("Pick an option."); return; }
+    const name = (document.getElementById("vote-name") as HTMLInputElement).value.trim().slice(0, 40);
+    const v: VoteCode = { c: Array.from(selectedChoices).sort((a, b) => a - b) };
+    if (name) v.n = name;
+    const code = encodeVote(v);
+    (document.getElementById("vote-code") as HTMLInputElement).value = code;
+    (document.getElementById("vote-result") as HTMLElement).hidden = false;
+  });
+  document.getElementById("vote-copy")?.addEventListener("click", async () => {
+    const code = (document.getElementById("vote-code") as HTMLInputElement).value;
+    const ok = await copyToClipboard(code);
+    showToast(ok ? "Code copied!" : "Copy failed.");
+  });
+
+  document.getElementById("tally-add")?.addEventListener("click", () => {
+    if (!currentDef) { showToast("Open a poll link first."); return; }
+    const inp = document.getElementById("tally-input") as HTMLInputElement;
+    const v = decodeVote(inp.value);
+    if (!v) { showToast("That doesn't look like a vote code."); return; }
+    const filtered = v.c.filter((i) => i >= 0 && i < (currentDef as PollDef).opts.length);
+    if (filtered.length === 0) { showToast("Vote has no valid choices."); return; }
+    persist.lastTally.push({ name: v.n || "Anonymous", choices: filtered, raw: inp.value.trim() });
+    savePersist(persist);
+    inp.value = "";
+    renderTallyResults(currentDef);
+    showToast("Vote added.");
+  });
+  document.getElementById("tally-clear")?.addEventListener("click", () => {
+    if (!currentDef) return;
+    if (!confirm("Clear all votes in this tally?")) return;
+    persist.lastTally = [];
+    savePersist(persist);
+    renderTallyResults(currentDef);
+  });
+  document.getElementById("tally-export")?.addEventListener("click", async () => {
+    if (!currentDef) return;
+    const counts: number[] = new Array(currentDef.opts.length).fill(0);
+    for (const entry of persist.lastTally) for (const c of entry.choices) if (c >= 0 && c < currentDef.opts.length) counts[c]++;
+    const lines = [`# ${currentDef.q}`, ""];
+    currentDef.opts.forEach((label, i) => lines.push(`- ${label}: ${counts[i]}`));
+    lines.push("", `Total votes: ${persist.lastTally.length}`);
+    const ok = await copyToClipboard(lines.join("\n"));
+    showToast(ok ? "Summary copied!" : "Copy failed.");
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const p = params.get("p");
+  if (p) {
+    const def = decodePoll(p);
+    if (def) {
+      currentDef = def;
+      if (!persist.lastDef || JSON.stringify(persist.lastDef) !== JSON.stringify(def)) {
+        persist.lastTally = [];
+      }
+      persist.lastDef = def;
+      savePersist(persist);
+      renderVotePanel(def);
+      renderTallyPanel(def);
+      switchTab("vote");
+    }
+  } else if (persist.lastDef) {
+    currentDef = persist.lastDef;
+    renderVotePanel(persist.lastDef);
+    renderTallyPanel(persist.lastDef);
+  }
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/poll/sw.js").catch(() => {});
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+</script>
