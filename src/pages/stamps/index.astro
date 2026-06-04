@@ -1,0 +1,913 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Stamps · Daily Habit Tracker";
+const description =
+  "A calm daily habit tracker. Five habits, thirty-day grids, current and best streaks. Saved in your browser. Share a snapshot by link. Works offline. No accounts. No trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/stamps/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Stamps",
+  alternateName: ["Habit Tracker", "Daily Habits", "Streak Tracker"],
+  url: canonical,
+  applicationCategory: "LifestyleApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Track up to twelve daily habits",
+    "Thirty-day rolling grid per habit",
+    "Current and best streak per habit",
+    "Tap any day to stamp or unstamp",
+    "Six accent colors per habit",
+    "Share a snapshot by link",
+    "Works offline (PWA)",
+    "No ads, no signup, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Stamps?",
+    a: "A small daily habit tracker. Five habits by default, thirty-day rolling grid, current and best streak per habit. Tap a square to stamp it. Drafts save in your browser.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "How are streaks computed?",
+    a: "Current streak counts the days from today backward until the first unstamped day. Best streak is the longest run of consecutive stamps in your history. Stamping a missed day in the past extends both totals.",
+  },
+  {
+    q: "Can I share my habits?",
+    a: "Tap Share to copy a snapshot link. Anyone who opens it sees the same habits and stamps in their browser. They can fork the snapshot into their own browser with one click.",
+  },
+  {
+    q: "Where is my data stored?",
+    a: "In your browser's localStorage. Nothing is sent to a server. Clearing site data wipes your stamps. Snapshots are encoded in the URL, not on a server.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/stamps/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="st-page">
+    <header class="st-topbar">
+      <div class="st-topbar-inner">
+        <div class="st-brand">
+          <span class="st-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="6" height="6" rx="1.2" />
+              <rect x="14" y="4" width="6" height="6" rx="1.2" />
+              <rect x="4" y="14" width="6" height="6" rx="1.2" />
+              <path d="M14 17l2 2 4-4" />
+            </svg>
+          </span>
+          <span class="st-brand-name">Stamps</span>
+        </div>
+        <div class="st-topbar-actions">
+          <button id="add-btn" type="button" class="st-btn st-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            <span>Add habit</span>
+          </button>
+          <button id="share-btn" type="button" class="st-btn st-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="st-stage">
+      <p class="st-eyebrow">Habits for</p>
+      <h1 id="today-display" class="st-title">Today</h1>
+      <p class="st-sub" id="today-summary">0 of 0 stamped today.</p>
+    </section>
+
+    <section id="habit-list" class="st-habits" aria-label="Habit list"></section>
+
+    <section id="empty-state" class="st-empty" hidden>
+      <h2 class="st-h2">No habits yet.</h2>
+      <p class="st-body">Tap Add habit to start. Five short habits beats one ambitious one.</p>
+    </section>
+
+    <section id="import-banner" class="st-import" hidden role="region" aria-label="Shared snapshot">
+      <div class="st-import-inner">
+        <div>
+          <p class="st-eyebrow">Shared snapshot</p>
+          <p class="st-import-line"><strong id="import-count">0</strong> habits with stamps.</p>
+        </div>
+        <div class="st-row st-import-actions">
+          <button id="import-fork" type="button" class="st-btn st-btn-primary st-btn-sm">Use as mine</button>
+          <button id="import-dismiss" type="button" class="st-btn st-btn-ghost st-btn-sm">Dismiss</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="st-why">
+      <p class="st-eyebrow">Why this exists</p>
+      <h2 class="st-h2">A habit tracker that does not need a subscription.</h2>
+      <p class="st-body">
+        Habit-tracking apps are the most-subscribed-to category of
+        thing nobody needs to subscribe to. Stamps is one URL and one
+        rule: tap a square. The square fills. The streak counts up.
+        Skip a day and the streak resets, no shame. Five habits is the
+        target, twelve is the cap.
+      </p>
+      <p class="st-body">
+        Snapshots live in URLs. If you want to share your week with a
+        friend, tap Share and send them a link. They see your grid in
+        their browser. If they like it, they can fork it into theirs
+        and start their own count. No account, no friend graph, no
+        notifications at 7am.
+      </p>
+    </section>
+
+    <section class="st-faq">
+      <p class="st-eyebrow">Frequently asked</p>
+      <h2 class="st-h2">Answers to the obvious questions.</h2>
+      <div class="st-faq-list">
+        {faq.map((f) => (
+          <details class="st-faq-item">
+            <summary class="st-faq-q">{f.q}</summary>
+            <p class="st-faq-a">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <div id="toast" class="st-toast" role="status" aria-live="polite" hidden></div>
+
+    <div id="edit-dialog" class="st-dialog" hidden aria-hidden="true">
+      <div class="st-dialog-backdrop" data-close></div>
+      <div class="st-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+        <header class="st-dialog-head">
+          <h2 id="edit-title" class="st-h2">Edit habit</h2>
+          <button type="button" class="st-btn st-btn-ghost st-btn-sm" data-close aria-label="Close">Close</button>
+        </header>
+
+        <div class="st-form">
+          <label class="st-field">
+            <span class="st-label">Name</span>
+            <input id="edit-name" type="text" class="st-input" maxlength="40" />
+          </label>
+
+          <div class="st-field">
+            <span class="st-label">Color</span>
+            <div id="color-row" class="st-color-row" role="radiogroup" aria-label="Color"></div>
+          </div>
+
+          <div class="st-row st-edit-actions">
+            <button id="edit-save" type="button" class="st-btn st-btn-primary st-btn-sm">Save</button>
+            <button id="edit-delete" type="button" class="st-btn st-btn-ghost st-btn-sm st-danger">Delete habit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <style is:global>
+    :root {
+      --st-bg: #fbfaf5;
+      --st-ink: #1a160e;
+      --st-ink-soft: rgba(26, 22, 14, 0.72);
+      --st-ink-soft-2: rgba(26, 22, 14, 0.52);
+      --st-line: rgba(26, 22, 14, 0.12);
+      --st-card: #ffffff;
+      --st-accent: #1f4ed8;
+      --st-accent-soft: rgba(31, 78, 216, 0.12);
+      --st-danger: #b91c1c;
+      --st-cell-bg: rgba(26, 22, 14, 0.06);
+      --st-radius-sm: 8px;
+      --st-radius: 12px;
+      --st-radius-lg: 16px;
+      --st-shadow: 0 1px 0 var(--st-line), 0 8px 24px rgba(26, 22, 14, 0.04);
+      --st-shadow-pop: 0 8px 24px rgba(26, 22, 14, 0.16);
+    }
+    [data-theme="dark"] {
+      --st-bg: #0e0c08;
+      --st-ink: #f4f1ea;
+      --st-ink-soft: rgba(244, 241, 234, 0.72);
+      --st-ink-soft-2: rgba(244, 241, 234, 0.52);
+      --st-line: rgba(244, 241, 234, 0.14);
+      --st-card: #1a160e;
+      --st-accent: #8fa9ff;
+      --st-accent-soft: rgba(143, 169, 255, 0.18);
+      --st-danger: #f87171;
+      --st-cell-bg: rgba(244, 241, 234, 0.08);
+      --st-shadow: 0 1px 0 var(--st-line), 0 8px 24px rgba(0, 0, 0, 0.4);
+      --st-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --st-bg: #0e0c08;
+        --st-ink: #f4f1ea;
+        --st-ink-soft: rgba(244, 241, 234, 0.72);
+        --st-ink-soft-2: rgba(244, 241, 234, 0.52);
+        --st-line: rgba(244, 241, 234, 0.14);
+        --st-card: #1a160e;
+        --st-accent: #8fa9ff;
+        --st-accent-soft: rgba(143, 169, 255, 0.18);
+        --st-danger: #f87171;
+        --st-cell-bg: rgba(244, 241, 234, 0.08);
+        --st-shadow: 0 1px 0 var(--st-line), 0 8px 24px rgba(0, 0, 0, 0.4);
+        --st-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+    }
+
+    .st-page {
+      background: var(--st-bg);
+      color: var(--st-ink);
+      min-height: 70vh;
+      padding-bottom: 6rem;
+    }
+    .st-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: color-mix(in oklab, var(--st-bg) 88%, transparent);
+      backdrop-filter: saturate(140%) blur(8px);
+      border-bottom: 1px solid var(--st-line);
+    }
+    .st-topbar-inner {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .st-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+    }
+    .st-brand-mark { color: var(--st-accent); display: inline-flex; }
+    .st-brand-name { font-size: 1.0625rem; }
+    .st-topbar-actions { display: inline-flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    .st-btn {
+      appearance: none;
+      border: 1px solid var(--st-line);
+      background: var(--st-card);
+      color: var(--st-ink);
+      border-radius: 999px;
+      padding: 0.5rem 0.9rem;
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+    }
+    .st-btn:hover { background: color-mix(in oklab, var(--st-accent) 8%, var(--st-card)); border-color: color-mix(in oklab, var(--st-accent) 35%, var(--st-line)); }
+    .st-btn:active { transform: translateY(1px); }
+    .st-btn:focus-visible { outline: 2px solid var(--st-accent); outline-offset: 2px; }
+    .st-btn-primary { background: var(--st-accent); border-color: var(--st-accent); color: white; }
+    .st-btn-primary:hover { background: color-mix(in oklab, var(--st-accent) 88%, black); border-color: color-mix(in oklab, var(--st-accent) 88%, black); }
+    .st-btn-ghost { background: transparent; }
+    .st-btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8125rem; }
+    .st-danger { color: var(--st-danger); border-color: color-mix(in oklab, var(--st-danger) 35%, var(--st-line)); }
+    .st-danger:hover { background: color-mix(in oklab, var(--st-danger) 8%, var(--st-card)); }
+
+    .st-stage {
+      max-width: 920px;
+      margin: 2.25rem auto 1.25rem;
+      padding: 0 1.25rem;
+    }
+    .st-eyebrow {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--st-ink-soft-2);
+      margin: 0 0 0.35rem;
+      font-weight: 600;
+    }
+    .st-title {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-style: italic;
+      font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.05;
+      margin: 0 0 0.4rem;
+    }
+    .st-sub { color: var(--st-ink-soft-2); font-size: 0.9375rem; margin: 0; }
+
+    .st-habits {
+      max-width: 920px;
+      margin: 1.25rem auto 0;
+      padding: 0 1.25rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+    .st-habit-card {
+      background: var(--st-card);
+      border: 1px solid var(--st-line);
+      border-radius: var(--st-radius);
+      padding: 0.9rem 1rem 1rem;
+      box-shadow: var(--st-shadow);
+    }
+    .st-habit-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .st-habit-name-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      min-width: 0;
+    }
+    .st-habit-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .st-habit-name {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-size: 1.0625rem;
+      font-weight: 500;
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .st-habit-actions { display: inline-flex; gap: 0.4rem; }
+    .st-habit-stats {
+      display: flex;
+      gap: 1.1rem;
+      margin-top: 0.55rem;
+      color: var(--st-ink-soft);
+      font-size: 0.8125rem;
+      flex-wrap: wrap;
+    }
+    .st-habit-stats strong {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-weight: 500;
+      color: var(--st-ink);
+    }
+
+    .st-grid {
+      margin-top: 0.7rem;
+      display: grid;
+      grid-template-columns: repeat(30, minmax(0, 1fr));
+      gap: 4px;
+    }
+    .st-cell {
+      appearance: none;
+      border: 0;
+      padding: 0;
+      aspect-ratio: 1;
+      border-radius: 4px;
+      background: var(--st-cell-bg);
+      cursor: pointer;
+      transition: background-color 120ms ease, transform 90ms ease;
+    }
+    .st-cell:hover { transform: scale(1.06); }
+    .st-cell:focus-visible { outline: 2px solid var(--st-accent); outline-offset: 1px; }
+    .st-cell.is-stamped { background: var(--cell-color, var(--st-accent)); }
+    .st-cell.is-today { box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--st-ink) 30%, transparent); }
+    .st-cell.is-today.is-stamped { box-shadow: inset 0 0 0 2px color-mix(in oklab, white 50%, transparent); }
+    .st-cell.is-future { opacity: 0.3; cursor: default; pointer-events: none; }
+
+    .st-empty {
+      max-width: 580px;
+      margin: 3rem auto 0;
+      padding: 0 1.25rem;
+      text-align: center;
+    }
+
+    .st-import {
+      max-width: 920px;
+      margin: 1.5rem auto 0;
+      padding: 0 1.25rem;
+    }
+    .st-import-inner {
+      background: var(--st-accent-soft);
+      border: 1px solid color-mix(in oklab, var(--st-accent) 30%, var(--st-line));
+      border-radius: var(--st-radius);
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .st-import-line { margin: 0; color: var(--st-ink); }
+    .st-import-actions { gap: 0.4rem; }
+    .st-row { display: inline-flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    .st-why, .st-faq {
+      max-width: 740px;
+      margin: 3rem auto 0;
+      padding: 0 1.25rem;
+    }
+    .st-h2 {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-weight: 500;
+      font-size: clamp(1.5rem, 3.6vw, 2rem);
+      margin: 0 0 0.85rem;
+    }
+    .st-body { color: var(--st-ink-soft); font-size: 1rem; line-height: 1.65; max-width: 60ch; }
+    .st-body + .st-body { margin-top: 0.6rem; }
+    .st-faq-list { display: grid; gap: 0.5rem; margin-top: 1rem; }
+    .st-faq-item {
+      border: 1px solid var(--st-line);
+      border-radius: var(--st-radius-sm);
+      background: var(--st-card);
+      padding: 0.75rem 0.9rem;
+    }
+    .st-faq-q {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      list-style: none;
+    }
+    .st-faq-q::-webkit-details-marker { display: none; }
+    .st-faq-q::after { content: "+"; float: right; color: var(--st-ink-soft-2); font-weight: 400; }
+    details[open] .st-faq-q::after { content: "–"; }
+    .st-faq-a { color: var(--st-ink-soft); margin: 0.5rem 0 0; font-size: 0.9375rem; line-height: 1.55; }
+
+    .st-toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--st-ink);
+      color: var(--st-bg);
+      padding: 0.55rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      box-shadow: var(--st-shadow-pop);
+      z-index: 50;
+    }
+
+    .st-dialog { position: fixed; inset: 0; z-index: 40; }
+    .st-dialog-backdrop { position: absolute; inset: 0; background: rgba(26, 22, 14, 0.4); backdrop-filter: blur(2px); }
+    .st-dialog-panel {
+      position: relative;
+      max-width: 460px;
+      margin: 4rem auto 0;
+      background: var(--st-card);
+      border: 1px solid var(--st-line);
+      border-radius: var(--st-radius-lg);
+      box-shadow: var(--st-shadow-pop);
+      padding: 1.25rem 1.25rem 1.5rem;
+    }
+    .st-dialog-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.85rem;
+      gap: 1rem;
+    }
+
+    .st-form { display: grid; gap: 1rem; }
+    .st-field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .st-label { font-size: 0.8125rem; color: var(--st-ink-soft); font-weight: 500; }
+    .st-input {
+      appearance: none;
+      border: 1px solid var(--st-line);
+      background: var(--st-bg);
+      color: var(--st-ink);
+      padding: 0.55rem 0.7rem;
+      border-radius: var(--st-radius-sm);
+      font: inherit;
+      font-size: 0.9375rem;
+    }
+    .st-input:focus { outline: 2px solid var(--st-accent); outline-offset: 2px; border-color: transparent; }
+    .st-color-row { display: inline-flex; gap: 0.4rem; flex-wrap: wrap; }
+    .st-color-swatch {
+      appearance: none;
+      border: 2px solid transparent;
+      background: var(--swatch);
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .st-color-swatch[aria-checked="true"] { border-color: var(--st-ink); box-shadow: 0 0 0 2px var(--st-bg); }
+    .st-edit-actions { justify-content: space-between; gap: 0.5rem; }
+
+    @media (max-width: 600px) {
+      .st-topbar-actions .st-btn span { display: none; }
+      .st-grid { gap: 3px; }
+    }
+  </style>
+
+  <script>
+    type Habit = { id: string; name: string; color: string };
+    type Store = {
+      habits: Habit[];
+      stamps: Record<string, Record<string, true>>;
+    };
+
+    const STORAGE_KEY = "stamps:v1";
+    const MAX_HABITS = 12;
+    const GRID_DAYS = 30;
+    const COLORS = ["#1f4ed8", "#1f8a4a", "#b91c1c", "#b45309", "#7c3aed", "#0e7490"];
+
+    const DEFAULT: Store = {
+      habits: [
+        { id: "h1", name: "Move", color: COLORS[0] },
+        { id: "h2", name: "Read", color: COLORS[1] },
+        { id: "h3", name: "Sleep early", color: COLORS[2] },
+        { id: "h4", name: "Hydrate", color: COLORS[5] },
+        { id: "h5", name: "No phone after 9", color: COLORS[3] },
+      ],
+      stamps: {},
+    };
+
+    function todayKey(d = new Date()): string {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function dateNDaysAgo(n: number): string {
+      return todayKey(new Date(Date.now() - n * 86400000));
+    }
+
+    function prettyToday(): string {
+      const d = new Date();
+      return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+    }
+
+    function loadStore(): Store {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return DEFAULT;
+        const p = JSON.parse(raw);
+        return {
+          habits: Array.isArray(p.habits) && p.habits.length ? p.habits.slice(0, MAX_HABITS) : DEFAULT.habits,
+          stamps: p.stamps && typeof p.stamps === "object" ? p.stamps : {},
+        };
+      } catch {
+        return DEFAULT;
+      }
+    }
+
+    function saveStore(s: Store): void {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+    }
+
+    function utf8ToB64(s: string): string {
+      const bytes = new TextEncoder().encode(s);
+      let bin = "";
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+    function b64ToUtf8(s: string): string {
+      const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
+      const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    function $(id: string): HTMLElement {
+      const el = document.getElementById(id);
+      if (!el) throw new Error("Missing #" + id);
+      return el;
+    }
+
+    function toast(msg: string): void {
+      const t = $("toast");
+      t.textContent = msg;
+      t.hidden = false;
+      setTimeout(() => { t.hidden = true; }, 1600);
+    }
+
+    function uid(): string {
+      return "h_" + Math.random().toString(36).slice(2, 9);
+    }
+
+    function ensureStamps(s: Store, habitId: string): Record<string, true> {
+      if (!s.stamps[habitId]) s.stamps[habitId] = {};
+      return s.stamps[habitId];
+    }
+
+    function isStamped(s: Store, habitId: string, day: string): boolean {
+      return !!(s.stamps[habitId] && s.stamps[habitId][day]);
+    }
+
+    function toggleStamp(s: Store, habitId: string, day: string): void {
+      const map = ensureStamps(s, habitId);
+      if (map[day]) delete map[day];
+      else map[day] = true;
+    }
+
+    function currentStreak(s: Store, habitId: string): number {
+      let streak = 0;
+      for (let i = 0; i < 365 * 5; i++) {
+        const k = dateNDaysAgo(i);
+        if (isStamped(s, habitId, k)) streak++;
+        else if (i === 0) break;
+        else break;
+      }
+      return streak;
+    }
+
+    function bestStreak(s: Store, habitId: string): number {
+      const m = s.stamps[habitId] || {};
+      const keys = Object.keys(m).sort();
+      if (!keys.length) return 0;
+      let best = 1;
+      let run = 1;
+      for (let i = 1; i < keys.length; i++) {
+        const prev = new Date(keys[i - 1] + "T00:00:00");
+        const curr = new Date(keys[i] + "T00:00:00");
+        const diff = Math.round((curr.getTime() - prev.getTime()) / 86400000);
+        if (diff === 1) {
+          run++;
+          if (run > best) best = run;
+        } else {
+          run = 1;
+        }
+      }
+      return best;
+    }
+
+    function countLast30(s: Store, habitId: string): number {
+      let count = 0;
+      for (let i = 0; i < GRID_DAYS; i++) {
+        if (isStamped(s, habitId, dateNDaysAgo(i))) count++;
+      }
+      return count;
+    }
+
+    const store: Store = loadStore();
+
+    function renderHabits(): void {
+      const list = $("habit-list");
+      list.innerHTML = "";
+      $("empty-state").hidden = store.habits.length > 0;
+
+      const today = todayKey();
+      let stampedToday = 0;
+
+      store.habits.forEach((h) => {
+        if (isStamped(store, h.id, today)) stampedToday++;
+        const card = document.createElement("article");
+        card.className = "st-habit-card";
+
+        const head = document.createElement("div");
+        head.className = "st-habit-head";
+
+        const nameRow = document.createElement("div");
+        nameRow.className = "st-habit-name-row";
+        const mark = document.createElement("span");
+        mark.className = "st-habit-mark";
+        mark.style.background = h.color;
+        const name = document.createElement("h2");
+        name.className = "st-habit-name";
+        name.textContent = h.name;
+        nameRow.appendChild(mark);
+        nameRow.appendChild(name);
+
+        const actions = document.createElement("div");
+        actions.className = "st-habit-actions";
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "st-btn st-btn-ghost st-btn-sm";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", () => openEdit(h.id));
+        actions.appendChild(editBtn);
+
+        head.appendChild(nameRow);
+        head.appendChild(actions);
+        card.appendChild(head);
+
+        const stats = document.createElement("div");
+        stats.className = "st-habit-stats";
+        const cur = currentStreak(store, h.id);
+        const best = bestStreak(store, h.id);
+        const c30 = countLast30(store, h.id);
+        const pct = Math.round((c30 / GRID_DAYS) * 100);
+        stats.innerHTML = `
+          <span>Current <strong>${cur}d</strong></span>
+          <span>Best <strong>${best}d</strong></span>
+          <span>Last 30 <strong>${c30}/${GRID_DAYS} (${pct}%)</strong></span>
+        `;
+        card.appendChild(stats);
+
+        const grid = document.createElement("div");
+        grid.className = "st-grid";
+        grid.setAttribute("aria-label", `${h.name} stamp grid`);
+        const todayLocal = today;
+        for (let i = GRID_DAYS - 1; i >= 0; i--) {
+          const k = dateNDaysAgo(i);
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = "st-cell";
+          cell.style.setProperty("--cell-color", h.color);
+          cell.setAttribute("aria-label", `${k} ${isStamped(store, h.id, k) ? "stamped" : "unstamped"}`);
+          if (isStamped(store, h.id, k)) cell.classList.add("is-stamped");
+          if (k === todayLocal) cell.classList.add("is-today");
+          cell.addEventListener("click", () => {
+            toggleStamp(store, h.id, k);
+            saveStore(store);
+            renderHabits();
+          });
+          grid.appendChild(cell);
+        }
+        card.appendChild(grid);
+        list.appendChild(card);
+      });
+
+      $("today-summary").textContent =
+        store.habits.length === 0
+          ? "Add a habit to begin."
+          : `${stampedToday} of ${store.habits.length} stamped today.`;
+    }
+
+    function pickColorNotInUse(): string {
+      const used = new Set(store.habits.map((h) => h.color));
+      for (const c of COLORS) if (!used.has(c)) return c;
+      return COLORS[store.habits.length % COLORS.length];
+    }
+
+    $("add-btn").addEventListener("click", () => {
+      if (store.habits.length >= MAX_HABITS) {
+        toast(`Maximum ${MAX_HABITS} habits`);
+        return;
+      }
+      const name = prompt("Name the habit", "")?.trim();
+      if (!name) return;
+      const h: Habit = { id: uid(), name: name.slice(0, 40), color: pickColorNotInUse() };
+      store.habits.push(h);
+      saveStore(store);
+      renderHabits();
+    });
+
+    let editingId: string | null = null;
+    function openEdit(id: string): void {
+      editingId = id;
+      const h = store.habits.find((x) => x.id === id);
+      if (!h) return;
+      ($("edit-name") as HTMLInputElement).value = h.name;
+      const row = $("color-row");
+      row.innerHTML = "";
+      COLORS.forEach((c) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "st-color-swatch";
+        b.style.setProperty("--swatch", c);
+        b.setAttribute("role", "radio");
+        b.setAttribute("aria-checked", String(c === h.color));
+        b.setAttribute("aria-label", `Color ${c}`);
+        b.dataset.color = c;
+        b.addEventListener("click", () => {
+          row.querySelectorAll(".st-color-swatch").forEach((el) => el.setAttribute("aria-checked", "false"));
+          b.setAttribute("aria-checked", "true");
+        });
+        row.appendChild(b);
+      });
+      $("edit-dialog").hidden = false;
+      $("edit-dialog").setAttribute("aria-hidden", "false");
+    }
+
+    function closeEdit(): void {
+      editingId = null;
+      $("edit-dialog").hidden = true;
+      $("edit-dialog").setAttribute("aria-hidden", "true");
+    }
+
+    document.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", () => closeEdit()));
+
+    $("edit-save").addEventListener("click", () => {
+      if (!editingId) return;
+      const h = store.habits.find((x) => x.id === editingId);
+      if (!h) return;
+      const name = ($("edit-name") as HTMLInputElement).value.trim();
+      if (!name) { toast("Name cannot be empty"); return; }
+      h.name = name.slice(0, 40);
+      const chosen = $("color-row").querySelector('.st-color-swatch[aria-checked="true"]') as HTMLElement | null;
+      if (chosen && chosen.dataset.color) h.color = chosen.dataset.color;
+      saveStore(store);
+      closeEdit();
+      renderHabits();
+    });
+
+    $("edit-delete").addEventListener("click", () => {
+      if (!editingId) return;
+      const h = store.habits.find((x) => x.id === editingId);
+      if (!h) return;
+      if (!confirm(`Delete "${h.name}" and all its stamps?`)) return;
+      store.habits = store.habits.filter((x) => x.id !== editingId);
+      delete store.stamps[editingId];
+      saveStore(store);
+      closeEdit();
+      renderHabits();
+    });
+
+    $("share-btn").addEventListener("click", async () => {
+      const payload = {
+        h: store.habits.map((h) => ({ i: h.id, n: h.name, c: h.color })),
+        s: Object.fromEntries(
+          Object.entries(store.stamps).map(([k, v]) => [k, Object.keys(v).sort()])
+        ),
+      };
+      const url = `${window.location.origin}/stamps/?u=${utf8ToB64(JSON.stringify(payload))}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast("Link copied");
+      } catch {
+        toast(url);
+      }
+    });
+
+    function tryImport(): void {
+      const params = new URLSearchParams(window.location.search);
+      const u = params.get("u");
+      if (!u) return;
+      try {
+        const payload = JSON.parse(b64ToUtf8(u));
+        if (!payload || typeof payload !== "object") return;
+        const habits = Array.isArray(payload.h) ? payload.h : [];
+        if (!habits.length) return;
+        const banner = $("import-banner");
+        $("import-count").textContent = String(habits.length);
+        banner.hidden = false;
+        $("import-fork").onclick = () => {
+          const incomingHabits: Habit[] = habits.slice(0, MAX_HABITS).map((x: { i?: string; n?: string; c?: string }) => ({
+            id: x.i || uid(),
+            name: String(x.n || "Habit").slice(0, 40),
+            color: String(x.c || COLORS[0]),
+          }));
+          const incomingStamps: Record<string, Record<string, true>> = {};
+          for (const h of incomingHabits) {
+            const days = (payload.s && payload.s[h.id]) || [];
+            const map: Record<string, true> = {};
+            (Array.isArray(days) ? days : []).forEach((d: string) => {
+              if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) map[d] = true;
+            });
+            incomingStamps[h.id] = map;
+          }
+          store.habits = incomingHabits;
+          store.stamps = incomingStamps;
+          saveStore(store);
+          banner.hidden = true;
+          history.replaceState(null, "", window.location.pathname);
+          renderHabits();
+          toast("Snapshot loaded");
+        };
+        $("import-dismiss").onclick = () => {
+          banner.hidden = true;
+          history.replaceState(null, "", window.location.pathname);
+        };
+      } catch {}
+    }
+
+    $("today-display").textContent = prettyToday();
+    tryImport();
+    renderHabits();
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/stamps/sw.js").catch(() => {});
+      });
+    }
+  </script>
+</BaseLayout>
