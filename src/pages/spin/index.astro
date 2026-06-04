@@ -140,6 +140,10 @@ const faqJsonLd = {
         <div class="spin-wheel-frame">
           <div class="spin-pointer spin-pointer-top" aria-hidden="true"></div>
           <canvas id="spin-canvas" width="640" height="640" role="img" aria-label="Decision wheel"></canvas>
+          <button id="spin-fullscreen-toggle" class="spin-fs-toggle" type="button" aria-label="Toggle fullscreen" aria-pressed="false">
+            <svg class="spin-fs-icon spin-fs-enter" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+            <svg class="spin-fs-icon spin-fs-exit" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg>
+          </button>
           <div id="spin-empty-overlay" class="spin-empty-overlay" hidden>
             <p class="spin-empty-title" id="spin-empty-title">Your wheel is empty.</p>
             <button type="button" id="spin-empty-cta" class="spin-empty-cta">
@@ -563,6 +567,7 @@ const faqJsonLd = {
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Alt</kbd> + <kbd class="spin-kbd">↑</kbd> / <kbd class="spin-kbd">↓</kbd></dt><dd>Reorder entry up / down</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Backspace</kbd></dt><dd>Delete entry (when input is empty)</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Ctrl</kbd> / <kbd class="spin-kbd">⌘</kbd> + <kbd class="spin-kbd">Z</kbd></dt><dd>Undo last entry delete</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">F</kbd></dt><dd>Toggle fullscreen presentation</dd></div>
       </dl>
       <p class="spin-help-foot">Shortcuts skip when an input is focused.</p>
     </div>
@@ -2516,7 +2521,65 @@ const faqJsonLd = {
     }
     .spin-page.spin-is-embed .spin-about,
     .spin-page.spin-is-embed .spin-faq,
-    .spin-page.spin-is-embed .spin-presets { display: none; }
+    .spin-page.spin-is-embed .spin-presets,
+    .spin-page.spin-is-presenting .spin-about,
+    .spin-page.spin-is-presenting .spin-faq,
+    .spin-page.spin-is-presenting .spin-presets { display: none; }
+
+    .spin-fs-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      background: color-mix(in oklab, var(--surface) 85%, transparent);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--content-2);
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .spin-fs-toggle:hover {
+      background: var(--surface);
+      color: var(--content);
+      border-color: var(--accent);
+    }
+    .spin-fs-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .spin-fs-toggle .spin-fs-exit { display: none; }
+    .spin-fs-toggle[aria-pressed="true"] .spin-fs-enter { display: none; }
+    .spin-fs-toggle[aria-pressed="true"] .spin-fs-exit { display: inline-block; }
+
+    .spin-page.spin-is-presenting {
+      padding: 0;
+      max-width: none;
+      min-height: 100vh;
+    }
+    .spin-page.spin-is-presenting .spin-header,
+    .spin-page.spin-is-presenting .spin-side,
+    .spin-page.spin-is-presenting .spin-suggest,
+    .spin-page.spin-is-presenting .spin-foot {
+      display: none;
+    }
+    .spin-page.spin-is-presenting .spin-stage {
+      grid-template-columns: 1fr;
+      width: 100%;
+      padding: 1rem;
+      min-height: 100vh;
+      align-items: center;
+    }
+    .spin-page.spin-is-presenting .spin-wheel-pane {
+      width: 100%;
+      max-width: min(92vh, 92vw);
+      margin: 0 auto;
+    }
 
     .spin-presets {
       margin: 2.5rem auto 0;
@@ -3690,6 +3753,7 @@ const faqJsonLd = {
     const resetBtn = document.getElementById("spin-reset");
     const shareBtn = document.getElementById("spin-share");
     const muteBtn = document.getElementById("spin-mute");
+    const fsToggle = document.getElementById("spin-fullscreen-toggle") as HTMLButtonElement | null;
     const eliminateBtn = document.getElementById("spin-eliminate");
     const accumulateBtn = document.getElementById("spin-accumulate");
     const rotationBtn = document.getElementById("spin-rotation");
@@ -5766,6 +5830,39 @@ const faqJsonLd = {
       if (e.target === helpModal) hideHelp();
     });
 
+    function setPresenting(on: boolean) {
+      const root = document.querySelector(".spin-page");
+      if (!root) return;
+      const isOn = root.classList.contains("spin-is-presenting");
+      if (on === isOn) return;
+      if (on) {
+        root.classList.add("spin-is-presenting");
+        fsToggle?.setAttribute("aria-pressed", "true");
+      } else {
+        root.classList.remove("spin-is-presenting");
+        fsToggle?.setAttribute("aria-pressed", "false");
+      }
+      requestAnimationFrame(() => {
+        drawWheel();
+        fitConfetti();
+      });
+    }
+    function toggleFullscreen() {
+      const root = document.querySelector(".spin-page");
+      if (!root) return;
+      const goingOn = !root.classList.contains("spin-is-presenting");
+      setPresenting(goingOn);
+      if (goingOn) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    }
+    fsToggle?.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement) setPresenting(false);
+    });
+
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && embedModal && !embedModal.hidden) {
         closeEmbedModal();
@@ -5803,6 +5900,11 @@ const faqJsonLd = {
           if (toastAction) toastAction.hidden = true;
           handler();
         }
+        return;
+      }
+      if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        toggleFullscreen();
         return;
       }
       if (e.key === "?") {
