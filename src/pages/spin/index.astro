@@ -140,6 +140,13 @@ const faqJsonLd = {
         <div class="spin-wheel-frame">
           <div class="spin-pointer spin-pointer-top" aria-hidden="true"></div>
           <canvas id="spin-canvas" width="640" height="640" role="img" aria-label="Decision wheel"></canvas>
+          <div id="spin-empty-overlay" class="spin-empty-overlay" hidden>
+            <p class="spin-empty-title" id="spin-empty-title">Your wheel is empty.</p>
+            <button type="button" id="spin-empty-cta" class="spin-empty-cta">
+              <span aria-hidden="true">+</span>
+              <span id="spin-empty-cta-label">Add your first entry</span>
+            </button>
+          </div>
           <button id="spin-center" class="spin-center-btn" type="button" aria-label="Spin the wheel">
             <span class="spin-center-label">Spin</span>
           </button>
@@ -704,6 +711,59 @@ const faqJsonLd = {
       opacity: 0.5;
       cursor: not-allowed;
       transform: translate(-50%, -50%);
+    }
+
+    .spin-empty-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14% 8% 14%;
+      pointer-events: none;
+      text-align: center;
+    }
+    .spin-empty-overlay[hidden] { display: none; }
+    .spin-empty-title {
+      font-family: "Fraunces", Georgia, serif;
+      font-style: italic;
+      font-size: clamp(1rem, 2.6vw, 1.4rem);
+      line-height: 1.25;
+      color: var(--content-2, var(--content));
+      margin: 0;
+      max-width: 22ch;
+    }
+    .spin-empty-cta {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--accent);
+      color: white;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.55rem 1.1rem;
+      font: 600 0.875rem / 1 "Inter", system-ui, sans-serif;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(72, 80, 196, 0.25);
+      transition: transform 0.12s var(--ease-out, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
+        box-shadow 0.12s var(--ease-out, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+    }
+    .spin-empty-cta > span:first-child {
+      font-size: 1.1em;
+      line-height: 1;
+      font-weight: 400;
+    }
+    .spin-empty-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(72, 80, 196, 0.35);
+    }
+    .spin-empty-cta:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
     }
 
     .spin-hint {
@@ -3306,6 +3366,8 @@ const faqJsonLd = {
       "toast.deleted": "Deleted {name}",
       "toast.entry_deleted": "Deleted “{name}”",
       "toast.undo": "Undo",
+      "empty.title": "Your wheel is empty.",
+      "empty.cta": "Add your first entry",
       "toast.need_4_teams": "Need at least 4 entries to split teams",
       "toast.champion": "Champion: {name}",
       "toast.all_eliminated": "All entries eliminated",
@@ -3690,6 +3752,10 @@ const faqJsonLd = {
     const toast = document.getElementById("spin-toast") as HTMLDivElement | null;
     const toastMsg = document.getElementById("spin-toast-msg") as HTMLSpanElement | null;
     const toastAction = document.getElementById("spin-toast-action") as HTMLButtonElement | null;
+    const emptyOverlay = document.getElementById("spin-empty-overlay") as HTMLDivElement | null;
+    const emptyTitle = document.getElementById("spin-empty-title") as HTMLParagraphElement | null;
+    const emptyCta = document.getElementById("spin-empty-cta") as HTMLButtonElement | null;
+    const emptyCtaLabel = document.getElementById("spin-empty-cta-label") as HTMLSpanElement | null;
     const pickerBtn = document.getElementById("spin-picker-btn") as HTMLButtonElement | null;
     const pickerName = document.getElementById("spin-picker-name");
     const importNotice = document.getElementById("spin-import-notice");
@@ -4132,15 +4198,10 @@ const faqJsonLd = {
       ctx.clearRect(0, 0, w, h);
 
       if (entries.length === 0) {
-        ctx.fillStyle = "rgba(132, 120, 90, 0.18)";
+        ctx.fillStyle = "rgba(132, 120, 90, 0.14)";
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "rgba(132, 120, 90, 0.6)";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = `italic ${Math.round(cssR * 0.12 * dpr)}px Fraunces, Georgia, serif`;
-        ctx.fillText("Add an entry to begin", cx, cy);
         return;
       }
 
@@ -4554,6 +4615,7 @@ const faqJsonLd = {
       list!.innerHTML = "";
       countEl!.textContent = String(entries.length);
       if (teamsBtn) setTeamCount(getTeamCount());
+      if (emptyOverlay) emptyOverlay.hidden = entries.length > 0;
       entries.forEach((entry, i) => {
         const li = document.createElement("li");
         li.className = "spin-list-item";
@@ -6439,6 +6501,14 @@ const faqJsonLd = {
     }
 
     // === Wire new buttons ===
+    if (emptyTitle) emptyTitle.textContent = t("empty.title");
+    if (emptyCtaLabel) emptyCtaLabel.textContent = t("empty.cta");
+    if (emptyCta && addInput) {
+      emptyCta.addEventListener("click", () => {
+        addInput.focus();
+        addInput.scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+    }
     if (shareBtn) {
       shareBtn.addEventListener("click", () => {
         copyShareLink();
