@@ -217,6 +217,10 @@ const faqJsonLd = {
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
                     Shuffle entries
                   </button>
+                  <button type="button" id="spin-picker-sort" class="spin-picker-action" role="menuitem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/></svg>
+                    Sort A–Z
+                  </button>
                   <button type="button" id="spin-picker-reset-counts" class="spin-picker-action" role="menuitem" hidden>
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                     Reset win counts
@@ -3531,6 +3535,8 @@ const faqJsonLd = {
       "toast.sound_pack_changed": "Sound: {name}",
       "toast.scene_changed": "Scene: {name}",
       "toast.look_reset": "Look reset to defaults",
+      "toast.entries_sorted": "Sorted A–Z",
+      "toast.entries_already_sorted": "Already sorted A–Z",
     };
 
     function t(key: string, vars?: Record<string, string | number>): string {
@@ -3897,6 +3903,7 @@ const faqJsonLd = {
     const pickerImport = document.getElementById("spin-picker-import");
     const pickerEmbed = document.getElementById("spin-picker-embed");
     const pickerShuffle = document.getElementById("spin-picker-shuffle");
+    const pickerSort = document.getElementById("spin-picker-sort");
     const pickerResetDefaults = document.getElementById("spin-picker-reset-defaults");
     const modeSingleBtn = document.getElementById("spin-mode-single") as HTMLButtonElement | null;
     const embedModal = document.getElementById("spin-embed-modal") as HTMLDivElement | null;
@@ -7143,6 +7150,26 @@ const faqJsonLd = {
         closePicker();
         const shuffleBtn = document.getElementById("spin-shuffle") as HTMLButtonElement | null;
         shuffleBtn?.click();
+      });
+    }
+    if (pickerSort) {
+      pickerSort.addEventListener("click", () => {
+        closePicker();
+        if (entries.length < 2) return;
+        const before = entries.map((e) => e.label).join("");
+        entries.sort((a, b) =>
+          a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+        );
+        const after = entries.map((e) => e.label).join("");
+        if (before === after) {
+          showToast(t("toast.entries_already_sorted"));
+          return;
+        }
+        clearImportFlag();
+        renderList();
+        drawWheel();
+        save();
+        showToast(t("toast.entries_sorted"));
       });
     }
     if (pickerResetDefaults) {
