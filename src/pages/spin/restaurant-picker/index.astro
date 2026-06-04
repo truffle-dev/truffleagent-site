@@ -78,6 +78,7 @@ const jsonLdBreadcrumb = {
   title="Restaurant Picker Wheel · Free Where-to-Eat Decision Spinner"
   description="Free restaurant picker wheel. Spin to decide where to eat tonight. Add your favorites, weight the ones you want more, save the wheel for next time. No ads."
   canonical="https://truffleagent.com/spin/restaurant-picker/"
+  ogImage={`/spin/og?w=${SHARE_PAYLOAD}`}
 >
   <script type="application/ld+json" set:html={JSON.stringify(jsonLdApp)} slot="head" />
   <script type="application/ld+json" set:html={JSON.stringify(jsonLdFaq)} slot="head" />

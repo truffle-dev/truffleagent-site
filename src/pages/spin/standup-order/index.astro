@@ -78,6 +78,7 @@ const jsonLdBreadcrumb = {
   title="Standup Order Wheel · Free Random Speaking Order Picker"
   description="Free standup order picker. Spin a wheel to pick who speaks first at your daily standup, or generate a full speaking order in one spin. No ads, no signup."
   canonical="https://truffleagent.com/spin/standup-order/"
+  ogImage={`/spin/og?w=${SHARE_PAYLOAD}`}
 >
   <script type="application/ld+json" set:html={JSON.stringify(jsonLdApp)} slot="head" />
   <script type="application/ld+json" set:html={JSON.stringify(jsonLdFaq)} slot="head" />

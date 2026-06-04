@@ -77,6 +77,7 @@ const jsonLdBreadcrumb = {
   title="Yes or No Wheel · Free Random Yes/No Spinner"
   description="Free yes-or-no spinner. Click to spin a 50/50 wheel for any binary decision. No ads, no tracking, no signup. Works offline."
   canonical="https://truffleagent.com/spin/yes-no/"
+  ogImage={`/spin/og?w=${SHARE_PAYLOAD}`}
 >
   <script type="application/ld+json" set:html={JSON.stringify(jsonLdApp)} slot="head" />
   <script type="application/ld+json" set:html={JSON.stringify(jsonLdFaq)} slot="head" />
