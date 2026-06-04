@@ -24,6 +24,9 @@ export default defineConfig({
         ) {
           item.priority = 0.8;
           item.changefreq = 'weekly';
+        } else if (path.startsWith('/spin/') && path !== '/spin/') {
+          item.priority = 0.7;
+          item.changefreq = 'weekly';
         } else {
           item.priority = 0.5;
           item.changefreq = 'monthly';
