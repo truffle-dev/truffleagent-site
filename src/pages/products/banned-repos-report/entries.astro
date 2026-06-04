@@ -11,15 +11,26 @@ type Entry = {
   stars: number;
   status: string;
   policy_url: string;
+  policy_quote: string;
+  scope: string[] | string;
+  carve_outs: string[] | string;
+  enforcement: string;
+  evidence_links: string[];
+  confirmed_at: string;
   last_verified_at: string;
 };
 
-const entries = (canonical.entries ?? []) as Entry[];
-const totalEntries = canonical.total_entries ?? entries.length;
-const lastMerged = canonical.last_merged_at ?? "";
-const version = canonical.version ?? "1.0.0";
+function asArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.filter((x) => typeof x === "string" && x.length > 0);
+  if (typeof v === "string" && v.trim().length > 0) return [v];
+  return [];
+}
 
-// Group the 16-code status taxonomy into four readable tiers.
+const entries = (canonical.entries ?? []) as Entry[];
+const totalEntries = (canonical.total_entries as number | undefined) ?? entries.length;
+const lastMerged = (canonical.last_merged_at as string | undefined) ?? "";
+const version = (canonical.version as string | undefined) ?? "1.0.0";
+
 const TIER_BAN = new Set([
   "banned",
   "banned-by-maintainer-ask",
@@ -45,7 +56,9 @@ const TIER_ALLOW = new Set([
   "allowed-with-ownership",
 ]);
 
-function tierOf(status: string): "ban" | "strict" | "disclose" | "allow" | "other" {
+type Tier = "ban" | "strict" | "disclose" | "allow" | "other";
+
+function tierOf(status: string): Tier {
   if (TIER_BAN.has(status)) return "ban";
   if (TIER_STRICT.has(status)) return "strict";
   if (TIER_DISCLOSE.has(status)) return "disclose";
@@ -53,26 +66,24 @@ function tierOf(status: string): "ban" | "strict" | "disclose" | "allow" | "othe
   return "other";
 }
 
-const TIER_RANK: Record<string, number> = {
-  ban: 0,
-  strict: 1,
-  disclose: 2,
-  allow: 3,
-  other: 4,
-};
-
-const TIER_LABEL: Record<string, string> = {
+const TIER_RANK: Record<Tier, number> = { ban: 0, strict: 1, disclose: 2, allow: 3, other: 4 };
+const TIER_LABEL: Record<Tier, string> = {
   ban: "Banned",
   strict: "Restricted",
   disclose: "Disclosure required",
   allow: "Welcomed",
+  other: "Other",
 };
 
 const rows = [...entries]
   .map((e) => ({
     ...e,
+    scope: asArray(e.scope),
+    carve_outs: asArray(e.carve_outs),
+    evidence_links: asArray(e.evidence_links),
     tier: tierOf(e.status),
     starsLabel: e.stars.toLocaleString("en-US"),
+    verifiedShort: e.last_verified_at ? e.last_verified_at.slice(0, 10) : "",
   }))
   .sort((a, b) => {
     const t = TIER_RANK[a.tier] - TIER_RANK[b.tier];
@@ -87,12 +98,11 @@ const tierCounts = {
   allow: rows.filter((r) => r.tier === "allow").length,
 };
 
-const verifiedDate = lastMerged.slice(0, 10);
-const titleCount = `${totalEntries} entries`;
+const verifiedDate = lastMerged ? lastMerged.slice(0, 10) : "2026-05-16";
 ---
 <BaseLayout
-  title="The Catalog · Banned-Repos Report · Truffle Co."
-  description="The public catalog: 75 open-source projects, their AI-contribution policy status, language, star count, and the canonical policy URL. The full report adds verbatim quotes, carve-outs, enforcement language, and analysis."
+  title={`The Catalog · ${totalEntries} OSS AI-contribution policies · free`}
+  description={`The complete public catalog: ${totalEntries} open-source projects, each with the verbatim policy quote, scope, carve-outs, enforcement language, and permalinks. Free to read. JSON download included.`}
 >
   <article class="catalog">
     <header class="catalog-head">
@@ -103,82 +113,142 @@ const titleCount = `${totalEntries} entries`;
           The <em>Catalog.</em>
         </h1>
         <p class="lede text-balance">
-          {titleCount}. Where each project sits on the AI-contribution spectrum, the language, the star count, and the canonical policy URL. Free to read. The verbatim policy quotes, carve-outs, enforcement language, and analysis ship in the full report.
+          {totalEntries} repos, each with the verbatim policy quote, scope, carve-outs, enforcement language, and primary-source permalinks. Free to read. Free to cite. JSON downloadable.
         </p>
         <p class="meta">
-          Catalog v{version}. Last merged <time datetime={lastMerged}>{verifiedDate}</time>. Each entry's policy URL is a permalink the project itself maintains; the catalog status reflects the policy as confirmed on the last_verified date.
+          Catalog v{version}. Last merged <time datetime={lastMerged}>{verifiedDate}</time>. Released under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener license">CC BY 4.0</a>; credit Truffle and link the report URL.
         </p>
+        <div class="catalog-actions">
+          <a class="btn btn-ghost" href="/data/banned-repos-canonical-v1.0.0.json" download>Download JSON</a>
+          <a class="btn btn-ghost" href="#filter">Filter</a>
+        </div>
       </div>
     </header>
 
-    <section class="tier-overview">
+    <section class="tier-overview" id="filter">
       <div class="container-page">
-        <div class="tier-grid">
-          <div class="tier tier-ban">
+        <p class="filter-hint">Showing all four tiers. Click a tier to filter.</p>
+        <div class="tier-grid" id="tier-grid">
+          <button type="button" class="tier tier-ban is-active" data-tier="ban">
             <span class="tier-count">{tierCounts.ban}</span>
             <span class="tier-label">Banned</span>
             <span class="tier-note">Written ban or maintainer-signal close.</span>
-          </div>
-          <div class="tier tier-strict">
+          </button>
+          <button type="button" class="tier tier-strict is-active" data-tier="strict">
             <span class="tier-count">{tierCounts.strict}</span>
             <span class="tier-label">Restricted</span>
             <span class="tier-note">Autonomous agents banned, scope narrowed, or human review required.</span>
-          </div>
-          <div class="tier tier-disclose">
+          </button>
+          <button type="button" class="tier tier-disclose is-active" data-tier="disclose">
             <span class="tier-count">{tierCounts.disclose}</span>
             <span class="tier-label">Disclosure required</span>
             <span class="tier-note">Trailer, checkbox, or PR-template flag mandatory.</span>
-          </div>
-          <div class="tier tier-allow">
+          </button>
+          <button type="button" class="tier tier-allow is-active" data-tier="allow">
             <span class="tier-count">{tierCounts.allow}</span>
             <span class="tier-label">Welcomed</span>
             <span class="tier-note">Accepted, often with attribution or owner accountability.</span>
-          </div>
+          </button>
+        </div>
+        <div class="search-row">
+          <label class="search-label" for="catalog-search">Search</label>
+          <input
+            id="catalog-search"
+            type="search"
+            class="search-input"
+            placeholder="repo, org, language…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <span id="catalog-count" class="search-count">{rows.length} of {totalEntries}</span>
         </div>
       </div>
     </section>
 
     <section class="catalog-body">
       <div class="container-page">
-        <div class="table-wrap">
-          <table class="catalog-table">
-            <thead>
-              <tr>
-                <th scope="col" class="col-repo">Repo</th>
-                <th scope="col" class="col-lang">Language</th>
-                <th scope="col" class="col-stars">Stars</th>
-                <th scope="col" class="col-status">Status</th>
-                <th scope="col" class="col-policy">Policy</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr id={r.id}>
-                  <td class="col-repo">
-                    <a href={`https://github.com/${r.repo}`} class="repo-link mono" rel="noopener">{r.repo}</a>
-                  </td>
-                  <td class="col-lang">{r.language}</td>
-                  <td class="col-stars">{r.starsLabel}</td>
-                  <td class="col-status">
-                    <span class={`status-pill tier-${r.tier}`} title={r.status}>{TIER_LABEL[r.tier] ?? r.tier}</span>
-                    <span class="status-code mono">{r.status}</span>
-                  </td>
-                  <td class="col-policy">
-                    <a href={r.policy_url} rel="noopener" class="policy-link">Source</a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ol class="entry-list" id="entry-list">
+          {rows.map((r) => (
+            <li
+              id={r.id}
+              class={`entry tier-${r.tier}`}
+              data-tier={r.tier}
+              data-search={`${r.repo} ${r.org} ${r.language}`.toLowerCase()}
+            >
+              <details>
+                <summary class="entry-summary">
+                  <span class="entry-row">
+                    <a href={`https://github.com/${r.repo}`} class="entry-repo mono" rel="noopener" onclick="event.stopPropagation()">{r.repo}</a>
+                    <span class={`status-pill tier-${r.tier}`} title={r.status}>{TIER_LABEL[r.tier]}</span>
+                  </span>
+                  <span class="entry-meta">
+                    <span class="entry-lang">{r.language}</span>
+                    <span class="entry-stars" title="GitHub stars">★ {r.starsLabel}</span>
+                    {r.verifiedShort && (
+                      <span class="entry-verified" title="Last verified">
+                        <time datetime={r.last_verified_at}>{r.verifiedShort}</time>
+                      </span>
+                    )}
+                  </span>
+                </summary>
+                <div class="entry-body">
+                  {r.policy_quote && (
+                    <blockquote class="policy-quote">
+                      <p>{r.policy_quote}</p>
+                      <footer>— from <a href={r.policy_url} rel="noopener">{new URL(r.policy_url).hostname}{new URL(r.policy_url).pathname}</a></footer>
+                    </blockquote>
+                  )}
+                  <dl class="entry-facts">
+                    {r.scope && r.scope.length > 0 && (
+                      <>
+                        <dt>Scope</dt>
+                        <dd>
+                          {r.scope.map((s) => (<code class="chip mono">{s}</code>))}
+                        </dd>
+                      </>
+                    )}
+                    {r.carve_outs && r.carve_outs.length > 0 && (
+                      <>
+                        <dt>Carve-outs</dt>
+                        <dd>
+                          <ul class="carve-list">
+                            {r.carve_outs.map((c) => (<li>{c}</li>))}
+                          </ul>
+                        </dd>
+                      </>
+                    )}
+                    {r.enforcement && (
+                      <>
+                        <dt>Enforcement</dt>
+                        <dd>{r.enforcement}</dd>
+                      </>
+                    )}
+                    <dt>Status code</dt>
+                    <dd><code class="chip mono">{r.status}</code></dd>
+                    {r.evidence_links && r.evidence_links.length > 0 && (
+                      <>
+                        <dt>Evidence</dt>
+                        <dd>
+                          <ul class="evidence-link-list">
+                            {r.evidence_links.map((link) => (
+                              <li><a href={link} rel="noopener" class="evidence-link">{link}</a></li>
+                            ))}
+                          </ul>
+                        </dd>
+                      </>
+                    )}
+                  </dl>
+                </div>
+              </details>
+            </li>
+          ))}
+        </ol>
 
-        <p class="catalog-foot">
-          What the catalog does not include, because it is the product: the verbatim policy quote for each entry, the scope (PR / issue / comment / review / RFC / docs), the named carve-outs, the enforcement language, the maintainer-signal evidence trail for ban-by-signal entries, and the structural-patterns analysis across the corpus. Those ship in the 96-page PDF and JSON dataset.
-        </p>
+        <p id="empty-state" class="empty-state" hidden>No entries match. Try a different search term or re-enable a tier.</p>
 
         <div class="catalog-cta">
-          <a class="btn btn-primary" href="/products/banned-repos-report/">See the full report</a>
-          <span class="pill">$99 on Gumroad at launch</span>
+          <a class="btn btn-primary" href="/data/banned-repos-canonical-v1.0.0.json" download>Download the JSON dataset</a>
+          <a class="btn btn-ghost" href="/products/banned-repos-report/">Back to the report</a>
         </div>
       </div>
     </section>
@@ -187,6 +257,59 @@ const titleCount = `${totalEntries} entries`;
   <section id="notify" class="notify-cta">
     <Newsletter source="banned-repos-report-catalog" />
   </section>
+
+  <script is:inline>
+    (function () {
+      const grid = document.getElementById("tier-grid");
+      const list = document.getElementById("entry-list");
+      const empty = document.getElementById("empty-state");
+      const search = /** @type {HTMLInputElement | null} */ (document.getElementById("catalog-search"));
+      const count = document.getElementById("catalog-count");
+      if (!grid || !list) return;
+
+      const enabled = new Set(["ban", "strict", "disclose", "allow", "other"]);
+      let query = "";
+
+      function apply() {
+        let shown = 0;
+        const items = list.querySelectorAll("li.entry");
+        items.forEach((li) => {
+          const tier = li.getAttribute("data-tier") || "other";
+          const haystack = li.getAttribute("data-search") || "";
+          const tierOk = enabled.has(tier);
+          const queryOk = query === "" || haystack.indexOf(query) !== -1;
+          const show = tierOk && queryOk;
+          li.toggleAttribute("hidden", !show);
+          if (show) shown++;
+        });
+        if (empty) empty.toggleAttribute("hidden", shown > 0);
+        if (count) count.textContent = shown + " of " + items.length;
+      }
+
+      grid.querySelectorAll("button.tier").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const tier = btn.getAttribute("data-tier");
+          if (!tier) return;
+          if (enabled.has(tier)) {
+            if (enabled.size === 1) return;
+            enabled.delete(tier);
+            btn.classList.remove("is-active");
+          } else {
+            enabled.add(tier);
+            btn.classList.add("is-active");
+          }
+          apply();
+        });
+      });
+
+      if (search) {
+        search.addEventListener("input", () => {
+          query = (search.value || "").toLowerCase().trim();
+          apply();
+        });
+      }
+    })();
+  </script>
 </BaseLayout>
 
 <style>
@@ -213,12 +336,19 @@ const titleCount = `${totalEntries} entries`;
     color: var(--content-3);
     font-size: 0.875rem;
     line-height: 1.55;
+    margin-bottom: 1.5rem;
   }
+  .catalog-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 
   .tier-overview {
     padding-block: clamp(1.5rem, 3vw, 2.25rem);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
+  }
+  .filter-hint {
+    margin: 0 0 0.85rem;
+    font-size: 0.85rem;
+    color: var(--content-3);
   }
   .tier-grid {
     display: grid;
@@ -232,7 +362,14 @@ const titleCount = `${totalEntries} entries`;
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: opacity 150ms var(--ease-out), border-color 150ms var(--ease-out), background 150ms var(--ease-out);
   }
+  .tier:not(.is-active) { opacity: 0.4; }
+  .tier:hover { border-color: color-mix(in oklab, var(--content) 30%, var(--border)); }
+  .tier:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .tier-count {
     font-family: var(--font-display, "Fraunces", serif);
     font-style: italic;
@@ -244,85 +381,108 @@ const titleCount = `${totalEntries} entries`;
   .tier-strict .tier-count { color: #c46a1d; }
   .tier-disclose .tier-count { color: #b08600; }
   .tier-allow .tier-count { color: #4a8a3a; }
-  .tier-label {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--content);
+  .tier-label { font-size: 0.9375rem; font-weight: 600; color: var(--content); }
+  .tier-note { font-size: 0.8125rem; line-height: 1.5; color: var(--content-3); }
+
+  .search-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
   }
-  .tier-note {
+  .search-label {
     font-size: 0.8125rem;
-    line-height: 1.5;
+    font-weight: 600;
     color: var(--content-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .search-input {
+    flex: 1;
+    min-width: 220px;
+    padding: 0.55rem 0.85rem;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--content);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .search-input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+  }
+  .search-count {
+    color: var(--content-3);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
   }
 
   .catalog-body { padding-block: clamp(2rem, 4vw, 3.5rem); }
 
-  .table-wrap {
-    overflow-x: auto;
-    margin: 0 0 1.5rem;
+  .entry-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: grid;
+    gap: 0.5rem;
+    counter-reset: entry;
+  }
+  .entry {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--surface-2);
+    overflow: hidden;
+    counter-increment: entry;
   }
-  .catalog-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-    min-width: 720px;
+  .entry details > summary { list-style: none; cursor: pointer; }
+  .entry details > summary::-webkit-details-marker { display: none; }
+  .entry-summary {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem 1rem;
+    padding: 0.85rem 1.1rem;
+    align-items: center;
   }
-  .catalog-table thead th {
-    text-align: left;
-    padding: 0.85rem 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--content-3);
-    border-bottom: 1px solid var(--border);
-    background: var(--surface-1);
-    position: sticky;
-    top: 0;
-  }
-  .catalog-table tbody tr {
-    border-bottom: 1px solid var(--border);
-  }
-  .catalog-table tbody tr:last-child { border-bottom: none; }
-  .catalog-table tbody tr:hover {
+  .entry-summary:hover {
     background: color-mix(in oklab, var(--accent) 4%, transparent);
   }
-  .catalog-table td {
-    padding: 0.7rem 1rem;
-    vertical-align: middle;
-    line-height: 1.45;
+  .entry-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    min-width: 0;
   }
-  .col-repo { width: 28%; min-width: 220px; }
-  .col-lang { width: 12%; min-width: 90px; color: var(--content-2); }
-  .col-stars {
-    width: 12%;
-    min-width: 80px;
-    color: var(--content-2);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    padding-right: 1.6rem;
-  }
-  .col-status { width: 36%; min-width: 240px; }
-  .col-policy { width: 12%; min-width: 90px; }
-
-  .repo-link {
+  .entry-repo {
     color: var(--accent);
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     word-break: break-word;
   }
-  .repo-link:hover { text-decoration: underline; }
+  .entry-repo:hover { text-decoration: underline; }
+  .entry-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    color: var(--content-3);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .entry-lang { color: var(--content-2); }
+  .entry-stars { white-space: nowrap; }
+  .entry-verified { font-family: var(--font-mono, "JetBrains Mono", monospace); font-size: 0.75rem; }
 
   .status-pill {
     display: inline-block;
     padding: 0.18rem 0.55rem;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     border-radius: var(--radius-pill, 9999px);
     border: 1px solid;
-    margin-right: 0.55rem;
     white-space: nowrap;
   }
   .status-pill.tier-ban {
@@ -346,33 +506,105 @@ const titleCount = `${totalEntries} entries`;
     background: color-mix(in oklab, #4a8a3a 8%, transparent);
   }
 
-  .status-code {
-    color: var(--content-3);
-    font-size: 0.7rem;
-    letter-spacing: 0.01em;
+  .entry-body {
+    padding: 0.25rem 1.25rem 1.25rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface-1);
   }
-
-  .policy-link {
+  .policy-quote {
+    margin: 1rem 0;
+    padding: 1rem 1.25rem;
+    border-left: 3px solid var(--accent);
+    background: color-mix(in oklab, var(--accent) 4%, transparent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+  .policy-quote p {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--content);
+    font-style: italic;
+  }
+  .policy-quote footer {
+    font-size: 0.78rem;
+    color: var(--content-3);
+    font-style: normal;
+  }
+  .policy-quote footer a {
     color: var(--content-2);
-    font-size: 0.85rem;
     text-decoration: underline;
     text-decoration-color: var(--border);
     text-underline-offset: 3px;
+    word-break: break-all;
   }
-  .policy-link:hover {
-    color: var(--accent);
-    text-decoration-color: var(--accent);
+  .policy-quote footer a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  .entry-facts {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 0.6rem 1.25rem;
+    margin: 1rem 0 0;
+    align-items: baseline;
+  }
+  .entry-facts dt {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--content-3);
+  }
+  .entry-facts dd {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--content-2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .entry-facts dd ul { display: block; flex: 1 0 100%; }
+
+  .chip {
+    display: inline-block;
+    padding: 0.12rem 0.55rem;
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill, 9999px);
+    background: var(--surface-2);
+    color: var(--content-2);
   }
 
-  .catalog-foot {
-    margin: 1.5rem 0 2rem;
-    padding: 1.1rem 1.25rem;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    font-size: 0.9375rem;
-    line-height: 1.6;
+  .carve-list, .evidence-link-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    list-style: disc;
+  }
+  .carve-list li, .evidence-link-list li {
+    margin: 0 0 0.3rem;
+    font-size: 0.875rem;
+  }
+  .evidence-link {
     color: var(--content-2);
+    word-break: break-all;
+    text-decoration: underline;
+    text-decoration-color: var(--border);
+    text-underline-offset: 3px;
+    font-size: 0.85rem;
+  }
+  .evidence-link:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  @media (max-width: 720px) {
+    .entry-facts { grid-template-columns: 1fr; gap: 0.2rem 0; }
+    .entry-facts dt { margin-top: 0.5rem; }
+    .entry-summary { grid-template-columns: 1fr; }
+    .entry-meta { justify-content: flex-start; }
+  }
+
+  .empty-state {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--content-3);
+    font-size: 0.95rem;
   }
 
   .catalog-cta {
@@ -380,11 +612,6 @@ const titleCount = `${totalEntries} entries`;
     flex-wrap: wrap;
     gap: 1rem;
     align-items: center;
-  }
-
-  @media (max-width: 720px) {
-    .col-status { min-width: 200px; }
-    .status-code { display: none; }
-    .col-stars { padding-right: 1rem; }
+    margin-top: 2rem;
   }
 </style>

@@ -6,6 +6,7 @@ node_modules/
 .env.*
 !.env.example
 .dev.vars
+bun.lock
 
 # Astro
 dist/

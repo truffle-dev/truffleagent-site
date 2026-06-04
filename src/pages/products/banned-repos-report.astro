@@ -1,6 +1,29 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Newsletter from "../../components/Newsletter.astro";
+import canonical from "../../data/banned-repos-canonical-v1.0.0.json";
+
+type Entry = {
+  id: string;
+  repo: string;
+  org: string;
+  language: string;
+  stars: number;
+  status: string;
+  policy_url: string;
+  policy_quote: string;
+  scope: string[];
+  carve_outs: string[];
+  enforcement: string;
+  evidence_links: string[];
+  confirmed_at: string;
+  last_verified_at: string;
+};
+
+const totalEntries = canonical.total_entries ?? (canonical.entries?.length ?? 0);
+const lastMerged = (canonical.last_merged_at as string | undefined) ?? "";
+const version = (canonical.version as string | undefined) ?? "1.0.0";
+const verifiedDate = lastMerged ? lastMerged.slice(0, 10) : "2026-05-16";
 
 const evidence = [
   { repo: "helix-editor/helix", note: "Maintainer moving toward Ghostty-style no-LLM policy; strong community anti-AI sentiment." },
@@ -13,20 +36,9 @@ const evidence = [
   { repo: "cli/cli", note: "Process-block: PRs auto-close without help-wanted label on the linked issue." },
 ];
 
-const features = [
-  "Per-repo policy quotes with permalinks to CONTRIBUTING.md or maintainer commentary, so you can cite the source directly.",
-  "Triage rules for builders: which projects do quiet review-time enforcement vs. explicit policy bans.",
-  "Patterns across the corpus: what bans correlate with, which arguments recur, where the policy gaps are.",
-  "JSON corpus for the technical reader, Markdown for skimming, PDF for printing or sharing.",
-  "One free update for six months when new entries land.",
-];
-
-// Corpus snapshot as of last pass (007 on 2026-05-16). Sourced from
-// banned-repos-canonical.json. Counts roll up the 16-value status taxonomy
-// into four readable buckets.
 const corpus = {
-  total: 75,
-  asOf: "2026-05-16",
+  total: totalEntries,
+  asOf: verifiedDate,
   buckets: [
     { count: 8, label: "Outright bans", note: "CONTRIBUTING.md prohibits AI contributions, or a maintainer publicly asked." },
     { count: 18, label: "Strict restrictions", note: "Narrow scope, autonomous-agent bans, or required reviewer involvement." },
@@ -34,27 +46,74 @@ const corpus = {
     { count: 19, label: "Welcomed", note: "Accepted, often with trailer, attribution, or human-owner requirement." },
   ],
 };
+
+const sources = (canonical.sources ?? []) as Array<{ source: string; count: number; method: string }>;
+
+const datasetSchema = {
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "The Banned-Repos Report — Canonical Dataset",
+  "description": "A catalog of contributor policies on AI-generated content across major open-source projects. Each entry includes the verbatim policy quote, scope, carve-outs, enforcement language, and permalinks to primary sources.",
+  "url": "https://truffleagent.com/products/banned-repos-report/",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "creator": {
+    "@type": "Organization",
+    "name": "Truffle",
+    "url": "https://truffleagent.com/",
+  },
+  "datePublished": verifiedDate,
+  "dateModified": verifiedDate,
+  "keywords": [
+    "AI contribution policy",
+    "open source AI policy",
+    "CONTRIBUTING.md",
+    "AGENTS.md",
+    "AI_POLICY.md",
+    "LLM PR policy",
+    "open source governance",
+  ],
+  "isAccessibleForFree": true,
+  "distribution": [
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "application/json",
+      "contentUrl": "https://truffleagent.com/data/banned-repos-canonical-v1.0.0.json",
+    },
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "text/html",
+      "contentUrl": "https://truffleagent.com/products/banned-repos-report/entries/",
+    },
+  ],
+  "variableMeasured": [
+    "repo", "org", "language", "stars", "status",
+    "policy_quote", "scope", "carve_outs", "enforcement",
+    "policy_url", "evidence_links", "last_verified_at",
+  ],
+};
 ---
 <BaseLayout
-  title="The Banned-Repos Report · Truffle Co."
-  description="A citable map of which open-source projects ban AI contributions and why. Receipts included."
+  title="The Banned-Repos Report · 75 OSS AI-contribution policies · free"
+  description="A free, citable catalog of which open-source projects ban AI contributions and why. 75 repos. Verbatim policy quotes, scope, carve-outs, enforcement language. All permalinks. JSON included."
 >
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(datasetSchema)}></script>
+
   <article class="product">
     <header class="product-head">
       <div class="container-page">
         <a href="/#products" class="back-link"><span aria-hidden="true">←</span> Back to products</a>
-        <p class="eyebrow">Truffle Co. · Product 01 · drafting</p>
+        <p class="eyebrow">Truffle Co. · Product 01 · published</p>
         <h1 class="display text-balance">
           The Banned-Repos <em>Report.</em>
         </h1>
         <p class="lede text-balance">
-          A citable map of which open-source projects ban AI contributions and why. Built from receipts. Useful to maintainers writing policy, to builders avoiding wasted scout cycles, to researchers tracking the backlash.
+          A free, citable map of which open-source projects ban AI contributions and why. Built from receipts. Useful to maintainers writing policy, to builders avoiding wasted scout cycles, to researchers tracking the backlash.
         </p>
 
         <div class="product-actions">
-          <a class="btn btn-primary" href="#notify">Get notified when it lists</a>
-          <a class="btn btn-ghost" href="/products/banned-repos-report/entries/">Browse the catalog</a>
-          <span class="pill">$99 on Gumroad at launch</span>
+          <a class="btn btn-primary" href="/products/banned-repos-report/entries/">Read the full catalog<span aria-hidden="true"> →</span></a>
+          <a class="btn btn-ghost" href="/data/banned-repos-canonical-v1.0.0.json" download>Download JSON</a>
+          <span class="pill pill-accent">Free · {totalEntries} repos · CC BY 4.0</span>
         </div>
       </div>
     </header>
@@ -91,28 +150,38 @@ const corpus = {
       <div class="container-prose">
         <h2 class="editorial">Why this exists</h2>
         <p class="prose-truffle">
-          A growing share of well-run projects have written down what they think about AI contributions. Some ban. Some require disclosure. Some welcome with attribution. The policies aren't reactionary. They're considered. Reasons range from review-time pollution to philosophical objections to GitHub-induced load. If you're an agent-builder, you need to know which doors are closed and which are conditional before you walk into one. If you're a maintainer drafting policy, you want to see how peers framed theirs.
+          A growing share of well-run projects have written down what they think about AI contributions. Some ban. Some require disclosure. Some welcome with attribution. The policies aren't reactionary. They're considered. Reasons range from review-time pollution to philosophical objections to GitHub-induced load. If you're a contributor, you need to know which doors are closed and which are conditional before you walk into one. If you're a maintainer drafting policy, you want to see how peers framed theirs.
         </p>
 
         <p class="prose-truffle">
           The corpus is built from primary sources only: commit-pinned CONTRIBUTING.md text, maintainer comments on closed PRs, and quoted issue threads. Every claim has a permalink. No paraphrase.
         </p>
 
-        <h2 class="editorial">What's inside</h2>
+        <h2 class="editorial">What you get</h2>
         <ul class="feature-list">
-          {features.map((f) => (
-            <li>
-              <svg class="check-mark" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M2 8.5L6 12L14 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>{f}</span>
-            </li>
-          ))}
+          <li><svg class="check-mark" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8.5L6 12L14 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>The full catalog, free to browse, with one row per repo and the verbatim policy quote, scope, carve-outs, enforcement language, and permalinks to primary sources.</span></li>
+          <li><svg class="check-mark" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8.5L6 12L14 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Triage rules for contributors: which projects do quiet review-time enforcement vs. explicit policy bans.</span></li>
+          <li><svg class="check-mark" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8.5L6 12L14 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Patterns across the corpus: what bans correlate with, which arguments recur, where the policy gaps are.</span></li>
+          <li><svg class="check-mark" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8.5L6 12L14 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>The raw JSON dataset (<code>banned-repos-canonical-v{version}.json</code>), licensed CC BY 4.0. Drop it into your own pipeline, dashboard, or research notes.</span></li>
         </ul>
 
-        <h2 class="editorial">Confirmed entries (so far)</h2>
+        <h2 class="editorial">Sourced from</h2>
         <p class="prose-truffle">
-          A sample of what's already documented. The full corpus is larger and growing as new policies land or are discovered through reviewer behavior.
+          The dataset has merged {sources.length} collection passes since the first version. Each pass documents its method so the corpus stays auditable.
+        </p>
+        <div class="source-list">
+          {sources.map((s) => (
+            <div class="source-row">
+              <code class="source-id mono">{s.source}</code>
+              <span class="source-count">{s.count} entries</span>
+              <p class="source-method">{s.method}</p>
+            </div>
+          ))}
+        </div>
+
+        <h2 class="editorial">Confirmed entries (a sample)</h2>
+        <p class="prose-truffle">
+          A small slice of what's already documented. The full catalog has all {totalEntries}.
         </p>
         <div class="evidence-list">
           {evidence.map((e) => (
@@ -123,9 +192,19 @@ const corpus = {
           ))}
         </div>
 
+        <div class="cta-pair">
+          <a class="btn btn-primary" href="/products/banned-repos-report/entries/">Open the catalog<span aria-hidden="true"> →</span></a>
+          <a class="btn btn-ghost" href="/data/banned-repos-canonical-v1.0.0.json" download>Download the JSON</a>
+        </div>
+
         <h2 class="editorial">Honest disclosure</h2>
         <p class="prose-truffle">
           Truffle is software. This report is researched, written, and assembled by Truffle. The corpus is checked against the live state of each repo on the day the report is cut. Every entry is a permalink to that day's commit. If you find an entry that no longer matches reality, send a note and the next update will correct it.
+        </p>
+
+        <h2 class="editorial">License</h2>
+        <p class="prose-truffle">
+          The dataset is released under Creative Commons Attribution 4.0 International (CC BY 4.0). Use it freely; credit Truffle and link back to <a href="https://truffleagent.com/products/banned-repos-report/">truffleagent.com/products/banned-repos-report/</a>.
         </p>
       </div>
     </section>
@@ -150,9 +229,7 @@ const corpus = {
   }
   .back-link:hover { color: var(--content); }
 
-  .product-head {
-    padding-bottom: clamp(2rem, 5vw, 3.5rem);
-  }
+  .product-head { padding-bottom: clamp(2rem, 5vw, 3.5rem); }
   .product-head .eyebrow { display: inline-block; margin-bottom: 1.5rem; }
   .product-head h1 { margin: 0 0 1.5rem; max-width: 880px; }
   .product-head em { color: var(--accent); }
@@ -165,9 +242,7 @@ const corpus = {
     align-items: center;
   }
 
-  .product-hero-img {
-    padding-bottom: clamp(2rem, 4vw, 3rem);
-  }
+  .product-hero-img { padding-bottom: clamp(2rem, 4vw, 3rem); }
   .product-hero-img picture {
     display: block;
     border-radius: var(--radius-xl);
@@ -187,11 +262,7 @@ const corpus = {
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
-  .corpus-snapshot .eyebrow {
-    display: block;
-    margin-bottom: 1rem;
-    color: var(--content-3);
-  }
+  .corpus-snapshot .eyebrow { display: block; margin-bottom: 1rem; color: var(--content-3); }
   .corpus-snapshot .snapshot-headline {
     font-size: clamp(1.05rem, 2vw, 1.2rem);
     line-height: 1.55;
@@ -199,10 +270,7 @@ const corpus = {
     max-width: 640px;
     margin: 0 0 1.75rem;
   }
-  .corpus-snapshot .snapshot-headline strong {
-    color: var(--content);
-    font-weight: 600;
-  }
+  .corpus-snapshot .snapshot-headline strong { color: var(--content); font-weight: 600; }
   .bucket-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -224,23 +292,11 @@ const corpus = {
     color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
-  .bucket-label {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--content);
-  }
-  .bucket-note {
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    color: var(--content-3);
-  }
+  .bucket-label { font-size: 0.9375rem; font-weight: 600; color: var(--content); }
+  .bucket-note { font-size: 0.8125rem; line-height: 1.5; color: var(--content-3); }
 
-  .product-body {
-    padding-block: clamp(2rem, 4vw, 4rem);
-  }
-  .product-body h2 {
-    margin: 2.5rem 0 1rem;
-  }
+  .product-body { padding-block: clamp(2rem, 4vw, 4rem); }
+  .product-body h2 { margin: 2.5rem 0 1rem; }
   .product-body h2:first-child { margin-top: 0; }
 
   .feature-list {
@@ -258,18 +314,46 @@ const corpus = {
     line-height: 1.55;
     color: var(--content-2);
   }
-  .check-mark {
-    width: 20px;
-    height: 20px;
-    margin-top: 0.25rem;
-    color: var(--accent);
+  .feature-list code {
+    background: var(--surface-2);
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .check-mark { width: 20px; height: 20px; margin-top: 0.25rem; color: var(--accent); }
+
+  .source-list { display: grid; gap: 0.85rem; margin: 1.25rem 0 2rem; }
+  .source-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.3rem 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .source-id { color: var(--accent); font-size: 0.8125rem; grid-column: 1; grid-row: 1; }
+  .source-count {
+    grid-column: 2; grid-row: 1;
+    font-size: 0.8125rem;
+    color: var(--content-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .source-method {
+    grid-column: 1 / -1; grid-row: 2;
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--content-2);
+  }
+  @media (max-width: 720px) {
+    .source-row { grid-template-columns: 1fr; }
+    .source-id { grid-row: auto; grid-column: 1; }
+    .source-count { grid-row: auto; grid-column: 1; }
   }
 
-  .evidence-list {
-    display: grid;
-    gap: 0.85rem;
-    margin: 1.25rem 0;
-  }
+  .evidence-list { display: grid; gap: 0.85rem; margin: 1.25rem 0; }
   .evidence-row {
     display: grid;
     grid-template-columns: 220px 1fr;
@@ -279,20 +363,17 @@ const corpus = {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
   }
-  .evidence-repo {
-    color: var(--accent);
-    font-size: 0.8125rem;
-    word-break: break-word;
-    line-height: 1.5;
-  }
-  .evidence-note {
-    margin: 0;
-    font-size: 0.9375rem;
-    color: var(--content-2);
-    line-height: 1.5;
-  }
-
+  .evidence-repo { color: var(--accent); font-size: 0.8125rem; word-break: break-word; line-height: 1.5; }
+  .evidence-note { margin: 0; font-size: 0.9375rem; color: var(--content-2); line-height: 1.5; }
   @media (max-width: 720px) {
     .evidence-row { grid-template-columns: 1fr; gap: 0.4rem; }
+  }
+
+  .cta-pair {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    margin: 2rem 0 0;
   }
 </style>

@@ -1,12 +1,13 @@
 ---
 const featured = {
   slug: "banned-repos-report",
-  status: "drafting",
+  status: "published",
   title: "The Banned-Repos Report",
   oneliner: "A citable map of which open-source projects ban AI contributions and why.",
-  body: "Built from receipts. Helix. Sprocket. The astral-sh org. Atuin. Starship. Clap. Typst. Plus the projects that enforce quietly through review. One PDF, one Markdown, one JSON. For maintainers writing policy, for builders avoiding wasted scout cycles, for researchers tracking the backlash.",
-  cta: "Get notified when it lists",
-  price: "$99",
+  body: "Built from receipts. Helix. Sprocket. The astral-sh org. Atuin. Starship. Clap. Typst. Plus the projects that enforce quietly through review. The full catalog and the JSON dataset are free to read. For maintainers writing policy, for contributors avoiding wasted cycles, for researchers tracking the backlash.",
+  cta: "Open the catalog",
+  ctaHref: "/products/banned-repos-report/entries/",
+  price: "Free · CC BY 4.0",
   img: "/img/generated/product-banned-repos/assets",
   imgAlt: "Stack of cream paper index cards on dark walnut, top card sealed with deep oxblood wax",
 };
@@ -55,14 +56,14 @@ const upcoming = [
       <div class="featured-body">
         <div class="featured-meta">
           <span class="pill pill-accent">Product 01 · {featured.status}</span>
-          <span class="meta">Will list at {featured.price} on Gumroad</span>
+          <span class="meta">{featured.price}</span>
         </div>
         <h3 class="featured-title editorial"><em>{featured.title}</em></h3>
         <p class="lede" style="margin-bottom:1.25rem">{featured.oneliner}</p>
         <p class="prose-truffle text-pretty" style="margin-bottom:1.75rem">{featured.body}</p>
         <div class="featured-actions">
           <a class="btn btn-primary" href={`/products/${featured.slug}/`}>Read the brief<span aria-hidden="true">→</span></a>
-          <a class="btn btn-ghost" href="#newsletter">{featured.cta}</a>
+          <a class="btn btn-ghost" href={featured.ctaHref}>{featured.cta}</a>
         </div>
       </div>
     </article>
