@@ -3381,6 +3381,7 @@ const faqJsonLd = {
       "toast.image_copied": "Image copied to clipboard",
       "toast.image_downloaded": "Image downloaded",
       "toast.image_save_failed": "Could not save image",
+      "toast.image_shared": "Shared",
       "toast.sound_on": "Sound on",
       "toast.sound_off": "Sound off",
       "toast.eliminate_on": "Eliminate mode on",
@@ -6423,6 +6424,34 @@ const faqJsonLd = {
         showToast(t("toast.image_build_failed"));
         return;
       }
+      const filename = `spin-${slugify(label)}.png`;
+      // Web Share API: native OS share sheet on mobile + Win/Mac.
+      // Pre-flight canShare to confirm file sharing is actually supported
+      // (some platforms surface navigator.share but reject files).
+      try {
+        const file = new File([blob], filename, { type: "image/png" });
+        if (
+          typeof navigator.canShare === "function" &&
+          typeof navigator.share === "function" &&
+          navigator.canShare({ files: [file] })
+        ) {
+          try {
+            await navigator.share({
+              title: `${label} — Spin the Wheel`,
+              text: `${label} won the wheel.`,
+              files: [file],
+            });
+            showToast(t("toast.image_shared"));
+            return;
+          } catch (err) {
+            // User dismissed the share sheet: stay quiet.
+            if ((err as { name?: string })?.name === "AbortError") return;
+            // Other errors (NotAllowedError, etc.): fall through to clipboard / download.
+          }
+        }
+      } catch {
+        // File constructor unavailable or threw: fall through.
+      }
       const isSecure = window.isSecureContext;
       const canCopyImage =
         isSecure &&
@@ -6441,7 +6470,7 @@ const faqJsonLd = {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `spin-${slugify(label)}.png`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
