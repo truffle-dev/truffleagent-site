@@ -1,0 +1,999 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Diff · paste two texts, see the changes";
+const description =
+  "Paste two texts and see what changed. Colour-coded line and word diffs, unified or side-by-side, shareable by link. Runs in your browser. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/diff/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Diff",
+  alternateName: ["Text Diff", "Text Compare", "Compare Two Texts", "Unified Diff"],
+  url: canonical,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Paste two plain texts",
+    "Line-level and word-level diff",
+    "Unified and side-by-side views",
+    "Colour-coded additions and removals",
+    "Stats: lines added, removed, similarity",
+    "Copy as unified diff or markdown",
+    "Share both sides by link",
+    "Works offline (PWA)",
+    "No accounts, no servers, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Diff?",
+    a: "A small two-text compare tool. Paste an old version on the left and a new version on the right. The page colours the lines that were removed, added, or kept. Toggle to word-level granularity for inline edits and to side-by-side view for a long compare.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "How is the diff computed?",
+    a: "A standard longest-common-subsequence algorithm produces the edit script. For line view it operates on lines; for word view it tokenises by whitespace and punctuation. The same algorithm powers familiar tools like git diff.",
+  },
+  {
+    q: "Can I share the comparison?",
+    a: "Yes. Tap Share to copy a link that embeds both sides in the URL hash. Anyone who opens it sees the same comparison. Texts above six kilobytes do not fit comfortably in a URL and the page will fall back to copy buttons.",
+  },
+  {
+    q: "Where is my data stored?",
+    a: "Only in your browser. The current pair persists between visits via localStorage. Nothing is sent to a server.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/diff/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="df-page">
+    <header class="df-topbar">
+      <div class="df-topbar-inner">
+        <div class="df-brand">
+          <span class="df-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 5L4 8l3 3" />
+              <path d="M17 13l3 3-3 3" />
+              <path d="M4 8h12" />
+              <path d="M20 16H8" />
+            </svg>
+          </span>
+          <span class="df-brand-name">Diff</span>
+        </div>
+        <div class="df-topbar-actions">
+          <button id="swap-btn" type="button" class="df-btn df-btn-ghost" title="Swap left and right">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l-3 3 3 3M4 7h12M17 14l3 3-3 3M20 17H8"/></svg>
+            <span>Swap</span>
+          </button>
+          <button id="clear-btn" type="button" class="df-btn df-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+            <span>Clear</span>
+          </button>
+          <button id="share-btn" type="button" class="df-btn df-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="df-stage">
+      <p class="df-eyebrow">A diff</p>
+      <h1 class="df-title">Paste two texts. See what changed.</h1>
+      <p class="df-sub">Drafts, configs, copy revisions, terms of service updates. Anything plain-text. Line or word, unified or side-by-side, colour-coded.</p>
+    </section>
+
+    <section class="df-input-grid">
+      <div class="df-card">
+        <header class="df-card-head">
+          <h2 class="df-h3">Left</h2>
+          <span id="left-meta" class="df-meta">0 lines</span>
+        </header>
+        <textarea id="left" class="df-textarea" rows="10" spellcheck="false" placeholder="Paste the original text"></textarea>
+      </div>
+      <div class="df-card">
+        <header class="df-card-head">
+          <h2 class="df-h3">Right</h2>
+          <span id="right-meta" class="df-meta">0 lines</span>
+        </header>
+        <textarea id="right" class="df-textarea" rows="10" spellcheck="false" placeholder="Paste the changed text"></textarea>
+      </div>
+    </section>
+
+    <section class="df-controls">
+      <div class="df-control-row">
+        <span class="df-label">Granularity</span>
+        <div class="df-segmented" role="radiogroup" aria-label="Granularity">
+          <button id="g-line" type="button" class="df-seg-btn is-active" role="radio" aria-checked="true">Line</button>
+          <button id="g-word" type="button" class="df-seg-btn" role="radio" aria-checked="false">Word</button>
+          <button id="g-char" type="button" class="df-seg-btn" role="radio" aria-checked="false">Char</button>
+        </div>
+        <div class="df-spacer"></div>
+        <span class="df-label">View</span>
+        <div class="df-segmented" role="radiogroup" aria-label="View">
+          <button id="v-unified" type="button" class="df-seg-btn is-active" role="radio" aria-checked="true">Unified</button>
+          <button id="v-split" type="button" class="df-seg-btn" role="radio" aria-checked="false">Side-by-side</button>
+          <button id="v-inline" type="button" class="df-seg-btn" role="radio" aria-checked="false">Inline</button>
+        </div>
+        <div class="df-spacer"></div>
+        <label class="df-label" for="ignore-ws">Ignore whitespace</label>
+        <button id="ignore-ws" type="button" class="df-toggle" role="switch" aria-checked="false">
+          <span class="df-toggle-thumb"></span>
+        </button>
+      </div>
+    </section>
+
+    <section class="df-stats">
+      <div class="df-stat"><span class="df-stat-label">Added</span><span id="stat-added" class="df-stat-value df-tabular df-added">0</span></div>
+      <div class="df-stat"><span class="df-stat-label">Removed</span><span id="stat-removed" class="df-stat-value df-tabular df-removed">0</span></div>
+      <div class="df-stat"><span class="df-stat-label">Unchanged</span><span id="stat-unchanged" class="df-stat-value df-tabular">0</span></div>
+      <div class="df-stat"><span class="df-stat-label">Similarity</span><span id="stat-similarity" class="df-stat-value df-tabular">100%</span></div>
+    </section>
+
+    <section class="df-card df-card-wide">
+      <header class="df-card-head">
+        <h2 class="df-h3">Result</h2>
+        <div class="df-output-actions">
+          <button id="copy-patch-btn" type="button" class="df-btn df-btn-ghost df-btn-sm">Copy as patch</button>
+          <button id="copy-md-btn" type="button" class="df-btn df-btn-ghost df-btn-sm">Copy as markdown</button>
+        </div>
+      </header>
+      <div id="diff-output" class="df-output" aria-live="polite"></div>
+    </section>
+
+    <section class="df-meta-block">
+      <p class="df-p df-muted">
+        Runs in your browser. The texts never leave the page.
+        Built and shared as a tool by <a href="https://truffleagent.com/" class="df-link">Truffle</a>.
+      </p>
+      <details class="df-details">
+        <summary>Common questions</summary>
+        <div class="df-faq">
+          {faq.map((f) => (
+            <div class="df-faq-item">
+              <h4 class="df-faq-q">{f.q}</h4>
+              <p class="df-faq-a">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <div id="toast" class="df-toast" role="status" aria-live="polite" hidden></div>
+
+  <style is:global>
+    :root {
+      --df-paper: #fbfaf5;
+      --df-ink: #1a1716;
+      --df-soft: #6b655e;
+      --df-line: #e8e3d8;
+      --df-line-strong: #d6cebd;
+      --df-card: #ffffff;
+      --df-card-soft: #f6f2e8;
+      --df-accent: #1f4ed8;
+      --df-accent-soft: #e4eafe;
+      --df-add: #1f8a4a;
+      --df-add-soft: #e0f4e7;
+      --df-add-strong: #b6eac4;
+      --df-rem: #b91c1c;
+      --df-rem-soft: #fbe5e5;
+      --df-rem-strong: #f4c0c0;
+      --df-shadow: 0 1px 2px rgba(26, 23, 22, 0.04), 0 8px 24px rgba(26, 23, 22, 0.05);
+      --df-radius: 14px;
+      --df-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    html, body { background: var(--df-paper); color: var(--df-ink); }
+    body { font-family: "Iowan Old Style", Georgia, "Times New Roman", serif; }
+
+    .df-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 20px 80px;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .df-topbar { margin-bottom: 22px; }
+    .df-topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .df-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .df-brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--df-card-soft);
+      color: var(--df-accent);
+    }
+    .df-brand-name {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-weight: 500;
+      font-size: 22px;
+    }
+    .df-topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .df-stage { margin: 14px 0 28px; }
+    .df-eyebrow {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--df-soft);
+      margin: 0 0 8px;
+    }
+    .df-title {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-style: italic;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.1;
+      margin: 0 0 10px;
+    }
+    .df-sub {
+      font-size: 17px;
+      color: var(--df-soft);
+      margin: 0;
+      max-width: 62ch;
+    }
+
+    .df-input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 720px) {
+      .df-input-grid { grid-template-columns: 1fr; }
+    }
+    .df-card {
+      background: var(--df-card);
+      border: 1px solid var(--df-line);
+      border-radius: var(--df-radius);
+      box-shadow: var(--df-shadow);
+      padding: 14px 16px;
+    }
+    .df-card-wide { margin-top: 14px; }
+    .df-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .df-h3 {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 18px;
+      margin: 0;
+    }
+    .df-meta {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      color: var(--df-soft);
+    }
+    .df-tabular { font-variant-numeric: tabular-nums; }
+
+    .df-textarea {
+      width: 100%;
+      font-family: var(--df-mono);
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--df-ink);
+      background: var(--df-paper);
+      border: 1px solid var(--df-line-strong);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+      resize: vertical;
+      min-height: 220px;
+    }
+    .df-textarea:focus { border-color: var(--df-accent); box-shadow: 0 0 0 3px var(--df-accent-soft); }
+
+    .df-controls {
+      padding: 14px 16px;
+      background: var(--df-card);
+      border: 1px solid var(--df-line);
+      border-radius: var(--df-radius);
+      margin-bottom: 14px;
+    }
+    .df-control-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .df-label {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--df-soft);
+    }
+    .df-spacer { flex: 1 1 12px; min-width: 12px; }
+
+    .df-segmented {
+      display: inline-flex;
+      gap: 2px;
+      padding: 3px;
+      background: var(--df-card-soft);
+      border-radius: 9999px;
+    }
+    .df-seg-btn {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      color: var(--df-soft);
+      padding: 4px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 9999px;
+      cursor: pointer;
+    }
+    .df-seg-btn.is-active { background: var(--df-card); color: var(--df-ink); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+    .df-toggle {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--df-line);
+      border: none;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .df-toggle[aria-checked="true"] { background: var(--df-accent); }
+    .df-toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.15s ease;
+    }
+    .df-toggle[aria-checked="true"] .df-toggle-thumb { transform: translateX(16px); }
+
+    .df-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      padding: 7px 14px;
+      cursor: pointer;
+      background: none;
+      color: var(--df-ink);
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+    .df-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--df-accent-soft); }
+    .df-btn-ghost { border-color: var(--df-line-strong); background: var(--df-card); }
+    .df-btn-ghost:hover { background: var(--df-card-soft); }
+    .df-btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    .df-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 18px 0;
+    }
+    @media (max-width: 600px) {
+      .df-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    .df-stat {
+      padding: 14px 16px;
+      border: 1px solid var(--df-line);
+      border-radius: var(--df-radius);
+      background: var(--df-card);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .df-stat-label {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--df-soft);
+    }
+    .df-stat-value {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 22px;
+    }
+    .df-added { color: var(--df-add); }
+    .df-removed { color: var(--df-rem); }
+
+    .df-output-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .df-output {
+      font-family: var(--df-mono);
+      font-size: 13px;
+      line-height: 1.55;
+      background: var(--df-paper);
+      border: 1px solid var(--df-line);
+      border-radius: 10px;
+      padding: 12px 0;
+      max-height: 600px;
+      overflow-y: auto;
+      color: var(--df-ink);
+    }
+    .df-output:empty::before {
+      content: "Paste text into both boxes to see the diff.";
+      display: block;
+      padding: 0 14px;
+      color: var(--df-soft);
+      font-family: "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+    }
+    .df-line {
+      display: flex;
+      align-items: flex-start;
+      padding: 1px 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .df-line-gut {
+      flex: 0 0 36px;
+      text-align: right;
+      padding-right: 10px;
+      color: var(--df-soft);
+      user-select: none;
+    }
+    .df-line-text {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .df-line-add { background: var(--df-add-soft); }
+    .df-line-add .df-line-text::before { content: "+ "; color: var(--df-add); }
+    .df-line-rem { background: var(--df-rem-soft); }
+    .df-line-rem .df-line-text::before { content: "- "; color: var(--df-rem); }
+    .df-line-eq .df-line-text::before { content: "  "; color: var(--df-soft); }
+    .df-tok-add { background: var(--df-add-strong); border-radius: 2px; padding: 0 1px; }
+    .df-tok-rem { background: var(--df-rem-strong); border-radius: 2px; padding: 0 1px; text-decoration: line-through; }
+
+    .df-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .df-split-col {
+      border-right: 1px solid var(--df-line);
+    }
+    .df-split-col:last-child { border-right: none; }
+
+    .df-meta-block { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--df-line); }
+    .df-p { margin: 0 0 10px; font-size: 15px; line-height: 1.55; }
+    .df-muted { color: var(--df-soft); font-size: 14px; }
+    .df-link { color: var(--df-accent); text-decoration: none; border-bottom: 1px solid var(--df-accent-soft); }
+    .df-link:hover { border-color: var(--df-accent); }
+    .df-details summary {
+      cursor: pointer;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      color: var(--df-soft);
+    }
+    .df-faq { margin-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+    .df-faq-q {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 16px;
+      margin: 0 0 4px;
+    }
+    .df-faq-a { font-size: 14px; color: var(--df-soft); margin: 0; }
+
+    .df-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--df-ink);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 9999px;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      z-index: 80;
+    }
+
+    @media print {
+      .df-topbar, .df-controls, .df-input-grid, .df-meta-block, .df-toast, .df-output-actions {
+        display: none !important;
+      }
+      .df-output { max-height: none; box-shadow: none; }
+    }
+  </style>
+
+  <script>
+    type Gran = "line" | "word" | "char";
+    type View = "unified" | "split" | "inline";
+
+    const STORAGE_KEY = "diff:v1";
+    const SHARE_KEY = "p";
+
+    const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
+
+    const left = $<HTMLTextAreaElement>("#left");
+    const right = $<HTMLTextAreaElement>("#right");
+    const leftMeta = $<HTMLElement>("#left-meta");
+    const rightMeta = $<HTMLElement>("#right-meta");
+    const output = $<HTMLDivElement>("#diff-output");
+    const swapBtn = $<HTMLButtonElement>("#swap-btn");
+    const clearBtn = $<HTMLButtonElement>("#clear-btn");
+    const shareBtn = $<HTMLButtonElement>("#share-btn");
+    const copyPatchBtn = $<HTMLButtonElement>("#copy-patch-btn");
+    const copyMdBtn = $<HTMLButtonElement>("#copy-md-btn");
+    const gLine = $<HTMLButtonElement>("#g-line");
+    const gWord = $<HTMLButtonElement>("#g-word");
+    const gChar = $<HTMLButtonElement>("#g-char");
+    const vUnified = $<HTMLButtonElement>("#v-unified");
+    const vSplit = $<HTMLButtonElement>("#v-split");
+    const vInline = $<HTMLButtonElement>("#v-inline");
+    const ignoreWs = $<HTMLButtonElement>("#ignore-ws");
+    const statAdded = $<HTMLElement>("#stat-added");
+    const statRemoved = $<HTMLElement>("#stat-removed");
+    const statUnchanged = $<HTMLElement>("#stat-unchanged");
+    const statSimilarity = $<HTMLElement>("#stat-similarity");
+    const toast = $<HTMLElement>("#toast");
+
+    type Settings = { gran: Gran; view: View; ws: boolean };
+    const loadSettings = (): Settings => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const j = JSON.parse(raw);
+          const gran: Gran = j.gran === "word" || j.gran === "char" ? j.gran : "line";
+          const view: View = j.view === "split" || j.view === "inline" ? j.view : "unified";
+          return { gran, view, ws: !!j.ws };
+        }
+      } catch {}
+      return { gran: "line", view: "unified", ws: false };
+    };
+    const settings = loadSettings();
+
+    const loadTexts = (): { l: string; r: string } => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY + ":texts");
+        if (raw) {
+          const j = JSON.parse(raw);
+          return { l: String(j.l ?? ""), r: String(j.r ?? "") };
+        }
+      } catch {}
+      return { l: "", r: "" };
+    };
+    const saveTexts = (): void => {
+      try {
+        localStorage.setItem(STORAGE_KEY + ":texts", JSON.stringify({ l: left.value.slice(0, 200000), r: right.value.slice(0, 200000) }));
+      } catch {}
+    };
+    const saveSettings = (): void => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch {}
+    };
+
+    const utf8ToB64 = (s: string): string => {
+      const bytes = new TextEncoder().encode(s);
+      let bin = "";
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    };
+    const b64ToUtf8 = (s: string): string => {
+      const padded = s.replace(/-/g, "+").replace(/_/g, "/");
+      const padding = padded.length % 4 ? "=".repeat(4 - (padded.length % 4)) : "";
+      const bin = atob(padded + padding);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    };
+
+    type Op = { t: "eq" | "add" | "rem"; v: string };
+
+    const lcsTable = (a: string[], b: string[]): Uint32Array => {
+      const m = a.length, n = b.length;
+      const t = new Uint32Array((m + 1) * (n + 1));
+      const w = n + 1;
+      for (let i = m - 1; i >= 0; i--) {
+        for (let j = n - 1; j >= 0; j--) {
+          if (a[i] === b[j]) t[i * w + j] = t[(i + 1) * w + (j + 1)] + 1;
+          else t[i * w + j] = Math.max(t[(i + 1) * w + j], t[i * w + (j + 1)]);
+        }
+      }
+      return t;
+    };
+
+    const diff = (a: string[], b: string[]): Op[] => {
+      const m = a.length, n = b.length;
+      if (m === 0) return b.map((v) => ({ t: "add" as const, v }));
+      if (n === 0) return a.map((v) => ({ t: "rem" as const, v }));
+      if (m * n > 4_000_000) {
+        const out: Op[] = [];
+        a.forEach((v) => out.push({ t: "rem", v }));
+        b.forEach((v) => out.push({ t: "add", v }));
+        return out;
+      }
+      const t = lcsTable(a, b);
+      const w = n + 1;
+      const out: Op[] = [];
+      let i = 0, j = 0;
+      while (i < m && j < n) {
+        if (a[i] === b[j]) {
+          out.push({ t: "eq", v: a[i] });
+          i++; j++;
+        } else if (t[(i + 1) * w + j] >= t[i * w + (j + 1)]) {
+          out.push({ t: "rem", v: a[i] });
+          i++;
+        } else {
+          out.push({ t: "add", v: b[j] });
+          j++;
+        }
+      }
+      while (i < m) { out.push({ t: "rem", v: a[i++] }); }
+      while (j < n) { out.push({ t: "add", v: b[j++] }); }
+      return out;
+    };
+
+    const lines = (s: string): string[] => s === "" ? [] : s.split(/\r?\n/);
+    const words = (s: string): string[] => {
+      if (!s) return [];
+      const out: string[] = [];
+      const re = /\s+|[^\s]+/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(s)) !== null) out.push(m[0]);
+      return out;
+    };
+    const chars = (s: string): string[] => Array.from(s);
+
+    const tokenize = (s: string, g: Gran): string[] => {
+      const text = settings.ws && g !== "char" ? s.replace(/[ \t]+/g, " ").trim() : s;
+      if (g === "line") return lines(text);
+      if (g === "word") return words(text);
+      return chars(text);
+    };
+
+    const escapeHtml = (s: string): string =>
+      s.replace(/[<>&"']/g, (c) => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"})[c] || c);
+
+    const renderInline = (ops: Op[]): string => {
+      const out: string[] = [];
+      ops.forEach((op) => {
+        if (op.t === "eq") out.push(escapeHtml(op.v));
+        else if (op.t === "add") out.push(`<span class="df-tok-add">${escapeHtml(op.v)}</span>`);
+        else out.push(`<span class="df-tok-rem">${escapeHtml(op.v)}</span>`);
+      });
+      return `<div class="df-line df-line-eq"><span class="df-line-text">${out.join("")}</span></div>`;
+    };
+
+    const renderUnified = (ops: Op[]): string => {
+      const rows: string[] = [];
+      let leftLine = 1, rightLine = 1;
+      ops.forEach((op) => {
+        const safe = escapeHtml(op.v);
+        if (op.t === "eq") {
+          rows.push(`<div class="df-line df-line-eq"><span class="df-line-gut">${leftLine}</span><span class="df-line-text">${safe || "&nbsp;"}</span></div>`);
+          leftLine++; rightLine++;
+        } else if (op.t === "rem") {
+          rows.push(`<div class="df-line df-line-rem"><span class="df-line-gut">${leftLine}</span><span class="df-line-text">${safe || "&nbsp;"}</span></div>`);
+          leftLine++;
+        } else {
+          rows.push(`<div class="df-line df-line-add"><span class="df-line-gut">${rightLine}</span><span class="df-line-text">${safe || "&nbsp;"}</span></div>`);
+          rightLine++;
+        }
+      });
+      return rows.join("");
+    };
+
+    const renderSplit = (ops: Op[]): string => {
+      const leftRows: string[] = [];
+      const rightRows: string[] = [];
+      let leftLine = 1, rightLine = 1;
+      const queueRem: { v: string; line: number }[] = [];
+      const queueAdd: { v: string; line: number }[] = [];
+
+      const flushQueues = () => {
+        const len = Math.max(queueRem.length, queueAdd.length);
+        for (let k = 0; k < len; k++) {
+          if (k < queueRem.length) {
+            const q = queueRem[k];
+            leftRows.push(`<div class="df-line df-line-rem"><span class="df-line-gut">${q.line}</span><span class="df-line-text">${escapeHtml(q.v) || "&nbsp;"}</span></div>`);
+          } else {
+            leftRows.push(`<div class="df-line"><span class="df-line-gut">&nbsp;</span><span class="df-line-text">&nbsp;</span></div>`);
+          }
+          if (k < queueAdd.length) {
+            const q = queueAdd[k];
+            rightRows.push(`<div class="df-line df-line-add"><span class="df-line-gut">${q.line}</span><span class="df-line-text">${escapeHtml(q.v) || "&nbsp;"}</span></div>`);
+          } else {
+            rightRows.push(`<div class="df-line"><span class="df-line-gut">&nbsp;</span><span class="df-line-text">&nbsp;</span></div>`);
+          }
+        }
+        queueRem.length = 0;
+        queueAdd.length = 0;
+      };
+
+      ops.forEach((op) => {
+        if (op.t === "eq") {
+          flushQueues();
+          const safe = escapeHtml(op.v) || "&nbsp;";
+          leftRows.push(`<div class="df-line df-line-eq"><span class="df-line-gut">${leftLine}</span><span class="df-line-text">${safe}</span></div>`);
+          rightRows.push(`<div class="df-line df-line-eq"><span class="df-line-gut">${rightLine}</span><span class="df-line-text">${safe}</span></div>`);
+          leftLine++; rightLine++;
+        } else if (op.t === "rem") {
+          queueRem.push({ v: op.v, line: leftLine++ });
+        } else {
+          queueAdd.push({ v: op.v, line: rightLine++ });
+        }
+      });
+      flushQueues();
+
+      return `<div class="df-split"><div class="df-split-col">${leftRows.join("")}</div><div class="df-split-col">${rightRows.join("")}</div></div>`;
+    };
+
+    const updateStats = (ops: Op[]): void => {
+      let add = 0, rem = 0, eq = 0;
+      ops.forEach((op) => {
+        if (op.t === "add") add++;
+        else if (op.t === "rem") rem++;
+        else eq++;
+      });
+      statAdded.textContent = String(add);
+      statRemoved.textContent = String(rem);
+      statUnchanged.textContent = String(eq);
+      const total = add + rem + eq;
+      const sim = total === 0 ? 100 : Math.round((eq / total) * 100);
+      statSimilarity.textContent = `${sim}%`;
+    };
+
+    let lastOps: Op[] = [];
+
+    const render = (): void => {
+      const a = tokenize(left.value, settings.gran);
+      const b = tokenize(right.value, settings.gran);
+      const ops = diff(a, b);
+      lastOps = ops;
+
+      leftMeta.textContent = `${lines(left.value).length} line${lines(left.value).length === 1 ? "" : "s"}`;
+      rightMeta.textContent = `${lines(right.value).length} line${lines(right.value).length === 1 ? "" : "s"}`;
+
+      updateStats(ops);
+
+      if (left.value === "" && right.value === "") {
+        output.innerHTML = "";
+        return;
+      }
+
+      if (settings.view === "inline") {
+        output.innerHTML = renderInline(ops);
+      } else if (settings.view === "split") {
+        output.innerHTML = renderSplit(ops);
+      } else {
+        output.innerHTML = renderUnified(ops);
+      }
+    };
+
+    const setGran = (g: Gran): void => {
+      settings.gran = g;
+      gLine.classList.toggle("is-active", g === "line");
+      gLine.setAttribute("aria-checked", g === "line" ? "true" : "false");
+      gWord.classList.toggle("is-active", g === "word");
+      gWord.setAttribute("aria-checked", g === "word" ? "true" : "false");
+      gChar.classList.toggle("is-active", g === "char");
+      gChar.setAttribute("aria-checked", g === "char" ? "true" : "false");
+      saveSettings();
+      render();
+    };
+
+    const setView = (v: View): void => {
+      settings.view = v;
+      vUnified.classList.toggle("is-active", v === "unified");
+      vUnified.setAttribute("aria-checked", v === "unified" ? "true" : "false");
+      vSplit.classList.toggle("is-active", v === "split");
+      vSplit.setAttribute("aria-checked", v === "split" ? "true" : "false");
+      vInline.classList.toggle("is-active", v === "inline");
+      vInline.setAttribute("aria-checked", v === "inline" ? "true" : "false");
+      saveSettings();
+      render();
+    };
+
+    const setWs = (on: boolean): void => {
+      settings.ws = on;
+      ignoreWs.setAttribute("aria-checked", on ? "true" : "false");
+      saveSettings();
+      render();
+    };
+
+    setGran(settings.gran);
+    setView(settings.view);
+    setWs(settings.ws);
+
+    let renderTimer: number | null = null;
+    const triggerRender = (): void => {
+      if (renderTimer) clearTimeout(renderTimer);
+      renderTimer = window.setTimeout(() => { saveTexts(); render(); }, 80);
+    };
+
+    left.addEventListener("input", triggerRender);
+    right.addEventListener("input", triggerRender);
+
+    gLine.addEventListener("click", () => setGran("line"));
+    gWord.addEventListener("click", () => setGran("word"));
+    gChar.addEventListener("click", () => setGran("char"));
+    vUnified.addEventListener("click", () => setView("unified"));
+    vSplit.addEventListener("click", () => setView("split"));
+    vInline.addEventListener("click", () => setView("inline"));
+    ignoreWs.addEventListener("click", () => setWs(!settings.ws));
+
+    swapBtn.addEventListener("click", () => {
+      const a = left.value;
+      left.value = right.value;
+      right.value = a;
+      saveTexts();
+      render();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      left.value = "";
+      right.value = "";
+      saveTexts();
+      render();
+    });
+
+    const showToast = (msg: string): void => {
+      toast.textContent = msg;
+      toast.hidden = false;
+      window.setTimeout(() => { toast.hidden = true; }, 1800);
+    };
+
+    const copyText = async (text: string): Promise<boolean> => {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch {}
+        document.body.removeChild(ta);
+        return ok;
+      }
+    };
+
+    const buildPatch = (): string => {
+      const out: string[] = [];
+      out.push("--- a");
+      out.push("+++ b");
+      const linesOps = diff(tokenize(left.value, "line"), tokenize(right.value, "line"));
+      let leftN = 1, rightN = 1;
+      linesOps.forEach((op) => {
+        if (op.t === "eq") {
+          out.push(`  ${op.v}`);
+          leftN++; rightN++;
+        } else if (op.t === "rem") {
+          out.push(`- ${op.v}`);
+          leftN++;
+        } else {
+          out.push(`+ ${op.v}`);
+          rightN++;
+        }
+      });
+      return out.join("\n");
+    };
+
+    copyPatchBtn.addEventListener("click", async () => {
+      if (!left.value && !right.value) { showToast("Paste text into both boxes first."); return; }
+      const ok = await copyText(buildPatch());
+      showToast(ok ? "Patch copied" : "Press Ctrl+C to copy");
+    });
+
+    copyMdBtn.addEventListener("click", async () => {
+      if (!left.value && !right.value) { showToast("Paste text into both boxes first."); return; }
+      const md = ["```diff", buildPatch(), "```"].join("\n");
+      const ok = await copyText(md);
+      showToast(ok ? "Markdown copied" : "Press Ctrl+C to copy");
+    });
+
+    shareBtn.addEventListener("click", async () => {
+      if (!left.value && !right.value) { showToast("Paste text into both boxes first."); return; }
+      const total = left.value.length + right.value.length;
+      if (total > 8000) { showToast("Texts too long for a share link."); return; }
+      const payload = { l: left.value, r: right.value, g: settings.gran, v: settings.view, w: settings.ws };
+      const token = utf8ToB64(JSON.stringify(payload));
+      const url = `${location.origin}/diff/#${SHARE_KEY}=${token}`;
+      const ok = await copyText(url);
+      showToast(ok ? "Share link copied" : "Press Ctrl+C to copy");
+    });
+
+    const consumeHash = (): void => {
+      const hash = location.hash.replace(/^#/, "");
+      if (!hash) return;
+      const p = new URLSearchParams(hash);
+      const token = p.get(SHARE_KEY);
+      if (!token) return;
+      try {
+        const j = JSON.parse(b64ToUtf8(token));
+        if (typeof j.l === "string") left.value = j.l.slice(0, 200000);
+        if (typeof j.r === "string") right.value = j.r.slice(0, 200000);
+        if (j.g === "line" || j.g === "word" || j.g === "char") setGran(j.g);
+        if (j.v === "unified" || j.v === "split" || j.v === "inline") setView(j.v);
+        if (typeof j.w === "boolean") setWs(j.w);
+        saveTexts();
+        history.replaceState(null, "", "/diff/");
+        render();
+      } catch {
+        showToast("That share link is not valid.");
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/diff/sw.js", { scope: "/diff/" }).catch(() => {});
+      });
+    }
+
+    const initial = loadTexts();
+    left.value = initial.l;
+    right.value = initial.r;
+    render();
+    consumeHash();
+  </script>
+</BaseLayout>
