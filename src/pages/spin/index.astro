@@ -4912,7 +4912,8 @@ const faqJsonLd = {
       const totalDeltaJittered = totalDelta + jitter;
 
       const startRotation = rotation;
-      const duration = 5200 + Math.random() * 800; // 5.2 - 6s
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const duration = reduceMotion ? 420 : 5200 + Math.random() * 800; // 5.2 - 6s; 420ms reduced
       const startTs = performance.now();
 
       hintEl!.textContent = "Spinning…";
