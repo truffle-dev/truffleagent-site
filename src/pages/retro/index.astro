@@ -1,0 +1,1370 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Retro Board · Free Sprint Retrospective, No Signup";
+const description =
+  "Run a sprint retro in your browser. Three columns, votes, safe-reveal, share by link. Works offline. No accounts. No trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/retro/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Retro Board",
+  alternateName: ["Sprint Retrospective", "Retrospective Board", "Team Retro"],
+  url: canonical,
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Three-column retro board (went well / could be better / action items)",
+    "Vote on the cards that matter most",
+    "Safe-reveal mode: mask cards while writing",
+    "Share a board by link",
+    "Save multiple boards in your browser",
+    "Export to markdown",
+    "Works offline (PWA)",
+    "No ads, no signup, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is a sprint retro?",
+    a: "A short team meeting at the end of a sprint or iteration where the team reflects on what worked, what didn't, and what to change next time. This board organizes the conversation around three columns and votes on the most important items.",
+  },
+  {
+    q: "Is the retro board free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "Does the board work offline?",
+    a: "Yes. After your first visit, the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "Can I save my boards?",
+    a: "Yes. Boards are saved automatically to your browser's localStorage. You can keep multiple named boards and switch between them.",
+  },
+  {
+    q: "Can I share a board with my team?",
+    a: "Yes. Tap Share to copy a link that encodes the board state in the URL. Anyone who opens it sees the same board and can vote.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+  {
+    q: "What is safe-reveal mode?",
+    a: "Cards are masked as dots until you click Reveal. This lets everyone write without seeing others' cards first, which leads to more honest retros.",
+  },
+  {
+    q: "Can I export the retro?",
+    a: "Yes. Tap Export to copy the board as markdown that pastes cleanly into a doc, ticket, or Slack message.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/retro/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="retro-page">
+    <header class="retro-topbar">
+      <div class="retro-topbar-inner">
+        <div class="retro-brand">
+          <span class="retro-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="5" height="16" rx="1.5" />
+              <rect x="10" y="4" width="5" height="11" rx="1.5" />
+              <rect x="17" y="4" width="4" height="7" rx="1.5" />
+            </svg>
+          </span>
+          <span class="retro-brand-name">Retro Board</span>
+        </div>
+        <div class="retro-topbar-actions">
+          <button id="retro-board-picker-btn" type="button" class="retro-btn retro-btn-ghost" aria-haspopup="menu">
+            <span id="retro-board-name">Sprint retro</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+          </button>
+          <button id="retro-share-btn" type="button" class="retro-btn retro-btn-ghost" title="Copy a link that contains this board">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+            <span>Share</span>
+          </button>
+          <button id="retro-export-btn" type="button" class="retro-btn retro-btn-ghost" title="Copy the board as markdown">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+            <span>Export</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="retro-controls">
+      <div class="retro-controls-inner">
+        <div class="retro-mode-row" role="group" aria-label="Board mode">
+          <button id="retro-mask-btn" type="button" class="retro-mode-chip" aria-pressed="false" title="Hide cards until reveal. Everyone writes in private, then you reveal as a group.">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.86 21.86 0 0 1 5.06-6.06" /><path d="M9.9 4.24A11.05 11.05 0 0 1 12 4c7 0 11 8 11 8a21.79 21.79 0 0 1-3.17 4.49" /><path d="M14.12 14.12a3 3 0 0 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+            <span>Safe-reveal</span>
+          </button>
+          <button id="retro-sort-btn" type="button" class="retro-mode-chip" aria-pressed="false" title="Sort cards by votes within each column">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="9" y2="18" /></svg>
+            <span>Sort by votes</span>
+          </button>
+          <span class="retro-divider"></span>
+          <button id="retro-reveal-btn" type="button" class="retro-btn retro-btn-primary" hidden>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+            <span>Reveal cards</span>
+          </button>
+          <span id="retro-status" class="retro-status" aria-live="polite"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="retro-stage" aria-label="Retro columns">
+      <div id="retro-columns" class="retro-columns"></div>
+    </section>
+
+    <section class="retro-meta">
+      <div class="retro-meta-inner">
+        <p class="retro-meta-hint">
+          Tip: Add a card with Enter. Click a card to edit. Vote by tapping the
+          heart. Toggle <em>Safe-reveal</em> to hide cards while writing.
+        </p>
+        <div class="retro-meta-actions">
+          <button id="retro-rename-btn" type="button" class="retro-btn retro-btn-text">Rename board</button>
+          <button id="retro-new-btn" type="button" class="retro-btn retro-btn-text">New board</button>
+          <button id="retro-reset-btn" type="button" class="retro-btn retro-btn-text retro-btn-danger">Reset this board</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="retro-why">
+      <div class="retro-why-inner">
+        <h2 class="retro-why-h">A retro that respects the team's time.</h2>
+        <ul class="retro-why-list">
+          <li><strong>No signup.</strong> Open the page, run the retro, share a link.</li>
+          <li><strong>Safe-reveal.</strong> Cards stay masked until the team is ready to look together.</li>
+          <li><strong>Lives in your browser.</strong> Boards persist locally. Share a board with a URL.</li>
+          <li><strong>Exports to markdown.</strong> Paste the retro straight into a doc or ticket.</li>
+          <li><strong>Free forever.</strong> No ads, no tracking, no paid tier.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="retro-faq">
+      <div class="retro-faq-inner">
+        <h2 class="retro-faq-h">Common questions</h2>
+        <dl class="retro-faq-list">
+          {faq.map((f) => (
+            <div class="retro-faq-row">
+              <dt>{f.q}</dt>
+              <dd>{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <div id="retro-board-picker" class="retro-popover" hidden role="menu" aria-label="Switch board">
+      <div class="retro-popover-list" id="retro-board-list"></div>
+    </div>
+
+    <div id="retro-toast" class="retro-toast" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <style>
+    :root {
+      --retro-bg: #fbfaf5;
+      --retro-surface: #ffffff;
+      --retro-surface-alt: #f5f3eb;
+      --retro-ink: #181410;
+      --retro-ink-soft: rgba(24, 20, 16, 0.65);
+      --retro-ink-faint: rgba(24, 20, 16, 0.36);
+      --retro-line: rgba(24, 20, 16, 0.12);
+      --retro-line-strong: rgba(24, 20, 16, 0.22);
+      --retro-accent: #6b5cff;
+      --retro-accent-soft: rgba(107, 92, 255, 0.12);
+      --retro-success: #2f7a3f;
+      --retro-warn: #b6691b;
+      --retro-danger: #b03a2e;
+      --retro-col-1: #2f7a3f;
+      --retro-col-2: #b6691b;
+      --retro-col-3: #6b5cff;
+      --retro-radius: 14px;
+      --retro-radius-sm: 10px;
+      --retro-shadow: 0 1px 2px rgba(24, 20, 16, 0.04), 0 6px 24px rgba(24, 20, 16, 0.04);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --retro-bg: #0e0c08;
+        --retro-surface: #181410;
+        --retro-surface-alt: #221d18;
+        --retro-ink: #faf7ef;
+        --retro-ink-soft: rgba(250, 247, 239, 0.7);
+        --retro-ink-faint: rgba(250, 247, 239, 0.42);
+        --retro-line: rgba(250, 247, 239, 0.12);
+        --retro-line-strong: rgba(250, 247, 239, 0.22);
+        --retro-accent: #9c8dff;
+        --retro-accent-soft: rgba(156, 141, 255, 0.16);
+        --retro-col-1: #6dc97c;
+        --retro-col-2: #e7a558;
+        --retro-col-3: #9c8dff;
+        --retro-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 24px rgba(0, 0, 0, 0.32);
+      }
+    }
+
+    [data-theme="dark"] {
+      --retro-bg: #0e0c08;
+      --retro-surface: #181410;
+      --retro-surface-alt: #221d18;
+      --retro-ink: #faf7ef;
+      --retro-ink-soft: rgba(250, 247, 239, 0.7);
+      --retro-ink-faint: rgba(250, 247, 239, 0.42);
+      --retro-line: rgba(250, 247, 239, 0.12);
+      --retro-line-strong: rgba(250, 247, 239, 0.22);
+      --retro-accent: #9c8dff;
+      --retro-accent-soft: rgba(156, 141, 255, 0.16);
+      --retro-col-1: #6dc97c;
+      --retro-col-2: #e7a558;
+      --retro-col-3: #9c8dff;
+      --retro-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 24px rgba(0, 0, 0, 0.32);
+    }
+    [data-theme="light"] {
+      --retro-bg: #fbfaf5;
+      --retro-surface: #ffffff;
+      --retro-surface-alt: #f5f3eb;
+      --retro-ink: #181410;
+      --retro-ink-soft: rgba(24, 20, 16, 0.65);
+      --retro-ink-faint: rgba(24, 20, 16, 0.36);
+      --retro-line: rgba(24, 20, 16, 0.12);
+      --retro-line-strong: rgba(24, 20, 16, 0.22);
+      --retro-accent: #6b5cff;
+      --retro-accent-soft: rgba(107, 92, 255, 0.12);
+      --retro-col-1: #2f7a3f;
+      --retro-col-2: #b6691b;
+      --retro-col-3: #6b5cff;
+      --retro-shadow: 0 1px 2px rgba(24, 20, 16, 0.04), 0 6px 24px rgba(24, 20, 16, 0.04);
+    }
+
+    .retro-page {
+      background: var(--retro-bg);
+      color: var(--retro-ink);
+      min-height: 100vh;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      font-feature-settings: "ss01", "cv11";
+      font-variant-numeric: tabular-nums;
+      padding-bottom: 64px;
+    }
+
+    .retro-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: color-mix(in oklab, var(--retro-bg) 92%, transparent);
+      backdrop-filter: saturate(140%) blur(10px);
+      -webkit-backdrop-filter: saturate(140%) blur(10px);
+      border-bottom: 1px solid var(--retro-line);
+    }
+    .retro-topbar-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .retro-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .retro-brand-mark {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--retro-accent-soft);
+      color: var(--retro-accent);
+    }
+    .retro-topbar-actions {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .retro-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--retro-ink);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      line-height: 1;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .retro-btn:hover {
+      background: var(--retro-surface-alt);
+    }
+    .retro-btn:focus-visible {
+      outline: 2px solid var(--retro-accent);
+      outline-offset: 2px;
+    }
+    .retro-btn-ghost {
+      border-color: var(--retro-line);
+    }
+    .retro-btn-primary {
+      background: var(--retro-accent);
+      color: white;
+      border-color: var(--retro-accent);
+    }
+    .retro-btn-primary:hover {
+      filter: brightness(1.05);
+      background: var(--retro-accent);
+    }
+    .retro-btn-text {
+      padding: 6px 8px;
+      font-size: 12.5px;
+      color: var(--retro-ink-soft);
+    }
+    .retro-btn-text:hover {
+      color: var(--retro-ink);
+      background: transparent;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .retro-btn-danger {
+      color: var(--retro-danger);
+    }
+    .retro-btn-danger:hover {
+      color: var(--retro-danger);
+    }
+
+    .retro-controls {
+      border-bottom: 1px solid var(--retro-line);
+      background: var(--retro-bg);
+    }
+    .retro-controls-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 12px 20px;
+    }
+    .retro-mode-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .retro-mode-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--retro-line);
+      background: var(--retro-surface);
+      color: var(--retro-ink-soft);
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .retro-mode-chip:hover {
+      color: var(--retro-ink);
+      border-color: var(--retro-line-strong);
+    }
+    .retro-mode-chip[aria-pressed="true"] {
+      background: var(--retro-accent-soft);
+      color: var(--retro-accent);
+      border-color: color-mix(in oklab, var(--retro-accent) 35%, transparent);
+    }
+    .retro-mode-chip:focus-visible {
+      outline: 2px solid var(--retro-accent);
+      outline-offset: 2px;
+    }
+    .retro-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--retro-line);
+      display: inline-block;
+    }
+    .retro-status {
+      font-size: 12.5px;
+      color: var(--retro-ink-soft);
+      margin-left: auto;
+    }
+
+    .retro-stage {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+    .retro-columns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 880px) {
+      .retro-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .retro-col {
+      background: var(--retro-surface);
+      border: 1px solid var(--retro-line);
+      border-radius: var(--retro-radius);
+      box-shadow: var(--retro-shadow);
+      display: flex;
+      flex-direction: column;
+      min-height: 360px;
+    }
+    .retro-col-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 10px;
+    }
+    .retro-col-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .retro-col[data-col="0"] .retro-col-swatch { background: var(--retro-col-1); }
+    .retro-col[data-col="1"] .retro-col-swatch { background: var(--retro-col-2); }
+    .retro-col[data-col="2"] .retro-col-swatch { background: var(--retro-col-3); }
+    .retro-col-title {
+      flex: 1;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.005em;
+      color: var(--retro-ink);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 2px 4px;
+      margin: -2px -4px;
+      font-family: inherit;
+      width: 100%;
+      min-width: 0;
+    }
+    .retro-col-title:hover {
+      border-color: var(--retro-line);
+    }
+    .retro-col-title:focus-visible {
+      outline: 2px solid var(--retro-accent);
+      outline-offset: 1px;
+      border-color: transparent;
+    }
+    .retro-col-count {
+      font-size: 11px;
+      color: var(--retro-ink-faint);
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--retro-surface-alt);
+    }
+    .retro-col-body {
+      flex: 1;
+      padding: 4px 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      max-height: 56vh;
+    }
+    .retro-col-add {
+      padding: 8px 12px 14px;
+      border-top: 1px solid var(--retro-line);
+    }
+    .retro-col-add-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--retro-radius-sm);
+      border: 1px solid var(--retro-line);
+      background: var(--retro-bg);
+      color: var(--retro-ink);
+      font: inherit;
+      font-size: 13.5px;
+      resize: vertical;
+      min-height: 38px;
+      max-height: 120px;
+      transition: border-color 120ms ease;
+      font-family: inherit;
+    }
+    .retro-col-add-input::placeholder {
+      color: var(--retro-ink-faint);
+    }
+    .retro-col-add-input:focus-visible {
+      outline: none;
+      border-color: var(--retro-accent);
+      box-shadow: 0 0 0 3px var(--retro-accent-soft);
+    }
+
+    .retro-card {
+      background: var(--retro-bg);
+      border: 1px solid var(--retro-line);
+      border-radius: var(--retro-radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+    .retro-card:hover {
+      border-color: var(--retro-line-strong);
+    }
+    .retro-card[data-masked="true"] .retro-card-text {
+      letter-spacing: 0.6em;
+      color: var(--retro-ink-faint);
+      user-select: none;
+      pointer-events: none;
+    }
+    .retro-card-text {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--retro-ink);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 0;
+      margin: 0;
+      font-family: inherit;
+      resize: none;
+      width: 100%;
+      min-height: 1.5em;
+      white-space: pre-wrap;
+      word-break: break-word;
+      cursor: text;
+    }
+    .retro-card-text:focus-visible {
+      outline: 2px solid var(--retro-accent);
+      outline-offset: 2px;
+      border-color: transparent;
+    }
+    .retro-card-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .retro-vote-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--retro-line);
+      background: var(--retro-surface);
+      color: var(--retro-ink-soft);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .retro-vote-btn:hover {
+      color: var(--retro-accent);
+      border-color: color-mix(in oklab, var(--retro-accent) 30%, transparent);
+    }
+    .retro-vote-btn[data-voted="true"] {
+      background: var(--retro-accent-soft);
+      color: var(--retro-accent);
+      border-color: color-mix(in oklab, var(--retro-accent) 35%, transparent);
+    }
+    .retro-vote-btn:focus-visible {
+      outline: 2px solid var(--retro-accent);
+      outline-offset: 2px;
+    }
+    .retro-vote-icon {
+      width: 12px;
+      height: 12px;
+    }
+    .retro-card-del {
+      opacity: 0;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--retro-ink-faint);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+    }
+    .retro-card:hover .retro-card-del,
+    .retro-card:focus-within .retro-card-del {
+      opacity: 1;
+    }
+    .retro-card-del:hover {
+      color: var(--retro-danger);
+      background: var(--retro-surface-alt);
+    }
+    .retro-card-del:focus-visible {
+      outline: 2px solid var(--retro-danger);
+      outline-offset: 2px;
+      opacity: 1;
+    }
+    .retro-card-empty {
+      font-size: 12.5px;
+      color: var(--retro-ink-faint);
+      text-align: center;
+      padding: 12px 8px 4px;
+      font-style: italic;
+    }
+
+    .retro-meta {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .retro-meta-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 0 0;
+      border-top: 1px dashed var(--retro-line);
+      flex-wrap: wrap;
+    }
+    .retro-meta-hint {
+      font-size: 12.5px;
+      color: var(--retro-ink-soft);
+      margin: 0;
+      max-width: 60ch;
+    }
+    .retro-meta-actions {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .retro-why,
+    .retro-faq {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 20px 0;
+    }
+    .retro-why-h,
+    .retro-faq-h {
+      font-family: "Fraunces", "Iowan Old Style", "Constantia", Georgia, serif;
+      font-weight: 500;
+      font-size: 28px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      margin: 0 0 16px;
+      color: var(--retro-ink);
+    }
+    .retro-why-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .retro-why-list li {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--retro-ink-soft);
+      padding-left: 14px;
+      position: relative;
+    }
+    .retro-why-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.65em;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--retro-accent);
+    }
+    .retro-why-list strong {
+      color: var(--retro-ink);
+      font-weight: 600;
+    }
+
+    .retro-faq-list {
+      margin: 0;
+      padding: 0;
+    }
+    .retro-faq-row {
+      padding: 14px 0;
+      border-top: 1px solid var(--retro-line);
+    }
+    .retro-faq-row:last-child {
+      border-bottom: 1px solid var(--retro-line);
+    }
+    .retro-faq-row dt {
+      font-weight: 600;
+      font-size: 14px;
+      margin: 0 0 6px;
+      color: var(--retro-ink);
+    }
+    .retro-faq-row dd {
+      font-size: 13.5px;
+      line-height: 1.55;
+      margin: 0;
+      color: var(--retro-ink-soft);
+    }
+
+    .retro-popover {
+      position: absolute;
+      background: var(--retro-surface);
+      border: 1px solid var(--retro-line);
+      border-radius: var(--retro-radius);
+      box-shadow: 0 12px 32px rgba(24, 20, 16, 0.18);
+      padding: 6px;
+      min-width: 240px;
+      z-index: 40;
+    }
+    .retro-popover-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .retro-popover-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--retro-ink);
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      text-align: left;
+      width: 100%;
+    }
+    .retro-popover-row:hover {
+      background: var(--retro-surface-alt);
+    }
+    .retro-popover-row[aria-current="true"] {
+      background: var(--retro-accent-soft);
+      color: var(--retro-accent);
+    }
+    .retro-popover-sep {
+      height: 1px;
+      background: var(--retro-line);
+      margin: 4px 0;
+    }
+
+    .retro-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--retro-ink);
+      color: var(--retro-bg);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+      z-index: 100;
+      animation: retro-toast-in 200ms ease;
+    }
+    @keyframes retro-toast-in {
+      from {
+        opacity: 0;
+        transform: translate(-50%, 8px);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+    }
+  </style>
+
+  <script>
+    type CardId = string;
+    type Card = { id: CardId; text: string; votes: number; createdAt: number };
+    type Column = { id: string; title: string; cards: Card[] };
+    type Board = {
+      id: string;
+      name: string;
+      columns: Column[];
+      mask: boolean;
+      revealed: boolean;
+      sortByVotes: boolean;
+      createdAt: number;
+    };
+    type Persist = {
+      v: 1;
+      boards: Board[];
+      currentId: string;
+      myVotes: Record<CardId, boolean>;
+    };
+
+    const STORAGE_KEY = "retro:v1";
+    const MAX_BOARDS = 12;
+    const MAX_TEXT = 280;
+    const MAX_TITLE = 60;
+    const DEFAULT_COLUMNS = [
+      "Went well",
+      "Could be better",
+      "Action items",
+    ];
+
+    const rid = () => Math.random().toString(36).slice(2, 10);
+
+    function makeBoard(name = "Sprint retro"): Board {
+      return {
+        id: rid(),
+        name,
+        columns: DEFAULT_COLUMNS.map((t) => ({ id: rid(), title: t, cards: [] })),
+        mask: false,
+        revealed: false,
+        sortByVotes: false,
+        createdAt: Date.now(),
+      };
+    }
+
+    function loadPersist(): Persist {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as Persist;
+          if (parsed && parsed.v === 1 && Array.isArray(parsed.boards) && parsed.boards.length > 0) {
+            const b = parsed.boards.find((x) => x.id === parsed.currentId);
+            if (b) {
+              parsed.myVotes = parsed.myVotes ?? {};
+              return parsed;
+            }
+            parsed.currentId = parsed.boards[0].id;
+            parsed.myVotes = parsed.myVotes ?? {};
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn("retro: persist load failed", e);
+      }
+      const b = makeBoard();
+      return { v: 1, boards: [b], currentId: b.id, myVotes: {} };
+    }
+
+    function savePersist(p: Persist) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+      } catch (e) {
+        console.warn("retro: persist save failed", e);
+      }
+    }
+
+    const utf8ToB64 = (s: string) =>
+      btoa(String.fromCharCode(...new TextEncoder().encode(s)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+    const b64ToUtf8 = (s: string) => {
+      const pad = s.length % 4 ? "=".repeat(4 - (s.length % 4)) : "";
+      const b = atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
+      const bytes = Uint8Array.from(b, (c) => c.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    };
+
+    function encodeBoard(b: Board): string {
+      const payload = {
+        n: b.name,
+        c: b.columns.map((c) => ({
+          t: c.title,
+          k: c.cards.map((card) => ({ t: card.text, v: card.votes })),
+        })),
+      };
+      return utf8ToB64(JSON.stringify(payload));
+    }
+
+    function decodeBoardParam(s: string): Board | null {
+      try {
+        const obj = JSON.parse(b64ToUtf8(s));
+        if (!obj || !Array.isArray(obj.c)) return null;
+        return {
+          id: rid(),
+          name: typeof obj.n === "string" ? obj.n.slice(0, MAX_TITLE) : "Shared board",
+          columns: obj.c.slice(0, 6).map((c: any) => ({
+            id: rid(),
+            title: typeof c.t === "string" ? c.t.slice(0, MAX_TITLE) : "Column",
+            cards: Array.isArray(c.k)
+              ? c.k.slice(0, 60).map((card: any) => ({
+                  id: rid(),
+                  text: typeof card.t === "string" ? card.t.slice(0, MAX_TEXT) : "",
+                  votes: typeof card.v === "number" ? Math.max(0, Math.floor(card.v)) : 0,
+                  createdAt: Date.now(),
+                }))
+              : [],
+          })),
+          mask: false,
+          revealed: false,
+          sortByVotes: false,
+          createdAt: Date.now(),
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    let persist = loadPersist();
+
+    const params = new URLSearchParams(window.location.search);
+    const shareParam = params.get("b");
+    if (shareParam) {
+      const imported = decodeBoardParam(shareParam);
+      if (imported) {
+        if (persist.boards.length < MAX_BOARDS) {
+          persist.boards.push(imported);
+        } else {
+          persist.boards[persist.boards.length - 1] = imported;
+        }
+        persist.currentId = imported.id;
+        savePersist(persist);
+        history.replaceState(null, "", window.location.pathname);
+      }
+    }
+
+    const board = () => persist.boards.find((b) => b.id === persist.currentId) ?? persist.boards[0];
+
+    const columnsRoot = document.getElementById("retro-columns") as HTMLElement;
+    const boardNameEl = document.getElementById("retro-board-name") as HTMLElement;
+    const maskBtn = document.getElementById("retro-mask-btn") as HTMLButtonElement;
+    const sortBtn = document.getElementById("retro-sort-btn") as HTMLButtonElement;
+    const revealBtn = document.getElementById("retro-reveal-btn") as HTMLButtonElement;
+    const statusEl = document.getElementById("retro-status") as HTMLElement;
+    const shareBtn = document.getElementById("retro-share-btn") as HTMLButtonElement;
+    const exportBtn = document.getElementById("retro-export-btn") as HTMLButtonElement;
+    const renameBtn = document.getElementById("retro-rename-btn") as HTMLButtonElement;
+    const newBtn = document.getElementById("retro-new-btn") as HTMLButtonElement;
+    const resetBtn = document.getElementById("retro-reset-btn") as HTMLButtonElement;
+    const pickerBtn = document.getElementById("retro-board-picker-btn") as HTMLButtonElement;
+    const popover = document.getElementById("retro-board-picker") as HTMLElement;
+    const popoverList = document.getElementById("retro-board-list") as HTMLElement;
+    const toastEl = document.getElementById("retro-toast") as HTMLElement;
+
+    let toastTimer = 0;
+    function toast(msg: string) {
+      toastEl.textContent = msg;
+      toastEl.hidden = false;
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        toastEl.hidden = true;
+      }, 2400);
+    }
+
+    let saveTimer = 0;
+    function save() {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => savePersist(persist), 200);
+    }
+
+    function totalCards(b: Board) {
+      return b.columns.reduce((acc, c) => acc + c.cards.length, 0);
+    }
+    function totalVotes(b: Board) {
+      return b.columns.reduce(
+        (acc, c) => acc + c.cards.reduce((a, k) => a + k.votes, 0),
+        0,
+      );
+    }
+
+    function updateStatus() {
+      const b = board();
+      const n = totalCards(b);
+      const v = totalVotes(b);
+      const parts: string[] = [];
+      parts.push(`${n} ${n === 1 ? "card" : "cards"}`);
+      if (v > 0) parts.push(`${v} ${v === 1 ? "vote" : "votes"}`);
+      if (b.mask && !b.revealed) parts.push("masked");
+      statusEl.textContent = parts.join(" · ");
+    }
+
+    function renderCol(col: Column, colIdx: number) {
+      const b = board();
+      const el = document.createElement("div");
+      el.className = "retro-col";
+      el.dataset.col = String(colIdx);
+      el.dataset.colId = col.id;
+
+      const head = document.createElement("div");
+      head.className = "retro-col-head";
+
+      const swatch = document.createElement("span");
+      swatch.className = "retro-col-swatch";
+      swatch.setAttribute("aria-hidden", "true");
+      head.appendChild(swatch);
+
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.className = "retro-col-title";
+      titleInput.value = col.title;
+      titleInput.maxLength = MAX_TITLE;
+      titleInput.dataset.prior = col.title;
+      titleInput.setAttribute("aria-label", `Column ${colIdx + 1} title`);
+      titleInput.addEventListener("input", () => {
+        col.title = titleInput.value;
+        save();
+      });
+      head.appendChild(titleInput);
+
+      const count = document.createElement("span");
+      count.className = "retro-col-count";
+      count.textContent = String(col.cards.length);
+      head.appendChild(count);
+
+      el.appendChild(head);
+
+      const body = document.createElement("div");
+      body.className = "retro-col-body";
+
+      const sortedCards = b.sortByVotes
+        ? [...col.cards].sort((a, c) => c.votes - a.votes || c.createdAt - a.createdAt)
+        : col.cards;
+
+      if (sortedCards.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "retro-card-empty";
+        empty.textContent = "Empty. Add the first card below.";
+        body.appendChild(empty);
+      }
+
+      for (const card of sortedCards) {
+        body.appendChild(renderCard(card, col, b));
+      }
+      el.appendChild(body);
+
+      const addWrap = document.createElement("div");
+      addWrap.className = "retro-col-add";
+      const addInput = document.createElement("textarea");
+      addInput.className = "retro-col-add-input";
+      addInput.placeholder = "Add a card. Enter to add, Shift+Enter for newline.";
+      addInput.rows = 1;
+      addInput.maxLength = MAX_TEXT;
+      addInput.setAttribute("aria-label", `Add a card to ${col.title}`);
+      addInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const text = addInput.value.trim();
+          if (!text) return;
+          col.cards.unshift({
+            id: rid(),
+            text: text.slice(0, MAX_TEXT),
+            votes: 0,
+            createdAt: Date.now(),
+          });
+          addInput.value = "";
+          save();
+          render();
+          const colEl = columnsRoot.querySelector(
+            `[data-col-id="${col.id}"] .retro-col-add-input`,
+          ) as HTMLTextAreaElement | null;
+          colEl?.focus();
+        }
+      });
+      addInput.addEventListener("input", () => {
+        addInput.style.height = "auto";
+        addInput.style.height = Math.min(120, addInput.scrollHeight) + "px";
+      });
+      addWrap.appendChild(addInput);
+      el.appendChild(addWrap);
+
+      return el;
+    }
+
+    function renderCard(card: Card, col: Column, b: Board) {
+      const el = document.createElement("div");
+      el.className = "retro-card";
+      el.dataset.cardId = card.id;
+      el.dataset.masked = String(b.mask && !b.revealed);
+
+      const text = document.createElement("div");
+      text.className = "retro-card-text";
+      text.setAttribute("role", "textbox");
+      text.setAttribute("aria-label", "Card text");
+      text.setAttribute(
+        "contenteditable",
+        b.mask && !b.revealed ? "false" : "true",
+      );
+      text.spellcheck = true;
+      text.textContent =
+        b.mask && !b.revealed
+          ? "•".repeat(Math.min(card.text.length || 8, 18))
+          : card.text;
+      let inputTimer = 0;
+      text.addEventListener("input", () => {
+        const v = (text.textContent ?? "").slice(0, MAX_TEXT);
+        card.text = v;
+        window.clearTimeout(inputTimer);
+        inputTimer = window.setTimeout(save, 150);
+      });
+      text.addEventListener("blur", () => {
+        save();
+      });
+      el.appendChild(text);
+
+      const foot = document.createElement("div");
+      foot.className = "retro-card-foot";
+
+      const vote = document.createElement("button");
+      vote.type = "button";
+      vote.className = "retro-vote-btn";
+      const voted = !!persist.myVotes[card.id];
+      vote.dataset.voted = String(voted);
+      vote.setAttribute(
+        "aria-label",
+        voted ? "Remove your vote" : "Vote for this card",
+      );
+      vote.innerHTML = `
+        <svg class="retro-vote-icon" viewBox="0 0 24 24" fill="${voted ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+        <span>${card.votes}</span>
+      `;
+      vote.addEventListener("click", () => {
+        if (voted) {
+          card.votes = Math.max(0, card.votes - 1);
+          delete persist.myVotes[card.id];
+        } else {
+          card.votes = card.votes + 1;
+          persist.myVotes[card.id] = true;
+        }
+        save();
+        render();
+      });
+      foot.appendChild(vote);
+
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "retro-card-del";
+      del.title = "Delete card";
+      del.setAttribute("aria-label", "Delete card");
+      del.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>`;
+      del.addEventListener("click", () => {
+        col.cards = col.cards.filter((c) => c.id !== card.id);
+        delete persist.myVotes[card.id];
+        save();
+        render();
+      });
+      foot.appendChild(del);
+
+      el.appendChild(foot);
+      return el;
+    }
+
+    function render() {
+      const b = board();
+      boardNameEl.textContent = b.name;
+      columnsRoot.innerHTML = "";
+      b.columns.forEach((c, idx) => columnsRoot.appendChild(renderCol(c, idx)));
+      maskBtn.setAttribute("aria-pressed", String(b.mask));
+      sortBtn.setAttribute("aria-pressed", String(b.sortByVotes));
+      revealBtn.hidden = !(b.mask && !b.revealed);
+      updateStatus();
+    }
+
+    maskBtn.addEventListener("click", () => {
+      const b = board();
+      b.mask = !b.mask;
+      if (!b.mask) b.revealed = false;
+      save();
+      render();
+      toast(b.mask ? "Cards will hide while writing" : "Cards visible");
+    });
+    sortBtn.addEventListener("click", () => {
+      const b = board();
+      b.sortByVotes = !b.sortByVotes;
+      save();
+      render();
+    });
+    revealBtn.addEventListener("click", () => {
+      const b = board();
+      b.revealed = true;
+      save();
+      render();
+      toast("Cards revealed");
+    });
+
+    shareBtn.addEventListener("click", async () => {
+      const b = board();
+      const url = `${window.location.origin}/retro/?b=${encodeBoard(b)}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast("Share link copied");
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        toast("Share link copied");
+      }
+    });
+
+    exportBtn.addEventListener("click", async () => {
+      const b = board();
+      const lines: string[] = [`# ${b.name}`, ""];
+      const date = new Date().toISOString().slice(0, 10);
+      lines.push(`_${date}_`);
+      lines.push("");
+      for (const c of b.columns) {
+        lines.push(`## ${c.title}`);
+        if (c.cards.length === 0) {
+          lines.push("_(no cards)_");
+        } else {
+          const sorted = [...c.cards].sort((a, x) => x.votes - a.votes);
+          for (const card of sorted) {
+            const v = card.votes > 0 ? ` (${card.votes} ${card.votes === 1 ? "vote" : "votes"})` : "";
+            lines.push(`- ${card.text}${v}`);
+          }
+        }
+        lines.push("");
+      }
+      const md = lines.join("\n");
+      try {
+        await navigator.clipboard.writeText(md);
+        toast("Markdown copied to clipboard");
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = md;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        toast("Markdown copied to clipboard");
+      }
+    });
+
+    renameBtn.addEventListener("click", () => {
+      const b = board();
+      const next = window.prompt("Name this board", b.name);
+      if (next === null) return;
+      const trimmed = next.trim().slice(0, MAX_TITLE);
+      if (!trimmed) return;
+      b.name = trimmed;
+      save();
+      render();
+    });
+
+    newBtn.addEventListener("click", () => {
+      if (persist.boards.length >= MAX_BOARDS) {
+        toast(`Up to ${MAX_BOARDS} boards. Reset or delete one.`);
+        return;
+      }
+      const name = window.prompt("Name the new board", "Sprint retro") ?? "Sprint retro";
+      const b = makeBoard(name.trim().slice(0, MAX_TITLE) || "Sprint retro");
+      persist.boards.push(b);
+      persist.currentId = b.id;
+      save();
+      render();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      const b = board();
+      const n = totalCards(b);
+      if (n > 0 && !window.confirm(`Delete all ${n} cards on "${b.name}"?`)) return;
+      b.columns.forEach((c) => {
+        for (const card of c.cards) delete persist.myVotes[card.id];
+        c.cards = [];
+      });
+      b.mask = false;
+      b.revealed = false;
+      save();
+      render();
+      toast("Board reset");
+    });
+
+    pickerBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!popover.hidden) {
+        popover.hidden = true;
+        return;
+      }
+      popoverList.innerHTML = "";
+      for (const b of persist.boards) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "retro-popover-row";
+        row.textContent = `${b.name} · ${totalCards(b)}`;
+        if (b.id === persist.currentId) row.setAttribute("aria-current", "true");
+        row.addEventListener("click", () => {
+          persist.currentId = b.id;
+          save();
+          render();
+          popover.hidden = true;
+        });
+        popoverList.appendChild(row);
+      }
+      const sep = document.createElement("div");
+      sep.className = "retro-popover-sep";
+      popoverList.appendChild(sep);
+
+      const newRow = document.createElement("button");
+      newRow.type = "button";
+      newRow.className = "retro-popover-row";
+      newRow.textContent = "+ New board";
+      newRow.addEventListener("click", () => {
+        popover.hidden = true;
+        newBtn.click();
+      });
+      popoverList.appendChild(newRow);
+
+      const rect = pickerBtn.getBoundingClientRect();
+      popover.style.top = `${window.scrollY + rect.bottom + 6}px`;
+      popover.style.left = `${rect.left}px`;
+      popover.hidden = false;
+    });
+
+    document.addEventListener("click", (e) => {
+      if (popover.hidden) return;
+      if (!popover.contains(e.target as Node) && !pickerBtn.contains(e.target as Node)) {
+        popover.hidden = true;
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") popover.hidden = true;
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/retro/sw.js", { scope: "/retro/" })
+          .catch(() => {});
+      });
+    }
+
+    render();
+  </script>
+</BaseLayout>
