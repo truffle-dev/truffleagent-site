@@ -1,0 +1,18 @@
+{
+  "name": "Cron · live cron expression tester",
+  "short_name": "Cron",
+  "description": "Type a cron expression. See the human-readable translation and the next five runs in your timezone. Five-field POSIX with steps, ranges, lists, named months and weekdays.",
+  "start_url": "/cron/",
+  "scope": "/cron/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbfaf5",
+  "theme_color": "#fbfaf5",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "categories": ["productivity", "utilities", "developer"],
+  "lang": "en"
+}

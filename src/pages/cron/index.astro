@@ -1,0 +1,843 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Cron · live cron expression tester with next-run preview";
+const description =
+  "Type a cron expression, see the human-readable translation and the next five runs in your timezone. Five-field POSIX syntax with steps, ranges, lists, and named months and weekdays. Runs entirely in your browser. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/cron/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Cron",
+  alternateName: ["Cron Expression Tester", "Crontab Preview", "Cron Translator"],
+  url: canonical,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Five-field POSIX cron syntax",
+    "Step values (*/5), ranges (1-5), lists (1,3,5)",
+    "Named months (JAN-DEC) and weekdays (SUN-SAT)",
+    "Live human-readable translation",
+    "Next five runs in local time or UTC",
+    "Twelve common presets",
+    "Share via URL",
+    "Persists last expression to localStorage",
+    "Works offline (PWA)",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Cron for?",
+    a: "When you have a cron expression and you need to know what it actually does, or you want to write one and need a sanity check. Type the expression, read the translation, scan the next five runs, paste it into your scheduler.",
+  },
+  {
+    q: "Which cron dialect does it support?",
+    a: "Standard five-field POSIX: minute, hour, day-of-month, month, day-of-week. Supports asterisks, step values (*/5), ranges (1-5), lists (1,3,5), and named months (JAN-DEC) and weekdays (SUN-SAT). It does not support non-standard extensions like L (last), W (weekday), # (nth weekday), or seconds.",
+  },
+  {
+    q: "How are day-of-month and day-of-week combined?",
+    a: "Standard cron rule: when both day-of-month and day-of-week are restricted (neither is *), the job runs when either matches. When only one is restricted, only that one is checked. This matches POSIX cron behavior.",
+  },
+  {
+    q: "What timezone are the next runs in?",
+    a: "Default is your browser's local timezone. You can switch to UTC with the toggle. The cron expression itself is timezone-neutral; the preview just shows you when those times land on your wall clock.",
+  },
+  {
+    q: "Why no L, W, or # support?",
+    a: "Those are Quartz or Jenkins extensions, not POSIX. They are useful but they would confuse a tester aimed at standard crontab. If you need them, the human-readable translation will tell you the syntax was rejected.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Your expression stays in your browser, persisted to localStorage so it survives a page reload.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/cron/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="cr-page">
+    <header class="cr-topbar">
+      <div class="cr-topbar-inner">
+        <div class="cr-brand">
+          <span class="cr-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+          </span>
+          <a href="/cron/" class="cr-brand-name">Cron</a>
+          <span class="cr-brand-tag">live expression tester</span>
+        </div>
+        <nav class="cr-topbar-links">
+          <a href="/" class="cr-topbar-link">truffleagent</a>
+          <a href="/spin/" class="cr-topbar-link">spin</a>
+        </nav>
+      </div>
+    </header>
+
+    <section class="cr-hero">
+      <h1 class="cr-hero-title">Type a cron expression. See the next five runs.</h1>
+      <p class="cr-hero-sub">
+        Five-field POSIX. Step values, ranges, lists, named months and weekdays.
+        Human-readable translation updates as you type. Nothing leaves your browser.
+      </p>
+    </section>
+
+    <section class="cr-section">
+      <div class="cr-input-wrap">
+        <label for="expr" class="cr-input-label">Cron expression</label>
+        <input
+          id="expr"
+          class="cr-input"
+          type="text"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="* * * * *"
+        />
+        <div class="cr-input-help">
+          <span class="cr-input-help-cols">
+            <span><strong>min</strong> 0–59</span>
+            <span><strong>hour</strong> 0–23</span>
+            <span><strong>dom</strong> 1–31</span>
+            <span><strong>month</strong> 1–12 / JAN-DEC</span>
+            <span><strong>dow</strong> 0–6 / SUN-SAT</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="cr-status" id="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="cr-section">
+      <h2 class="cr-h2">Presets</h2>
+      <div class="cr-presets" id="presets"></div>
+    </section>
+
+    <section class="cr-section">
+      <div class="cr-twocol">
+        <div class="cr-card cr-card-human">
+          <h2 class="cr-h2">In English</h2>
+          <p class="cr-human" id="human">—</p>
+          <p class="cr-fields" id="fields"></p>
+        </div>
+
+        <div class="cr-card cr-card-runs">
+          <div class="cr-runs-head">
+            <h2 class="cr-h2">Next five runs</h2>
+            <div class="cr-tz-toggle" role="tablist" aria-label="Timezone">
+              <button class="cr-tz-btn" id="tz-local" role="tab" aria-selected="true" type="button">Local</button>
+              <button class="cr-tz-btn" id="tz-utc" role="tab" aria-selected="false" type="button">UTC</button>
+            </div>
+          </div>
+          <ol class="cr-runs" id="runs"></ol>
+          <p class="cr-tz-label phantom-muted" id="tz-label"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="cr-section">
+      <div class="cr-actions">
+        <button class="cr-button cr-button-primary" id="copy-expr" type="button">Copy expression</button>
+        <button class="cr-button cr-button-ghost" id="copy-link" type="button">Copy share link</button>
+        <span class="cr-share-link" id="share-link"></span>
+      </div>
+    </section>
+
+    <section class="cr-section">
+      <h2 class="cr-h2">Syntax cheatsheet</h2>
+      <ul class="cr-cheatsheet">
+        <li><code>*</code> — every value</li>
+        <li><code>*/5</code> — every 5 (e.g. minute 0, 5, 10…)</li>
+        <li><code>1-5</code> — range, inclusive</li>
+        <li><code>1-5/2</code> — range with step (1, 3, 5)</li>
+        <li><code>1,3,5</code> — list of explicit values</li>
+        <li><code>JAN,FEB</code> or <code>MON-FRI</code> — named months and weekdays</li>
+        <li><code>0 9 * * 1-5</code> — 9:00 AM every weekday</li>
+        <li><code>*/15 * * * *</code> — every 15 minutes</li>
+        <li><code>0 0 1 * *</code> — first of every month at midnight</li>
+      </ul>
+    </section>
+
+    <section class="cr-section">
+      <h2 class="cr-h2">FAQ</h2>
+      <div class="cr-faq">
+        {faq.map((f) => (
+          <details class="cr-faq-item">
+            <summary class="cr-faq-q">{f.q}</summary>
+            <p class="cr-faq-a">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <footer class="cr-footer">
+      <p>Built by Truffle. No accounts, no servers, no trackers.</p>
+    </footer>
+
+    <div class="cr-toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <style is:global>
+    :root {
+      --cr-bg: #fbfaf5;
+      --cr-surface: #ffffff;
+      --cr-border: #e6e2d4;
+      --cr-ink: #1c1917;
+      --cr-muted: #6b6557;
+      --cr-accent: #4850c4;
+      --cr-accent-soft: rgba(72, 80, 196, 0.08);
+      --cr-good: #14803a;
+      --cr-bad: #b3261e;
+      --cr-radius: 14px;
+      --cr-radius-sm: 10px;
+      --cr-mono: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+      --cr-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --cr-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --cr-bg: #0b0a09;
+        --cr-surface: #161412;
+        --cr-border: #2a2622;
+        --cr-ink: #f7f6f1;
+        --cr-muted: #a8a29e;
+        --cr-accent: #8a92e8;
+        --cr-accent-soft: rgba(138, 146, 232, 0.12);
+        --cr-good: #4ade80;
+        --cr-bad: #f87171;
+      }
+    }
+
+    html, body { background: var(--cr-bg); color: var(--cr-ink); }
+    body { margin: 0; font-family: var(--cr-sans); font-size: 15px; line-height: 1.55; }
+
+    .cr-page { max-width: 1100px; margin: 0 auto; padding: 24px 28px 80px; }
+
+    .cr-topbar { padding-bottom: 24px; border-bottom: 1px solid var(--cr-border); margin-bottom: 32px; }
+    .cr-topbar-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .cr-brand { display: flex; align-items: center; gap: 10px; }
+    .cr-brand-mark { color: var(--cr-accent); display: inline-flex; }
+    .cr-brand-name { font-family: var(--cr-serif); font-size: 22px; color: var(--cr-ink); text-decoration: none; }
+    .cr-brand-tag { color: var(--cr-muted); font-size: 13px; }
+    .cr-topbar-links { display: flex; gap: 18px; }
+    .cr-topbar-link { color: var(--cr-muted); text-decoration: none; font-size: 13px; }
+    .cr-topbar-link:hover { color: var(--cr-ink); }
+
+    .cr-hero { margin-bottom: 32px; max-width: 720px; }
+    .cr-hero-title {
+      font-family: var(--cr-serif); font-weight: 400; font-size: clamp(32px, 4.5vw, 44px);
+      line-height: 1.1; letter-spacing: -0.01em; margin: 0 0 14px;
+    }
+    .cr-hero-sub { color: var(--cr-muted); font-size: 16px; line-height: 1.6; margin: 0; }
+
+    .cr-section { margin-bottom: 32px; }
+    .cr-h2 { font-family: var(--cr-serif); font-weight: 500; font-size: 20px; margin: 0 0 14px; }
+
+    .cr-input-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .cr-input-label { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--cr-muted); }
+    .cr-input {
+      width: 100%; box-sizing: border-box; font-family: var(--cr-mono); font-size: 22px;
+      padding: 16px 18px; border: 1px solid var(--cr-border); border-radius: var(--cr-radius);
+      background: var(--cr-surface); color: var(--cr-ink); letter-spacing: 0.02em;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .cr-input:focus { outline: none; border-color: var(--cr-accent); box-shadow: 0 0 0 3px var(--cr-accent-soft); }
+    .cr-input-help { color: var(--cr-muted); font-size: 12px; }
+    .cr-input-help-cols { display: flex; flex-wrap: wrap; gap: 12px 22px; font-family: var(--cr-mono); }
+    .cr-input-help-cols strong { color: var(--cr-ink); font-weight: 600; margin-right: 4px; }
+
+    .cr-status { margin-top: 12px; font-size: 13px; padding: 8px 12px; border-radius: 8px; min-height: 20px; }
+    .cr-status[data-state="ok"] { color: var(--cr-good); background: color-mix(in oklab, var(--cr-good) 10%, transparent); }
+    .cr-status[data-state="err"] { color: var(--cr-bad); background: color-mix(in oklab, var(--cr-bad) 10%, transparent); }
+    .cr-status:empty { display: none; }
+
+    .cr-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .cr-preset {
+      display: flex; flex-direction: column; gap: 4px; padding: 10px 14px;
+      border: 1px solid var(--cr-border); border-radius: var(--cr-radius-sm);
+      background: var(--cr-surface); cursor: pointer; text-align: left; color: var(--cr-ink);
+      font-family: var(--cr-sans); transition: border-color 150ms ease, background-color 150ms ease;
+    }
+    .cr-preset:hover { border-color: var(--cr-accent); background: var(--cr-accent-soft); }
+    .cr-preset-label { font-size: 13px; font-weight: 500; }
+    .cr-preset-expr { font-family: var(--cr-mono); font-size: 12px; color: var(--cr-muted); }
+
+    .cr-twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 720px) { .cr-twocol { grid-template-columns: 1fr; } }
+
+    .cr-card { background: var(--cr-surface); border: 1px solid var(--cr-border); border-radius: var(--cr-radius); padding: 20px 22px; }
+    .cr-human {
+      font-family: var(--cr-serif); font-size: 22px; line-height: 1.35; margin: 0 0 12px;
+      color: var(--cr-ink); min-height: 1.35em;
+    }
+    .cr-fields {
+      font-family: var(--cr-mono); font-size: 12px; color: var(--cr-muted); margin: 0;
+      line-height: 1.7;
+    }
+    .cr-fields span { display: block; }
+
+    .cr-runs-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; gap: 12px; }
+    .cr-runs-head .cr-h2 { margin: 0; }
+    .cr-tz-toggle { display: inline-flex; gap: 2px; padding: 3px; background: color-mix(in oklab, var(--cr-ink) 6%, transparent); border-radius: 8px; }
+    .cr-tz-btn {
+      font-size: 12px; font-weight: 500; padding: 5px 10px; border: 0; background: transparent;
+      color: var(--cr-muted); border-radius: 6px; cursor: pointer;
+    }
+    .cr-tz-btn[aria-selected="true"] { background: var(--cr-surface); color: var(--cr-ink); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+    .cr-runs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+    .cr-run {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+      padding: 10px 12px; border-radius: 8px; background: var(--cr-bg);
+      font-family: var(--cr-mono); font-size: 13px; font-variant-numeric: tabular-nums;
+    }
+    .cr-run-when { color: var(--cr-ink); }
+    .cr-run-rel { color: var(--cr-muted); font-size: 12px; }
+    .cr-runs-empty { color: var(--cr-muted); font-size: 13px; font-style: italic; padding: 8px 0; }
+    .cr-tz-label { font-size: 11px; margin: 10px 0 0; color: var(--cr-muted); }
+
+    .cr-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .cr-button {
+      font-family: var(--cr-sans); font-size: 13px; font-weight: 500; padding: 9px 16px;
+      border-radius: 999px; border: 1px solid transparent; cursor: pointer;
+      transition: opacity 150ms ease, background-color 150ms ease;
+    }
+    .cr-button-primary { background: var(--cr-accent); color: #fff; }
+    .cr-button-primary:hover { opacity: 0.9; }
+    .cr-button-ghost { background: transparent; color: var(--cr-ink); border-color: var(--cr-border); }
+    .cr-button-ghost:hover { background: var(--cr-accent-soft); border-color: var(--cr-accent); }
+    .cr-share-link { font-family: var(--cr-mono); font-size: 11px; color: var(--cr-muted); word-break: break-all; }
+
+    .cr-cheatsheet {
+      list-style: none; padding: 0; margin: 0;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px;
+    }
+    .cr-cheatsheet li {
+      padding: 10px 14px; border: 1px solid var(--cr-border); border-radius: var(--cr-radius-sm);
+      background: var(--cr-surface); font-size: 13px; color: var(--cr-ink);
+    }
+    .cr-cheatsheet code { font-family: var(--cr-mono); font-size: 12px; color: var(--cr-accent); margin-right: 8px; }
+
+    .cr-faq { display: flex; flex-direction: column; gap: 8px; }
+    .cr-faq-item { background: var(--cr-surface); border: 1px solid var(--cr-border); border-radius: var(--cr-radius); padding: 12px 18px; }
+    .cr-faq-q { font-family: var(--cr-sans); font-weight: 600; font-size: 14px; cursor: pointer; list-style: none; }
+    .cr-faq-q::-webkit-details-marker { display: none; }
+    .cr-faq-q::after { content: "+"; float: right; color: var(--cr-muted); font-weight: 400; }
+    .cr-faq-item[open] .cr-faq-q::after { content: "–"; }
+    .cr-faq-a { color: var(--cr-muted); font-size: 14px; margin: 8px 0 0; }
+
+    .cr-footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--cr-border); color: var(--cr-muted); font-size: 13px; }
+    .cr-footer p { margin: 0; }
+
+    .cr-toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--cr-ink); color: var(--cr-bg); padding: 10px 18px;
+      border-radius: 999px; font-size: 13px; z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      animation: cr-toast-in 200ms ease;
+    }
+    @keyframes cr-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  </style>
+
+  <script>
+    type Field = {
+      kind: "minute" | "hour" | "dom" | "month" | "dow";
+      raw: string;
+      values: number[];
+      anyValue: boolean;
+    };
+
+    type Parsed = {
+      ok: true;
+      fields: { minute: Field; hour: Field; dom: Field; month: Field; dow: Field };
+      expr: string;
+    } | { ok: false; error: string };
+
+    type Persist = { v: 1; expr: string; tz: "local" | "utc" };
+
+    const STORAGE_KEY = "cron:v1";
+
+    const MONTH_NAMES = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    const DOW_NAMES = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+    const DOW_LONG = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const MONTH_LONG = [
+      "January","February","March","April","May","June",
+      "July","August","September","October","November","December",
+    ];
+
+    const RANGES = {
+      minute: { min: 0, max: 59 },
+      hour:   { min: 0, max: 23 },
+      dom:    { min: 1, max: 31 },
+      month:  { min: 1, max: 12 },
+      dow:    { min: 0, max: 6 },
+    } as const;
+
+    function nameLookup(kind: "month" | "dow", token: string): number | null {
+      const t = token.toUpperCase();
+      if (kind === "month") {
+        const i = MONTH_NAMES.indexOf(t);
+        return i === -1 ? null : i + 1;
+      }
+      if (kind === "dow") {
+        if (t === "7") return 0;
+        const i = DOW_NAMES.indexOf(t);
+        return i === -1 ? null : i;
+      }
+      return null;
+    }
+
+    function parseAtom(kind: Field["kind"], token: string): number | null {
+      const t = token.trim();
+      if (/^\d+$/.test(t)) {
+        const n = parseInt(t, 10);
+        if (kind === "dow" && n === 7) return 0;
+        return n;
+      }
+      if (kind === "month" || kind === "dow") return nameLookup(kind, t);
+      return null;
+    }
+
+    function parseField(kind: Field["kind"], raw: string): Field | { error: string } {
+      const r = RANGES[kind];
+      const rawTrim = raw.trim();
+      if (!rawTrim) return { error: `${kind}: empty field` };
+
+      const parts = rawTrim.split(",").map((p) => p.trim()).filter(Boolean);
+      const out = new Set<number>();
+      let anyValue = parts.length === 1 && parts[0] === "*";
+
+      for (const part of parts) {
+        let stepStr: string | null = null;
+        let range = part;
+        const slash = part.indexOf("/");
+        if (slash !== -1) {
+          stepStr = part.slice(slash + 1);
+          range = part.slice(0, slash);
+        }
+        let step = 1;
+        if (stepStr !== null) {
+          if (!/^\d+$/.test(stepStr) || parseInt(stepStr, 10) <= 0) {
+            return { error: `${kind}: invalid step "${stepStr}"` };
+          }
+          step = parseInt(stepStr, 10);
+        }
+
+        let lo = r.min, hi = r.max;
+        if (range === "*") {
+          // full range
+        } else if (range.includes("-")) {
+          const [a, b] = range.split("-", 2);
+          const av = parseAtom(kind, a);
+          const bv = parseAtom(kind, b);
+          if (av === null || bv === null) return { error: `${kind}: invalid range "${range}"` };
+          lo = av; hi = bv;
+        } else {
+          const v = parseAtom(kind, range);
+          if (v === null) return { error: `${kind}: invalid value "${range}"` };
+          if (stepStr !== null) {
+            lo = v; hi = r.max;
+          } else {
+            lo = v; hi = v;
+          }
+        }
+
+        if (lo < r.min || hi > r.max || lo > hi) {
+          return { error: `${kind}: out of range (${r.min}-${r.max}) in "${part}"` };
+        }
+        for (let v = lo; v <= hi; v += step) out.add(v);
+      }
+
+      const values = Array.from(out).sort((a, b) => a - b);
+      if (values.length === 0) return { error: `${kind}: no values matched` };
+      return { kind, raw, values, anyValue };
+    }
+
+    function parseCron(input: string): Parsed {
+      const expr = input.trim().replace(/\s+/g, " ");
+      if (!expr) return { ok: false, error: "Empty expression" };
+      const tokens = expr.split(" ");
+      if (tokens.length !== 5) {
+        return { ok: false, error: `Need 5 fields, got ${tokens.length}` };
+      }
+      const minute = parseField("minute", tokens[0]);
+      if ("error" in minute) return { ok: false, error: minute.error };
+      const hour = parseField("hour", tokens[1]);
+      if ("error" in hour) return { ok: false, error: hour.error };
+      const dom = parseField("dom", tokens[2]);
+      if ("error" in dom) return { ok: false, error: dom.error };
+      const month = parseField("month", tokens[3]);
+      if ("error" in month) return { ok: false, error: month.error };
+      const dow = parseField("dow", tokens[4]);
+      if ("error" in dow) return { ok: false, error: dow.error };
+      return { ok: true, expr, fields: { minute, hour, dom, month, dow } };
+    }
+
+    function daysInMonth(year: number, month: number): number {
+      return new Date(year, month, 0).getDate();
+    }
+
+    function matches(parsed: Extract<Parsed, { ok: true }>, d: Date, utc: boolean): boolean {
+      const min = utc ? d.getUTCMinutes() : d.getMinutes();
+      const hr = utc ? d.getUTCHours() : d.getHours();
+      const dom = utc ? d.getUTCDate() : d.getDate();
+      const mon = (utc ? d.getUTCMonth() : d.getMonth()) + 1;
+      const dow = utc ? d.getUTCDay() : d.getDay();
+
+      const f = parsed.fields;
+      if (!f.minute.values.includes(min)) return false;
+      if (!f.hour.values.includes(hr)) return false;
+      if (!f.month.values.includes(mon)) return false;
+
+      const domAny = f.dom.anyValue;
+      const dowAny = f.dow.anyValue;
+      const domHit = f.dom.values.includes(dom);
+      const dowHit = f.dow.values.includes(dow);
+
+      if (!domAny && !dowAny) {
+        // POSIX: when both restricted, OR
+        if (!domHit && !dowHit) return false;
+      } else if (!domAny) {
+        if (!domHit) return false;
+      } else if (!dowAny) {
+        if (!dowHit) return false;
+      }
+      return true;
+    }
+
+    function nextRuns(parsed: Extract<Parsed, { ok: true }>, from: Date, count: number, utc: boolean): Date[] {
+      const out: Date[] = [];
+      const start = new Date(from.getTime());
+      if (utc) {
+        start.setUTCSeconds(0, 0);
+        start.setUTCMinutes(start.getUTCMinutes() + 1);
+      } else {
+        start.setSeconds(0, 0);
+        start.setMinutes(start.getMinutes() + 1);
+      }
+      const cap = 366 * 24 * 60 * 5;
+      let cur = start;
+      for (let i = 0; i < cap && out.length < count; i++) {
+        if (matches(parsed, cur, utc)) {
+          out.push(new Date(cur.getTime()));
+        }
+        cur = new Date(cur.getTime() + 60_000);
+      }
+      return out;
+    }
+
+    function pad(n: number, w = 2): string { return String(n).padStart(w, "0"); }
+
+    function fmtAbs(d: Date, utc: boolean): string {
+      if (utc) {
+        return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+      }
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function fmtRel(d: Date, from: Date): string {
+      let s = Math.round((d.getTime() - from.getTime()) / 1000);
+      if (s < 60) return `in ${s}s`;
+      let m = Math.round(s / 60);
+      if (m < 60) return `in ${m} min`;
+      let h = Math.round(m / 60);
+      if (h < 48) return `in ${h}h`;
+      const days = Math.round(h / 24);
+      if (days < 60) return `in ${days} days`;
+      const months = Math.round(days / 30);
+      return `in ${months} months`;
+    }
+
+    function rangeDescr(f: Field, kind: "minute" | "hour" | "dom" | "month" | "dow"): string {
+      const r = RANGES[kind];
+      if (f.anyValue) return "every value";
+      if (f.values.length === 1) {
+        const v = f.values[0];
+        if (kind === "month") return MONTH_LONG[v - 1];
+        if (kind === "dow") return DOW_LONG[v];
+        return String(v);
+      }
+      // Detect step pattern
+      if (f.values.length >= 3) {
+        const step = f.values[1] - f.values[0];
+        const isUniform = f.values.every((v, i) => i === 0 || v - f.values[i - 1] === step);
+        if (isUniform && f.values[0] === r.min && step > 1) {
+          return `every ${step}`;
+        }
+      }
+      if (kind === "dow") return f.values.map((v) => DOW_LONG[v]).join(", ");
+      if (kind === "month") return f.values.map((v) => MONTH_LONG[v - 1]).join(", ");
+      return f.values.join(", ");
+    }
+
+    function humanReadable(parsed: Extract<Parsed, { ok: true }>): string {
+      const f = parsed.fields;
+      const allMonth = f.month.anyValue;
+      const allDom = f.dom.anyValue;
+      const allDow = f.dow.anyValue;
+      const minuteOne = f.minute.values.length === 1;
+      const hourOne = f.hour.values.length === 1;
+
+      // Time-of-day phrase
+      let when = "";
+      if (f.minute.anyValue && f.hour.anyValue) {
+        when = "every minute";
+      } else if (f.hour.anyValue && minuteOne) {
+        const m = f.minute.values[0];
+        when = m === 0 ? "at the top of every hour" : `at :${pad(m)} of every hour`;
+      } else if (f.minute.anyValue && hourOne) {
+        when = `every minute of ${pad(f.hour.values[0])}:00`;
+      } else if (minuteOne && hourOne) {
+        when = `at ${pad(f.hour.values[0])}:${pad(f.minute.values[0])}`;
+      } else if (f.minute.values.length >= 3) {
+        // step minutes?
+        const step = f.minute.values[1] - f.minute.values[0];
+        const uniform = f.minute.values.every((v, i) => i === 0 || v - f.minute.values[i - 1] === step);
+        if (uniform && f.minute.values[0] === 0) when = `every ${step} minutes`;
+        else when = `at minute ${f.minute.values.join(", ")}`;
+        if (!f.hour.anyValue) when += `, hour ${rangeDescr(f.hour, "hour")}`;
+      } else {
+        when = `at minute ${rangeDescr(f.minute, "minute")}`;
+        if (!f.hour.anyValue) when += `, hour ${rangeDescr(f.hour, "hour")}`;
+      }
+
+      // Day phrase
+      let day = "";
+      if (allDom && allDow) {
+        day = "every day";
+      } else if (!allDow && allDom) {
+        day = `on ${rangeDescr(f.dow, "dow")}`;
+      } else if (!allDom && allDow) {
+        day = `on day ${rangeDescr(f.dom, "dom")} of the month`;
+      } else {
+        day = `on day ${rangeDescr(f.dom, "dom")} of the month, or on ${rangeDescr(f.dow, "dow")}`;
+      }
+
+      // Month phrase
+      const monthPhrase = allMonth ? "" : ` in ${rangeDescr(f.month, "month")}`;
+
+      // Compose
+      let s: string;
+      if (when === "every minute" && day === "every day" && !monthPhrase) {
+        return "Every minute of every day.";
+      }
+      if (day === "every day") {
+        s = `${when}${monthPhrase}, every day`;
+      } else {
+        s = `${when}, ${day}${monthPhrase}`;
+      }
+      // Capitalize first letter
+      s = s.charAt(0).toUpperCase() + s.slice(1) + ".";
+      return s;
+    }
+
+    function fieldsSummary(parsed: Extract<Parsed, { ok: true }>): string {
+      const f = parsed.fields;
+      const lines = [
+        `minute  ${f.minute.raw}  →  ${rangeDescr(f.minute, "minute")}`,
+        `hour    ${f.hour.raw}  →  ${rangeDescr(f.hour, "hour")}`,
+        `dom     ${f.dom.raw}  →  ${rangeDescr(f.dom, "dom")}`,
+        `month   ${f.month.raw}  →  ${rangeDescr(f.month, "month")}`,
+        `dow     ${f.dow.raw}  →  ${rangeDescr(f.dow, "dow")}`,
+      ];
+      return lines.map((l) => `<span>${l}</span>`).join("");
+    }
+
+    // ── Presets ──
+    const PRESETS: Array<{ label: string; expr: string }> = [
+      { label: "Every minute", expr: "* * * * *" },
+      { label: "Every 5 minutes", expr: "*/5 * * * *" },
+      { label: "Every 15 minutes", expr: "*/15 * * * *" },
+      { label: "Every 30 minutes", expr: "*/30 * * * *" },
+      { label: "Hourly (top of hour)", expr: "0 * * * *" },
+      { label: "Every 6 hours", expr: "0 */6 * * *" },
+      { label: "Daily at midnight", expr: "0 0 * * *" },
+      { label: "Daily at 9 AM", expr: "0 9 * * *" },
+      { label: "Weekdays at 9 AM", expr: "0 9 * * 1-5" },
+      { label: "Weekly on Monday at 9 AM", expr: "0 9 * * MON" },
+      { label: "First of every month", expr: "0 0 1 * *" },
+      { label: "New Year's Day", expr: "0 0 1 1 *" },
+    ];
+
+    // ── State ──
+    let state: Persist = { v: 1, expr: "*/5 * * * *", tz: "local" };
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p && p.v === 1 && typeof p.expr === "string") {
+            state.expr = p.expr;
+            if (p.tz === "utc" || p.tz === "local") state.tz = p.tz;
+          }
+        }
+      } catch {}
+      // URL hash override
+      const h = location.hash.replace(/^#/, "");
+      if (h) {
+        try {
+          const decoded = decodeURIComponent(h);
+          if (decoded) state.expr = decoded;
+        } catch {}
+      }
+    }
+
+    function save() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    }
+
+    // ── Render ──
+    function el<T extends HTMLElement>(id: string): T { return document.getElementById(id) as T; }
+
+    function renderPresets() {
+      const wrap = el<HTMLDivElement>("presets");
+      wrap.innerHTML = "";
+      for (const p of PRESETS) {
+        const btn = document.createElement("button");
+        btn.className = "cr-preset";
+        btn.type = "button";
+        btn.innerHTML = `<span class="cr-preset-label">${p.label}</span><span class="cr-preset-expr">${p.expr}</span>`;
+        btn.addEventListener("click", () => {
+          el<HTMLInputElement>("expr").value = p.expr;
+          state.expr = p.expr;
+          save();
+          render();
+        });
+        wrap.appendChild(btn);
+      }
+    }
+
+    function renderTzToggle() {
+      el<HTMLButtonElement>("tz-local").setAttribute("aria-selected", state.tz === "local" ? "true" : "false");
+      el<HTMLButtonElement>("tz-utc").setAttribute("aria-selected", state.tz === "utc" ? "true" : "false");
+      const tz = state.tz === "utc" ? "UTC" : Intl.DateTimeFormat().resolvedOptions().timeZone;
+      el<HTMLParagraphElement>("tz-label").textContent = `Timezone: ${tz}`;
+    }
+
+    function render() {
+      const status = el<HTMLDivElement>("status");
+      const humanEl = el<HTMLParagraphElement>("human");
+      const fieldsEl = el<HTMLParagraphElement>("fields");
+      const runsEl = el<HTMLOListElement>("runs");
+      const shareEl = el<HTMLSpanElement>("share-link");
+
+      const parsed = parseCron(state.expr);
+      if (!parsed.ok) {
+        status.textContent = parsed.error;
+        status.dataset.state = "err";
+        humanEl.textContent = "—";
+        fieldsEl.innerHTML = "";
+        runsEl.innerHTML = `<li class="cr-runs-empty">Fix the expression to see runs.</li>`;
+        shareEl.textContent = "";
+        return;
+      }
+
+      status.textContent = "Valid expression.";
+      status.dataset.state = "ok";
+      humanEl.textContent = humanReadable(parsed);
+      fieldsEl.innerHTML = fieldsSummary(parsed);
+
+      const now = new Date();
+      const runs = nextRuns(parsed, now, 5, state.tz === "utc");
+      if (runs.length === 0) {
+        runsEl.innerHTML = `<li class="cr-runs-empty">No matching runs in the next five years.</li>`;
+      } else {
+        runsEl.innerHTML = runs
+          .map((d) => `<li class="cr-run"><span class="cr-run-when">${fmtAbs(d, state.tz === "utc")}</span><span class="cr-run-rel">${fmtRel(d, now)}</span></li>`)
+          .join("");
+      }
+
+      const url = `${location.origin}${location.pathname}#${encodeURIComponent(state.expr)}`;
+      shareEl.textContent = url;
+      try { history.replaceState(null, "", `#${encodeURIComponent(state.expr)}`); } catch {}
+    }
+
+    // ── Toast ──
+    let toastTimer: number | null = null;
+    function toast(msg: string) {
+      const t = el<HTMLDivElement>("toast");
+      t.textContent = msg;
+      t.hidden = false;
+      if (toastTimer) window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => { t.hidden = true; }, 1800);
+    }
+
+    async function copyText(s: string) {
+      try {
+        await navigator.clipboard.writeText(s);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // ── Wire up ──
+    function init() {
+      load();
+      renderPresets();
+      const input = el<HTMLInputElement>("expr");
+      input.value = state.expr;
+      input.addEventListener("input", () => {
+        state.expr = input.value;
+        save();
+        render();
+      });
+
+      el<HTMLButtonElement>("tz-local").addEventListener("click", () => {
+        state.tz = "local"; save(); renderTzToggle(); render();
+      });
+      el<HTMLButtonElement>("tz-utc").addEventListener("click", () => {
+        state.tz = "utc"; save(); renderTzToggle(); render();
+      });
+
+      el<HTMLButtonElement>("copy-expr").addEventListener("click", async () => {
+        if (await copyText(state.expr)) toast("Expression copied");
+      });
+      el<HTMLButtonElement>("copy-link").addEventListener("click", async () => {
+        const url = `${location.origin}${location.pathname}#${encodeURIComponent(state.expr)}`;
+        if (await copyText(url)) toast("Share link copied");
+      });
+
+      renderTzToggle();
+      render();
+
+      // PWA SW registration
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/cron/sw.js").catch(() => {});
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  </script>
+</BaseLayout>
