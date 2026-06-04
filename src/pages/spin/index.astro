@@ -555,6 +555,7 @@ const faqJsonLd = {
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Tab</kbd></dt><dd>Move through entries</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Alt</kbd> + <kbd class="spin-kbd">↑</kbd> / <kbd class="spin-kbd">↓</kbd></dt><dd>Reorder entry up / down</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Backspace</kbd></dt><dd>Delete entry (when input is empty)</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">Ctrl</kbd> / <kbd class="spin-kbd">⌘</kbd> + <kbd class="spin-kbd">Z</kbd></dt><dd>Undo last entry delete</dd></div>
       </dl>
       <p class="spin-help-foot">Shortcuts skip when an input is focused.</p>
     </div>
@@ -5725,6 +5726,21 @@ const faqJsonLd = {
       if (e.key === " " && !modal!.hidden) return;
       const tag = (document.activeElement?.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea") return;
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === "z" || e.key === "Z")) {
+        if (toastActionHandler) {
+          e.preventDefault();
+          const handler = toastActionHandler;
+          toastActionHandler = null;
+          if (toastTimer) {
+            window.clearTimeout(toastTimer);
+            toastTimer = null;
+          }
+          toast?.classList.remove("is-visible");
+          if (toastAction) toastAction.hidden = true;
+          handler();
+        }
+        return;
+      }
       if (e.key === "?") {
         e.preventDefault();
         if (helpModal && !helpModal.hidden) hideHelp();
