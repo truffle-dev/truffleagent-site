@@ -3032,6 +3032,197 @@ const faqJsonLd = {
         display: none;
       }
     }
+
+    /* Print: emit a clean entry list with the wheel name as the title.
+       Hide every interactive surface, every scene background, the canvas
+       itself, and all marketing chrome. Inputs are flattened to flowing
+       text so each entry prints as "1. Label" with optional weight. */
+    @media print {
+      @page {
+        margin: 0.75in;
+      }
+
+      html,
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+
+      .spin-page {
+        background: #fff !important;
+        color: #000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+        display: block !important;
+      }
+
+      .spin-page::before {
+        content: "Spin the Wheel \00B7  truffleagent.com/spin/";
+        display: block;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 8pt;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: #666;
+        margin: 0 0 6pt 0;
+      }
+
+      .spin-header,
+      .spin-head-actions,
+      .spin-mode-chips,
+      .spin-count-chip,
+      .spin-picker-chev,
+      .spin-picker-panel,
+      .spin-add,
+      .spin-bulk,
+      .spin-history,
+      .spin-suggest,
+      .spin-about,
+      .spin-faq,
+      .spin-presets,
+      .spin-foot,
+      .spin-embed-credit,
+      .spin-modal,
+      .spin-toast,
+      .spin-confetti,
+      .spin-labelrot-config,
+      .spin-scene-config,
+      .spin-size-config,
+      .spin-sound-config,
+      .spin-teams-config,
+      .spin-rotation-bar,
+      .spin-rotation-hint,
+      .spin-shared-pill,
+      .spin-import-notice,
+      .spin-wheel-pane,
+      .spin-hint,
+      .spin-list-grip,
+      .spin-list-color,
+      .spin-list-dup,
+      .spin-list-wins {
+        display: none !important;
+      }
+
+      .spin-stage {
+        display: block !important;
+        grid-template-columns: none !important;
+        grid-template-areas: none !important;
+        gap: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .spin-side,
+      .spin-side-head,
+      .spin-head-row,
+      .spin-head-row-top {
+        display: block !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .spin-wheel-picker {
+        display: block !important;
+        background: transparent !important;
+        border: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .spin-picker-btn {
+        display: block !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 0 14pt 0 !important;
+        color: #000 !important;
+        cursor: default !important;
+        text-align: left !important;
+        width: auto !important;
+      }
+
+      .spin-picker-name {
+        font-family: "Fraunces", Georgia, serif !important;
+        font-size: 28pt !important;
+        font-weight: 400 !important;
+        font-style: italic !important;
+        line-height: 1.15 !important;
+        color: #000 !important;
+        display: block !important;
+        letter-spacing: -0.01em !important;
+      }
+
+      .spin-list {
+        display: block !important;
+        list-style: decimal outside !important;
+        padding: 0 0 0 32pt !important;
+        margin: 6pt 0 0 0 !important;
+        border-top: 1px solid #ddd !important;
+        background: transparent !important;
+        gap: 0 !important;
+      }
+
+      .spin-list-item {
+        display: list-item !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-bottom: 1px dotted #ccc !important;
+        padding: 7pt 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        color: #000 !important;
+      }
+
+      .spin-list-item::marker {
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace !important;
+        font-size: 10pt !important;
+        color: #555 !important;
+      }
+
+      .spin-list-input {
+        border: 0 !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-size: 12pt !important;
+        color: #000 !important;
+        outline: 0 !important;
+        box-shadow: none !important;
+        width: 78% !important;
+      }
+
+      .spin-list-weight {
+        border: 0 !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 0 0 12pt !important;
+        color: #666 !important;
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace !important;
+        font-size: 10pt !important;
+        text-align: right !important;
+        width: auto !important;
+        min-width: 24pt !important;
+        box-shadow: none !important;
+        outline: 0 !important;
+      }
+
+      .spin-list-weight::-webkit-outer-spin-button,
+      .spin-list-weight::-webkit-inner-spin-button {
+        display: none !important;
+        -webkit-appearance: none !important;
+      }
+    }
   </style>
 
   <script>
