@@ -1,0 +1,734 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Icon · single-letter favicon + app icon generator";
+const description =
+  "Type a letter, pick a color, get a favicon. Live preview, square / rounded / circle, optional gradient. Download PNG at 32, 256, 512, 1024 or SVG. Copy as data URI or paste-ready HTML head tags. Works offline. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/icon/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Icon",
+  alternateName: ["Favicon Generator", "App Icon Maker", "Letter Icon Maker"],
+  url: canonical,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Live single-letter icon preview",
+    "Square, rounded, or circle shape",
+    "Sans, serif, or mono lettering",
+    "Optional linear or radial gradient",
+    "PNG at 32, 256, 512, and 1024 px",
+    "SVG export",
+    "Copy as data URI",
+    "Copy paste-ready HTML head tags",
+    "Shareable URL of the current icon",
+    "Works offline (PWA)",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Icon for?",
+    a: "When you ship a side project and the browser tab still shows the generic globe, Icon gives you a real favicon in about ten seconds. Type a letter, pick a color, download, paste the HTML link tags into your site head, done.",
+  },
+  {
+    q: "Square, rounded, or circle?",
+    a: "Browser tabs accept any shape. iOS home-screen icons get a soft mask applied no matter what, so a plain square is safest there. Android adaptive icons clip into a circle. If you want the same icon to look correct on a tab and on a phone, pick rounded.",
+  },
+  {
+    q: "Why a letter and not an upload?",
+    a: "Most side projects start with a single distinct letter from the product name. A letter-mark looks intentional at 16 pixels in a way that a scaled-down photo never does. If you need a full logo, this is the wrong tool.",
+  },
+  {
+    q: "How big should the PNG be?",
+    a: "256 covers most modern browsers and mid-quality social cards. 512 is the standard PWA install icon. 1024 is overkill for favicons but useful for app store assets. 32 is the legacy fallback that some older browsers still read first.",
+  },
+  {
+    q: "Where do I paste the HTML tags?",
+    a: "Inside the head of every page on your site. The tags reference the icon files as relative URLs, so upload your downloaded PNG and SVG to the same folder you paste the head tags into. The data URI option skips the upload entirely.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. No analytics, no third-party scripts, no telemetry. Your letter and your colors stay in your browser. The share URL packs them into the page address itself, never sent to a server.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/icon/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="ic-page">
+    <header class="ic-topbar">
+      <div class="ic-topbar-inner">
+        <div class="ic-brand">
+          <span class="ic-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="4" />
+              <path d="M9 15V9h6" />
+              <path d="M9 12h4" />
+            </svg>
+          </span>
+          <span class="ic-brand-name">Icon</span>
+        </div>
+        <div class="ic-topbar-actions">
+          <button id="share-btn" type="button" class="ic-btn ic-btn-ghost" title="Copy a link that restores this icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 10.5l6.8-3.9" /><path d="M8.6 13.5l6.8 3.9" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="ic-stage">
+      <div class="ic-preview-wrap">
+        <div class="ic-preview" id="preview" aria-label="Icon preview"></div>
+        <div class="ic-sizes" aria-label="Browser-size previews">
+          <div class="ic-size-card"><div class="ic-size-cell ic-size-16" id="size-16"></div><span>16</span></div>
+          <div class="ic-size-card"><div class="ic-size-cell ic-size-32" id="size-32"></div><span>32</span></div>
+          <div class="ic-size-card"><div class="ic-size-cell ic-size-64" id="size-64"></div><span>64</span></div>
+          <div class="ic-size-card"><div class="ic-size-cell ic-size-128" id="size-128"></div><span>128</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ic-config">
+      <div class="ic-config-row">
+        <label class="ic-field">
+          <span class="ic-field-label">Letter</span>
+          <input id="letter-input" type="text" maxlength="3" value="T" autocomplete="off" spellcheck="false" />
+        </label>
+        <label class="ic-field">
+          <span class="ic-field-label">Foreground</span>
+          <input id="fg-input" type="color" value="#ffffff" />
+        </label>
+        <label class="ic-field">
+          <span class="ic-field-label">Background</span>
+          <input id="bg-input" type="color" value="#4850c4" />
+        </label>
+      </div>
+
+      <div class="ic-segments">
+        <div class="ic-segment-group">
+          <span class="ic-segment-label">Shape</span>
+          <div class="ic-segment" role="group" aria-label="Shape">
+            <button type="button" class="ic-segment-btn" id="shape-square" data-shape="square">Square</button>
+            <button type="button" class="ic-segment-btn" id="shape-rounded" data-shape="rounded">Rounded</button>
+            <button type="button" class="ic-segment-btn" id="shape-circle" data-shape="circle">Circle</button>
+          </div>
+        </div>
+        <div class="ic-segment-group">
+          <span class="ic-segment-label">Font</span>
+          <div class="ic-segment" role="group" aria-label="Font">
+            <button type="button" class="ic-segment-btn" id="font-sans" data-font="sans">Sans</button>
+            <button type="button" class="ic-segment-btn" id="font-serif" data-font="serif">Serif</button>
+            <button type="button" class="ic-segment-btn" id="font-mono" data-font="mono">Mono</button>
+          </div>
+        </div>
+        <div class="ic-segment-group">
+          <span class="ic-segment-label">Weight</span>
+          <div class="ic-segment" role="group" aria-label="Weight">
+            <button type="button" class="ic-segment-btn" id="weight-400" data-weight="400">Regular</button>
+            <button type="button" class="ic-segment-btn" id="weight-600" data-weight="600">Semibold</button>
+            <button type="button" class="ic-segment-btn" id="weight-800" data-weight="800">Bold</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ic-segments">
+        <div class="ic-segment-group">
+          <span class="ic-segment-label">Gradient</span>
+          <div class="ic-segment" role="group" aria-label="Gradient">
+            <button type="button" class="ic-segment-btn" id="grad-off" data-grad="off">Off</button>
+            <button type="button" class="ic-segment-btn" id="grad-linear" data-grad="linear">Linear</button>
+            <button type="button" class="ic-segment-btn" id="grad-radial" data-grad="radial">Radial</button>
+          </div>
+        </div>
+        <label class="ic-field ic-field-grad" id="grad-color-field">
+          <span class="ic-field-label">Gradient end</span>
+          <input id="grad-color" type="color" value="#7078e0" />
+        </label>
+      </div>
+
+      <div class="ic-presets">
+        <span class="ic-presets-label">Presets:</span>
+        <button type="button" class="ic-chip" data-preset="indigo">Indigo T</button>
+        <button type="button" class="ic-chip" data-preset="emerald">Emerald E</button>
+        <button type="button" class="ic-chip" data-preset="ink">Ink K</button>
+        <button type="button" class="ic-chip" data-preset="paper">Paper A</button>
+        <button type="button" class="ic-chip" data-preset="ember">Ember R</button>
+        <button type="button" class="ic-chip" data-preset="ocean">Ocean O</button>
+      </div>
+    </section>
+
+    <section class="ic-downloads">
+      <h2 class="ic-downloads-title">Download</h2>
+      <div class="ic-download-row">
+        <button id="dl-png-32" type="button" class="ic-btn ic-btn-ghost">PNG 32</button>
+        <button id="dl-png-256" type="button" class="ic-btn ic-btn-ghost">PNG 256</button>
+        <button id="dl-png-512" type="button" class="ic-btn ic-btn-primary">PNG 512</button>
+        <button id="dl-png-1024" type="button" class="ic-btn ic-btn-ghost">PNG 1024</button>
+        <button id="dl-svg" type="button" class="ic-btn ic-btn-ghost">SVG</button>
+      </div>
+      <div class="ic-copy-row">
+        <button id="copy-datauri" type="button" class="ic-btn ic-btn-ghost">Copy data URI</button>
+        <button id="copy-head" type="button" class="ic-btn ic-btn-ghost">Copy HTML head tags</button>
+      </div>
+      <details class="ic-head-preview">
+        <summary>What the head tags look like</summary>
+        <pre id="head-snippet" class="ic-head-snippet"></pre>
+      </details>
+    </section>
+
+    <section class="ic-why">
+      <h2>Why this exists</h2>
+      <p>
+        Most favicon generators upload your image to a server, return a 14-file zip
+        you have to figure out, and bake their own branding into the manifest. Icon
+        is a single page that draws an SVG locally, rasterises it on a canvas, and
+        hands you the four files you actually need. Your letter goes nowhere except
+        into the image.
+      </p>
+    </section>
+
+    <section class="ic-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="ic-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div id="toast" class="ic-toast" role="status" aria-live="polite" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --ic-bg: #fbfaf5;
+    --ic-fg: #1a1611;
+    --ic-muted: #6b6359;
+    --ic-line: #e5dfd0;
+    --ic-card: #ffffff;
+    --ic-accent: #4850c4;
+    --ic-accent-soft: #e3e5fa;
+  }
+  :root[data-theme="dark"] {
+    --ic-bg: #0e0c08;
+    --ic-fg: #f1ece0;
+    --ic-muted: #9c9485;
+    --ic-line: #2a2620;
+    --ic-card: #16130d;
+    --ic-accent: #7078e0;
+    --ic-accent-soft: #1d1f3a;
+  }
+
+  body { background: var(--ic-bg); color: var(--ic-fg); }
+  .ic-page { max-width: 920px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .ic-topbar { border-bottom: 1px solid var(--ic-line); padding: 18px 0; margin-bottom: 32px; }
+  .ic-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .ic-brand { display: flex; align-items: center; gap: 10px; }
+  .ic-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--ic-accent-soft); color: var(--ic-accent); }
+  .ic-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+
+  .ic-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--ic-line);
+    background: var(--ic-card); color: var(--ic-fg);
+    font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .ic-btn:hover { border-color: var(--ic-accent); color: var(--ic-accent); }
+  .ic-btn-primary { background: var(--ic-accent); color: #fff; border-color: var(--ic-accent); font-weight: 600; }
+  .ic-btn-primary:hover { color: #fff; filter: brightness(1.05); }
+  .ic-btn-ghost { background: transparent; }
+
+  .ic-stage { display: flex; flex-direction: column; align-items: center; gap: 28px; padding: 8px 0 32px; }
+  .ic-preview-wrap { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+  .ic-preview {
+    width: min(280px, calc(100vw - 80px));
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--ic-line); border-radius: 24px;
+    background: var(--ic-card); padding: 24px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0,0,0,.05);
+  }
+  .ic-preview svg { width: 100%; height: 100%; display: block; }
+
+  .ic-sizes { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; justify-content: center; }
+  .ic-size-card { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ic-size-card span { font-size: 12px; color: var(--ic-muted); font-family: "JetBrains Mono", monospace; }
+  .ic-size-cell { display: flex; align-items: center; justify-content: center; }
+  .ic-size-cell svg { width: 100%; height: 100%; display: block; }
+  .ic-size-16 { width: 16px; height: 16px; }
+  .ic-size-32 { width: 32px; height: 32px; }
+  .ic-size-64 { width: 64px; height: 64px; }
+  .ic-size-128 { width: 128px; height: 128px; }
+
+  .ic-config {
+    background: var(--ic-card); border: 1px solid var(--ic-line); border-radius: 16px;
+    padding: 22px; display: flex; flex-direction: column; gap: 22px;
+  }
+  .ic-config-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .ic-field { display: flex; flex-direction: column; gap: 6px; }
+  .ic-field-label { font-size: 12px; color: var(--ic-muted); font-weight: 500; }
+  .ic-field input, .ic-field select {
+    font: inherit; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--ic-line); background: var(--ic-bg); color: var(--ic-fg);
+    outline: none;
+  }
+  .ic-field input:focus, .ic-field select:focus { border-color: var(--ic-accent); }
+  .ic-field input[type="color"] { padding: 4px; height: 40px; cursor: pointer; }
+  .ic-field-grad { transition: opacity .2s ease; }
+  .ic-field-grad.ic-disabled { opacity: 0.4; pointer-events: none; }
+
+  .ic-segments { display: flex; flex-wrap: wrap; gap: 22px; align-items: end; }
+  .ic-segment-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .ic-segment-label { font-size: 12px; color: var(--ic-muted); font-weight: 500; }
+  .ic-segment {
+    display: inline-flex; padding: 3px;
+    background: var(--ic-bg); border: 1px solid var(--ic-line); border-radius: 999px;
+  }
+  .ic-segment-btn {
+    font: inherit; font-size: 13px; font-weight: 500;
+    padding: 6px 14px; border-radius: 999px; border: 0;
+    background: transparent; color: var(--ic-fg); cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .ic-segment-btn[aria-pressed="true"] {
+    background: var(--ic-accent); color: #fff;
+  }
+
+  .ic-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--ic-line); }
+  .ic-presets-label { font-size: 12px; color: var(--ic-muted); margin-right: 4px; padding-top: 12px; }
+  .ic-chip {
+    margin-top: 12px;
+    font: inherit; font-size: 13px;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--ic-line); background: transparent; color: var(--ic-fg);
+    cursor: pointer; transition: background .15s ease, border-color .15s ease;
+  }
+  .ic-chip:hover { border-color: var(--ic-accent); color: var(--ic-accent); }
+
+  .ic-downloads { margin-top: 36px; background: var(--ic-card); border: 1px solid var(--ic-line); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .ic-downloads-title { font-family: "Fraunces", serif; font-weight: 400; font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  .ic-download-row, .ic-copy-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .ic-head-preview summary { font-size: 13px; color: var(--ic-muted); cursor: pointer; padding: 6px 0; }
+  .ic-head-preview summary:hover { color: var(--ic-fg); }
+  .ic-head-snippet {
+    margin: 8px 0 0; padding: 14px 16px; border-radius: 10px;
+    background: var(--ic-bg); border: 1px solid var(--ic-line);
+    color: var(--ic-fg); font-family: "JetBrains Mono", monospace; font-size: 12px;
+    overflow-x: auto; white-space: pre; line-height: 1.6;
+  }
+
+  .ic-why { margin-top: 64px; }
+  .ic-why h2, .ic-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .ic-why p { font-size: 16px; line-height: 1.6; color: var(--ic-fg); max-width: 64ch; margin: 0; }
+
+  .ic-faq { margin-top: 56px; }
+  .ic-faq dl { display: grid; gap: 18px; margin: 0; }
+  .ic-faq-item { background: var(--ic-card); border: 1px solid var(--ic-line); border-radius: 14px; padding: 16px 20px; }
+  .ic-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .ic-faq-item dd { color: var(--ic-muted); line-height: 1.55; margin: 0; }
+
+  .ic-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--ic-fg); color: var(--ic-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+  }
+  .ic-toast[hidden] { display: none !important; }
+
+  @media (max-width: 640px) {
+    .ic-config-row { grid-template-columns: 1fr; }
+    .ic-segments { gap: 14px; }
+  }
+</style>
+
+<script>
+type Shape = "square" | "rounded" | "circle";
+type FontKey = "sans" | "serif" | "mono";
+type Weight = "400" | "600" | "800";
+type Grad = "off" | "linear" | "radial";
+
+type Persist = {
+  v: 1;
+  letter: string;
+  fg: string;
+  bg: string;
+  shape: Shape;
+  font: FontKey;
+  weight: Weight;
+  grad: Grad;
+  gradColor: string;
+};
+
+const STORAGE_KEY = "icon:v1";
+const DEFAULT: Persist = {
+  v: 1,
+  letter: "T",
+  fg: "#ffffff",
+  bg: "#4850c4",
+  shape: "rounded",
+  font: "sans",
+  weight: "600",
+  grad: "off",
+  gradColor: "#7078e0",
+};
+
+const FONT_STACKS: Record<FontKey, string> = {
+  sans: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  serif: "'Fraunces', Georgia, 'Times New Roman', serif",
+  mono: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+};
+
+const PRESETS: Record<string, Partial<Persist>> = {
+  indigo: { letter: "T", fg: "#ffffff", bg: "#4850c4", grad: "off", shape: "rounded", font: "sans", weight: "600" },
+  emerald: { letter: "E", fg: "#ffffff", bg: "#0f9968", grad: "linear", gradColor: "#34d399", shape: "rounded", font: "sans", weight: "700" as Weight },
+  ink: { letter: "K", fg: "#fbfaf5", bg: "#141413", grad: "off", shape: "square", font: "serif", weight: "400" },
+  paper: { letter: "A", fg: "#1a1611", bg: "#f0ebde", grad: "off", shape: "rounded", font: "serif", weight: "600" },
+  ember: { letter: "R", fg: "#fff7ea", bg: "#c2410c", grad: "radial", gradColor: "#fb923c", shape: "circle", font: "sans", weight: "800" },
+  ocean: { letter: "O", fg: "#ecfeff", bg: "#0e6b8c", grad: "linear", gradColor: "#22d3ee", shape: "circle", font: "mono", weight: "600" },
+};
+
+function loadPersist(): Persist {
+  try {
+    const fromHash = readHash();
+    if (fromHash) return fromHash;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { ...DEFAULT };
+    const p = JSON.parse(raw);
+    if (p && p.v === 1) return { ...DEFAULT, ...p };
+  } catch {}
+  return { ...DEFAULT };
+}
+
+function savePersist(p: Persist): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
+}
+
+function utf8ToB64(s: string): string {
+  const bytes = new TextEncoder().encode(s);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+function b64ToUtf8(s: string): string {
+  const padded = s.replaceAll("-", "+").replaceAll("_", "/");
+  const pad = (4 - (padded.length % 4)) % 4;
+  const b = atob(padded + "=".repeat(pad));
+  const bytes = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) bytes[i] = b.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function readHash(): Persist | null {
+  if (!location.hash.startsWith("#p=")) return null;
+  try {
+    const json = b64ToUtf8(location.hash.slice(3));
+    const p = JSON.parse(json);
+    if (p && p.v === 1) return { ...DEFAULT, ...p };
+  } catch {}
+  return null;
+}
+
+function writeHash(p: Persist): string {
+  return "#p=" + utf8ToB64(JSON.stringify(p));
+}
+
+function toast(msg: string): void {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.hidden = false;
+  window.setTimeout(() => { el.hidden = true; }, 1800);
+}
+
+function clampLetter(raw: string): string {
+  const cleaned = raw.replace(/\s+/g, "");
+  if (cleaned.length === 0) return "T";
+  return Array.from(cleaned).slice(0, 2).join("");
+}
+
+function radiusForShape(shape: Shape, size: number): number {
+  if (shape === "square") return 0;
+  if (shape === "circle") return size / 2;
+  return Math.round(size * 0.22);
+}
+
+function buildSvg(p: Persist, size: number): string {
+  const letter = clampLetter(p.letter);
+  const r = radiusForShape(p.shape, size);
+  const letterCount = Array.from(letter).length;
+  const fontSize = letterCount === 1 ? Math.round(size * 0.62) : Math.round(size * 0.46);
+  const font = FONT_STACKS[p.font];
+  const weight = p.weight;
+  const gradId = "g" + Math.random().toString(36).slice(2, 8);
+
+  let fill = `fill="${p.bg}"`;
+  let defs = "";
+  if (p.grad === "linear") {
+    defs = `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${p.bg}"/><stop offset="100%" stop-color="${p.gradColor}"/></linearGradient></defs>`;
+    fill = `fill="url(#${gradId})"`;
+  } else if (p.grad === "radial") {
+    defs = `<defs><radialGradient id="${gradId}" cx="50%" cy="40%" r="65%"><stop offset="0%" stop-color="${p.gradColor}"/><stop offset="100%" stop-color="${p.bg}"/></radialGradient></defs>`;
+    fill = `fill="url(#${gradId})"`;
+  }
+
+  const escapedLetter = letter
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+  const cy = p.font === "serif" ? size * 0.54 : size * 0.52;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${escapedLetter}">${defs}<rect x="0" y="0" width="${size}" height="${size}" rx="${r}" ry="${r}" ${fill}/><text x="50%" y="${cy}" font-family="${font}" font-size="${fontSize}" font-weight="${weight}" fill="${p.fg}" text-anchor="middle" dominant-baseline="central" style="letter-spacing:-0.02em">${escapedLetter}</text></svg>`;
+}
+
+function setSegmentPressed(group: string, value: string): void {
+  const buttons = document.querySelectorAll<HTMLButtonElement>(`.ic-segment-btn[data-${group}]`);
+  buttons.forEach(btn => {
+    btn.setAttribute("aria-pressed", btn.dataset[group] === value ? "true" : "false");
+  });
+}
+
+function svgToPngDataUri(svg: string, size: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        reject(new Error("canvas-unavailable"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(e);
+    };
+    img.src = url;
+  });
+}
+
+function triggerDownload(dataUri: string, filename: string): void {
+  const a = document.createElement("a");
+  a.href = dataUri;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => a.remove(), 0);
+}
+
+function headSnippet(p: Persist): string {
+  const letter = clampLetter(p.letter).toLowerCase().replace(/[^a-z0-9]/g, "x") || "icon";
+  return [
+    `<link rel="icon" type="image/svg+xml" href="/icon-${letter}.svg" />`,
+    `<link rel="icon" type="image/png" sizes="32x32" href="/icon-${letter}-32.png" />`,
+    `<link rel="icon" type="image/png" sizes="192x192" href="/icon-${letter}-256.png" />`,
+    `<link rel="apple-touch-icon" sizes="192x192" href="/icon-${letter}-256.png" />`,
+  ].join("\n");
+}
+
+let state: Persist = loadPersist();
+
+function applyState(): void {
+  const letterIn = document.getElementById("letter-input") as HTMLInputElement;
+  const fgIn = document.getElementById("fg-input") as HTMLInputElement;
+  const bgIn = document.getElementById("bg-input") as HTMLInputElement;
+  const gradIn = document.getElementById("grad-color") as HTMLInputElement;
+  const gradField = document.getElementById("grad-color-field");
+  letterIn.value = state.letter;
+  fgIn.value = state.fg;
+  bgIn.value = state.bg;
+  gradIn.value = state.gradColor;
+  setSegmentPressed("shape", state.shape);
+  setSegmentPressed("font", state.font);
+  setSegmentPressed("weight", state.weight);
+  setSegmentPressed("grad", state.grad);
+  if (gradField) {
+    if (state.grad === "off") gradField.classList.add("ic-disabled");
+    else gradField.classList.remove("ic-disabled");
+  }
+  renderPreview();
+  const snippetEl = document.getElementById("head-snippet");
+  if (snippetEl) snippetEl.textContent = headSnippet(state);
+}
+
+function renderPreview(): void {
+  const main = document.getElementById("preview");
+  if (main) main.innerHTML = buildSvg(state, 512);
+  ([16, 32, 64, 128] as const).forEach(sz => {
+    const el = document.getElementById(`size-${sz}`);
+    if (el) el.innerHTML = buildSvg(state, sz);
+  });
+}
+
+function commit(): void {
+  savePersist(state);
+  renderPreview();
+}
+
+function bind(): void {
+  const letterIn = document.getElementById("letter-input") as HTMLInputElement;
+  letterIn.addEventListener("input", () => {
+    state = { ...state, letter: clampLetter(letterIn.value) };
+    if (letterIn.value !== state.letter) letterIn.value = state.letter;
+    commit();
+  });
+
+  const fgIn = document.getElementById("fg-input") as HTMLInputElement;
+  fgIn.addEventListener("input", () => { state = { ...state, fg: fgIn.value }; commit(); });
+  const bgIn = document.getElementById("bg-input") as HTMLInputElement;
+  bgIn.addEventListener("input", () => { state = { ...state, bg: bgIn.value }; commit(); });
+  const gradIn = document.getElementById("grad-color") as HTMLInputElement;
+  gradIn.addEventListener("input", () => { state = { ...state, gradColor: gradIn.value }; commit(); });
+
+  document.querySelectorAll<HTMLButtonElement>('.ic-segment-btn[data-shape]').forEach(b => b.addEventListener("click", () => {
+    state = { ...state, shape: b.dataset.shape as Shape };
+    setSegmentPressed("shape", state.shape);
+    commit();
+  }));
+  document.querySelectorAll<HTMLButtonElement>('.ic-segment-btn[data-font]').forEach(b => b.addEventListener("click", () => {
+    state = { ...state, font: b.dataset.font as FontKey };
+    setSegmentPressed("font", state.font);
+    commit();
+  }));
+  document.querySelectorAll<HTMLButtonElement>('.ic-segment-btn[data-weight]').forEach(b => b.addEventListener("click", () => {
+    state = { ...state, weight: b.dataset.weight as Weight };
+    setSegmentPressed("weight", state.weight);
+    commit();
+  }));
+  document.querySelectorAll<HTMLButtonElement>('.ic-segment-btn[data-grad]').forEach(b => b.addEventListener("click", () => {
+    state = { ...state, grad: b.dataset.grad as Grad };
+    setSegmentPressed("grad", state.grad);
+    const gradField = document.getElementById("grad-color-field");
+    if (gradField) {
+      if (state.grad === "off") gradField.classList.add("ic-disabled");
+      else gradField.classList.remove("ic-disabled");
+    }
+    commit();
+  }));
+
+  document.querySelectorAll<HTMLButtonElement>(".ic-chip[data-preset]").forEach(b => b.addEventListener("click", () => {
+    const key = b.dataset.preset!;
+    const preset = PRESETS[key];
+    if (!preset) return;
+    state = { ...state, ...preset };
+    applyState();
+    commit();
+  }));
+
+  const dl = async (size: number) => {
+    const svg = buildSvg(state, size);
+    try {
+      const dataUri = await svgToPngDataUri(svg, size);
+      const safe = (clampLetter(state.letter).toLowerCase().replace(/[^a-z0-9]/g, "x") || "icon");
+      triggerDownload(dataUri, `icon-${safe}-${size}.png`);
+    } catch {
+      toast("Could not render PNG");
+    }
+  };
+  (document.getElementById("dl-png-32") as HTMLButtonElement).addEventListener("click", () => dl(32));
+  (document.getElementById("dl-png-256") as HTMLButtonElement).addEventListener("click", () => dl(256));
+  (document.getElementById("dl-png-512") as HTMLButtonElement).addEventListener("click", () => dl(512));
+  (document.getElementById("dl-png-1024") as HTMLButtonElement).addEventListener("click", () => dl(1024));
+
+  (document.getElementById("dl-svg") as HTMLButtonElement).addEventListener("click", () => {
+    const svg = buildSvg(state, 512);
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const safe = (clampLetter(state.letter).toLowerCase().replace(/[^a-z0-9]/g, "x") || "icon");
+    triggerDownload(url, `icon-${safe}.svg`);
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+  });
+
+  (document.getElementById("copy-datauri") as HTMLButtonElement).addEventListener("click", async () => {
+    const svg = buildSvg(state, 512);
+    try {
+      const dataUri = await svgToPngDataUri(svg, 512);
+      await navigator.clipboard.writeText(dataUri);
+      toast("Copied data URI");
+    } catch {
+      toast("Could not copy");
+    }
+  });
+
+  (document.getElementById("copy-head") as HTMLButtonElement).addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(headSnippet(state));
+      toast("Copied head tags");
+    } catch {
+      toast("Could not copy");
+    }
+  });
+
+  (document.getElementById("share-btn") as HTMLButtonElement).addEventListener("click", async () => {
+    const url = location.origin + location.pathname + writeHash(state);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("Copied share link");
+    } catch {
+      history.replaceState(null, "", writeHash(state));
+      toast("Updated URL");
+    }
+  });
+
+  window.addEventListener("hashchange", () => {
+    const fromHash = readHash();
+    if (fromHash) {
+      state = fromHash;
+      applyState();
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  bind();
+  applyState();
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/icon/sw.js", { scope: "/icon/" }).catch(() => {});
+  });
+}
+</script>
