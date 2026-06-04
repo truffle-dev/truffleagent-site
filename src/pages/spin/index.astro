@@ -3967,6 +3967,11 @@ const faqJsonLd = {
     // Same pattern for team-split: the next showWinner reveals K teams.
     let teamSpinPending = false;
 
+    // Entry id whose row is currently focused; drawWheel paints a wedge-
+    // outline highlight on the matching slice so list ↔ wheel mapping is
+    // legible at a glance.
+    let hoveredEntryId: string | null = null;
+
     let history: HistoryEntry[] = loadHistory();
 
     function loadHistory(): HistoryEntry[] {
@@ -4365,6 +4370,32 @@ const faqJsonLd = {
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
+
+      // Wedge highlight for focused entry row. Skipped during a spin so the
+      // outline doesn't fight the rotating slices.
+      if (hoveredEntryId && !spinning) {
+        const hIdx = entries.findIndex((e) => e.id === hoveredEntryId);
+        if (hIdx >= 0) {
+          const hStart = rotation + bounds[hIdx] - Math.PI / 2;
+          const hEnd = rotation + bounds[hIdx + 1] - Math.PI / 2;
+          const baseW = Math.max(3, Math.min(6, r * 0.012));
+          const accentW = Math.max(1.5, baseW * 0.45);
+          ctx.save();
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(hStart) * r, cy + Math.sin(hStart) * r);
+          ctx.arc(cx, cy, r, hStart, hEnd);
+          ctx.closePath();
+          ctx.strokeStyle = "rgba(255, 252, 245, 0.9)";
+          ctx.lineWidth = baseW;
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(72, 80, 196, 0.95)";
+          ctx.lineWidth = accentW;
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
 
       // Labels
       const effectiveRotation: "tangent" | "radial" =
@@ -4843,6 +4874,17 @@ const faqJsonLd = {
           updateDuplicateBadges();
         });
         input.addEventListener("blur", flushPendingSave);
+        input.addEventListener("focus", () => {
+          if (spinning) return;
+          if (hoveredEntryId === entry.id) return;
+          hoveredEntryId = entry.id;
+          drawWheel();
+        });
+        input.addEventListener("blur", () => {
+          if (hoveredEntryId !== entry.id) return;
+          hoveredEntryId = null;
+          drawWheel();
+        });
         input.addEventListener("keydown", (e) => {
           if (e.key === "Enter") {
             e.preventDefault();
