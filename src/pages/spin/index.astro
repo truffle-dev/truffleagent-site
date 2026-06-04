@@ -398,6 +398,7 @@ const faqJsonLd = {
           <button id="spin-announce-toggle" type="button" class="spin-sound-chip" aria-pressed="false" aria-label="Announce winner aloud" title="Read the winner's name aloud" hidden>Read aloud</button>
           <span class="spin-sound-label spin-voice-label" hidden>Voice</span>
           <select id="spin-announce-voice" class="spin-announce-voice" aria-label="Pick a voice for read aloud" hidden></select>
+          <button id="spin-voice-preview" type="button" class="spin-voice-preview" aria-label="Test voice" title="Test voice" hidden>▶</button>
           <button id="spin-sound-cancel" type="button" class="spin-sound-cancel" aria-label="Close sound settings">×</button>
         </div>
 
@@ -2284,6 +2285,22 @@ const faqJsonLd = {
       outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
       outline-offset: 2px;
     }
+    .spin-voice-preview {
+      padding: 0.3rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--content-2);
+      font-family: var(--font-sans);
+      font-size: 11px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .spin-voice-preview:hover { background: var(--surface-2); color: var(--content); }
+    .spin-voice-preview:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
+      outline-offset: 2px;
+    }
     .spin-sound-divider {
       width: 1px;
       align-self: stretch;
@@ -3799,6 +3816,7 @@ const faqJsonLd = {
     const announceDivider = document.querySelector(".spin-sound-divider") as HTMLSpanElement | null;
     const voiceSelect = document.getElementById("spin-announce-voice") as HTMLSelectElement | null;
     const voiceLabel = document.querySelector(".spin-voice-label") as HTMLSpanElement | null;
+    const voicePreview = document.getElementById("spin-voice-preview") as HTMLButtonElement | null;
     const eliminateBtn = document.getElementById("spin-eliminate");
     const accumulateBtn = document.getElementById("spin-accumulate");
     const rotationBtn = document.getElementById("spin-rotation");
@@ -6065,6 +6083,7 @@ const faqJsonLd = {
       if (matches.length === 0) {
         voiceSelect.hidden = true;
         voiceLabel.hidden = true;
+        if (voicePreview) voicePreview.hidden = true;
         return;
       }
       const existing = voiceSelect.value;
@@ -6083,6 +6102,7 @@ const faqJsonLd = {
       voiceSelect.value = persisted || existing || "";
       voiceSelect.hidden = false;
       voiceLabel.hidden = false;
+      if (voicePreview) voicePreview.hidden = false;
     }
     if (!speechSupported) {
       if (announceToggle) announceToggle.hidden = true;
@@ -6090,6 +6110,7 @@ const faqJsonLd = {
       if (announceDivider) announceDivider.hidden = true;
       if (voiceSelect) voiceSelect.hidden = true;
       if (voiceLabel) voiceLabel.hidden = true;
+      if (voicePreview) voicePreview.hidden = true;
     } else {
       if (announceToggle) announceToggle.hidden = false;
       populateVoiceSelect();
@@ -6108,6 +6129,28 @@ const faqJsonLd = {
     voiceSelect?.addEventListener("change", () => {
       voice = voiceSelect.value || undefined;
       save();
+    });
+    voicePreview?.addEventListener("click", () => {
+      if (!speechSupported) return;
+      let picked: SpeechSynthesisVoice | undefined;
+      const selected = voiceSelect?.value || "";
+      if (selected) {
+        try { picked = window.speechSynthesis.getVoices().find((v) => v.name === selected); }
+        catch { /* noop */ }
+      }
+      const sample = (currentWheel().name || "Sample wheel").trim();
+      if (!sample) return;
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(sample.slice(0, 200));
+        u.rate = 1;
+        u.pitch = 1;
+        u.volume = 1;
+        const lang = document.documentElement.lang || navigator.language || "en-US";
+        u.lang = picked?.lang || lang;
+        if (picked) u.voice = picked;
+        window.speechSynthesis.speak(u);
+      } catch { /* noop */ }
     });
     window.addEventListener("pagehide", cancelSpeech);
     document.addEventListener("visibilitychange", () => {
