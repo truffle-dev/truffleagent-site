@@ -561,7 +561,7 @@ const faqJsonLd = {
   </div>
 
   <canvas id="spin-confetti" class="spin-confetti" aria-hidden="true"></canvas>
-  <div id="spin-toast" class="spin-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="spin-toast" class="spin-toast" role="status" aria-live="polite" aria-atomic="true"><span id="spin-toast-msg" class="spin-toast-msg"></span><button id="spin-toast-action" type="button" class="spin-toast-action" hidden></button></div>
 
   <style is:global>
     .spin-page {
@@ -3003,7 +3003,7 @@ const faqJsonLd = {
       transform: translateX(-50%) translateY(8px);
       background: var(--content);
       color: var(--surface);
-      padding: 0.6rem 1.1rem;
+      padding: 0.6rem 0.85rem 0.6rem 1.1rem;
       border-radius: 999px;
       font-family: var(--font-sans);
       font-size: 13px;
@@ -3015,11 +3015,44 @@ const faqJsonLd = {
       z-index: 80;
       pointer-events: none;
       max-width: 90vw;
-      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-align: left;
     }
     .spin-toast.is-visible {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
+    }
+    .spin-toast-msg {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .spin-toast-action {
+      pointer-events: auto;
+      background: transparent;
+      border: 0;
+      color: color-mix(in oklab, var(--surface) 88%, var(--accent));
+      font: inherit;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      transition: background-color 0.12s var(--ease-out), color 0.12s var(--ease-out);
+    }
+    .spin-toast-action:hover {
+      background: color-mix(in oklab, var(--surface) 14%, transparent);
+      color: var(--surface);
+    }
+    .spin-toast-action:focus-visible {
+      outline: 2px solid color-mix(in oklab, var(--surface) 80%, var(--accent));
+      outline-offset: 2px;
+    }
+    .spin-toast-action[hidden] {
+      display: none;
     }
 
     /* Reduce motion */
@@ -3270,6 +3303,8 @@ const faqJsonLd = {
       "toast.duplicated_to": "Duplicated to {name}",
       "toast.cannot_delete_only": "Cannot delete the only wheel",
       "toast.deleted": "Deleted {name}",
+      "toast.entry_deleted": "Deleted “{name}”",
+      "toast.undo": "Undo",
       "toast.need_4_teams": "Need at least 4 entries to split teams",
       "toast.champion": "Champion: {name}",
       "toast.all_eliminated": "All entries eliminated",
@@ -3652,6 +3687,8 @@ const faqJsonLd = {
     const shareImgBtn = document.getElementById("spin-winner-share") as HTMLButtonElement | null;
     const confetti = document.getElementById("spin-confetti") as HTMLCanvasElement | null;
     const toast = document.getElementById("spin-toast") as HTMLDivElement | null;
+    const toastMsg = document.getElementById("spin-toast-msg") as HTMLSpanElement | null;
+    const toastAction = document.getElementById("spin-toast-action") as HTMLButtonElement | null;
     const pickerBtn = document.getElementById("spin-picker-btn") as HTMLButtonElement | null;
     const pickerName = document.getElementById("spin-picker-name");
     const importNotice = document.getElementById("spin-import-notice");
@@ -4284,16 +4321,19 @@ const faqJsonLd = {
         });
     }
 
-    function deleteEntry(id: string) {
+    function deleteEntry(id: string, opts?: { offerUndo?: boolean }) {
       const idx = entries.findIndex((e) => e.id === id);
       if (idx < 0) return;
       const removed = entries[idx];
+      const cwBefore = currentWheel();
+      const wheelIdAtDelete = cwBefore?.id;
+      const rosterDropIdx =
+        cwBefore?.rotation && cwBefore.rosterSnapshot
+          ? cwBefore.rosterSnapshot.indexOf(removed.label.trim())
+          : -1;
       entries.splice(idx, 1);
-      const cw = currentWheel();
-      if (cw.rotation && cw.rosterSnapshot && removed) {
-        const dropLabel = removed.label.trim();
-        const snapIdx = cw.rosterSnapshot.indexOf(dropLabel);
-        if (snapIdx >= 0) cw.rosterSnapshot.splice(snapIdx, 1);
+      if (rosterDropIdx >= 0 && cwBefore?.rosterSnapshot) {
+        cwBefore.rosterSnapshot.splice(rosterDropIdx, 1);
       }
       clearImportFlag();
       renderList();
@@ -4314,6 +4354,55 @@ const faqJsonLd = {
         }
       } else {
         addInput?.focus();
+      }
+      if (opts?.offerUndo && removed.label.trim()) {
+        const snapshot = { ...removed };
+        const restoreIdx = idx;
+        const restoreWheelId = wheelIdAtDelete;
+        const restoreRosterIdx = rosterDropIdx;
+        const restoreRosterLabel = removed.label.trim();
+        showToast(t("toast.entry_deleted", { name: removed.label }), {
+          durationMs: 5000,
+          action: {
+            label: t("toast.undo"),
+            onClick: () => {
+              const cwNow = currentWheel();
+              if (!cwNow || cwNow.id !== restoreWheelId) return;
+              if (entries.some((e) => e.id === snapshot.id)) return;
+              const insertAt = Math.min(restoreIdx, entries.length);
+              entries.splice(insertAt, 0, snapshot);
+              if (
+                restoreRosterIdx >= 0 &&
+                cwNow.rotation &&
+                Array.isArray(cwNow.rosterSnapshot) &&
+                !cwNow.rosterSnapshot.includes(restoreRosterLabel)
+              ) {
+                const rosterAt = Math.min(
+                  restoreRosterIdx,
+                  cwNow.rosterSnapshot.length,
+                );
+                cwNow.rosterSnapshot.splice(rosterAt, 0, restoreRosterLabel);
+              }
+              clearImportFlag();
+              renderList();
+              drawWheel();
+              save();
+              updateRotationBar();
+              const restored = list?.querySelector<HTMLInputElement>(
+                `.spin-list-input[data-id="${CSS.escape(snapshot.id)}"]`,
+              );
+              if (restored) {
+                restored.focus();
+                try {
+                  restored.setSelectionRange(
+                    restored.value.length,
+                    restored.value.length,
+                  );
+                } catch {}
+              }
+            },
+          },
+        });
       }
     }
 
@@ -4636,7 +4725,9 @@ const faqJsonLd = {
         rm.setAttribute("aria-label", `Remove ${entry.label}`);
         rm.innerHTML =
           '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-        rm.addEventListener("click", () => deleteEntry(entry.id));
+        rm.addEventListener("click", () =>
+          deleteEntry(entry.id, { offerUndo: true }),
+        );
         li.appendChild(rm);
 
         list!.appendChild(li);
@@ -6287,16 +6378,48 @@ const faqJsonLd = {
     // accessibility tree so screen readers fire announcements when
     // textContent changes. Visual hide is via opacity only.
     let toastTimer: number | null = null;
-    function showToast(msg: string) {
+    let toastActionHandler: (() => void) | null = null;
+    function showToast(
+      msg: string,
+      opts?: { action?: { label: string; onClick: () => void }; durationMs?: number },
+    ) {
       if (!toast) return;
-      toast.textContent = msg;
+      if (toastMsg) toastMsg.textContent = msg;
+      else toast.textContent = msg;
+      if (toastAction) {
+        if (opts?.action) {
+          toastAction.textContent = opts.action.label;
+          toastActionHandler = opts.action.onClick;
+          toastAction.hidden = false;
+        } else {
+          toastAction.hidden = true;
+          toastAction.textContent = "";
+          toastActionHandler = null;
+        }
+      }
       // Force reflow so the transition fires
       void toast.offsetWidth;
       toast.classList.add("is-visible");
       if (toastTimer) window.clearTimeout(toastTimer);
+      const duration = opts?.durationMs ?? 2200;
       toastTimer = window.setTimeout(() => {
         toast.classList.remove("is-visible");
-      }, 2200);
+        if (toastAction) toastAction.hidden = true;
+        toastActionHandler = null;
+      }, duration);
+    }
+    if (toastAction) {
+      toastAction.addEventListener("click", () => {
+        const handler = toastActionHandler;
+        toastActionHandler = null;
+        if (toastTimer) {
+          window.clearTimeout(toastTimer);
+          toastTimer = null;
+        }
+        toast?.classList.remove("is-visible");
+        toastAction.hidden = true;
+        if (handler) handler();
+      });
     }
 
     // === Wire new buttons ===
