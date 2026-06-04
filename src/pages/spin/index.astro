@@ -393,6 +393,9 @@ const faqJsonLd = {
             <button type="button" class="spin-sound-chip" data-pack="sparkle" aria-pressed="false">Sparkle</button>
           </div>
           <button id="spin-sound-preview" type="button" class="spin-sound-preview" aria-label="Preview sound style">Preview</button>
+          <span class="spin-sound-divider" aria-hidden="true"></span>
+          <span class="spin-sound-label spin-announce-label">Announce</span>
+          <button id="spin-announce-toggle" type="button" class="spin-sound-chip" aria-pressed="false" aria-label="Announce winner aloud" title="Read the winner's name aloud" hidden>Read aloud</button>
           <button id="spin-sound-cancel" type="button" class="spin-sound-cancel" aria-label="Close sound settings">×</button>
         </div>
 
@@ -2258,6 +2261,12 @@ const faqJsonLd = {
       cursor: pointer;
     }
     .spin-sound-preview:hover { background: var(--surface-2); color: var(--content); }
+    .spin-sound-divider {
+      width: 1px;
+      align-self: stretch;
+      background: color-mix(in oklab, var(--accent) 24%, var(--border));
+      margin: 0 0.15rem;
+    }
     .spin-sound-cancel,
     .spin-scene-cancel {
       margin-left: auto;
@@ -3399,7 +3408,7 @@ const faqJsonLd = {
     type SoundPack = "classic" | "soft" | "arcade" | "sparkle";
     type Scene = "none" | "paper" | "ink" | "ocean" | "sunset" | "noir";
     type PersistV1 = { entries: Entry[]; version: 1; muted?: boolean };
-    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation; palette?: Palette; wheelSize?: WheelSize; soundPack?: SoundPack; scene?: Scene };
+    type PersistV2 = { version: 2; wheels: Wheel[]; currentId: string; muted?: boolean; announce?: boolean; pointer?: PointerCfg; labelRotation?: LabelRotation; palette?: Palette; wheelSize?: WheelSize; soundPack?: SoundPack; scene?: Scene };
     type AnyPersist = PersistV1 | PersistV2;
 
     const STORAGE_KEY = "spinwheel:v1";
@@ -3452,6 +3461,8 @@ const faqJsonLd = {
       "toast.image_shared": "Shared",
       "toast.sound_on": "Sound on",
       "toast.sound_off": "Sound off",
+      "toast.announce_on": "Read aloud on",
+      "toast.announce_off": "Read aloud off",
       "toast.eliminate_on": "Eliminate mode on",
       "toast.eliminate_off": "Eliminate mode off",
       "toast.accumulate_on": "Accumulate mode on",
@@ -3759,6 +3770,9 @@ const faqJsonLd = {
     const shareBtn = document.getElementById("spin-share");
     const muteBtn = document.getElementById("spin-mute");
     const fsToggle = document.getElementById("spin-fullscreen-toggle") as HTMLButtonElement | null;
+    const announceToggle = document.getElementById("spin-announce-toggle") as HTMLButtonElement | null;
+    const announceLabel = document.querySelector(".spin-announce-label") as HTMLSpanElement | null;
+    const announceDivider = document.querySelector(".spin-sound-divider") as HTMLSpanElement | null;
     const eliminateBtn = document.getElementById("spin-eliminate");
     const accumulateBtn = document.getElementById("spin-accumulate");
     const rotationBtn = document.getElementById("spin-rotation");
@@ -3860,6 +3874,7 @@ const faqJsonLd = {
     let wheels: Wheel[] = initialState.wheels;
     let currentId: string = initialState.currentId;
     let muted: boolean = initialState.muted;
+    let announce: boolean = initialState.announce;
     let pointerCfg: PointerCfg = initialState.pointer;
     let labelRotation: LabelRotation = initialState.labelRotation;
     let palette: Palette = initialState.palette;
@@ -3961,7 +3976,7 @@ const faqJsonLd = {
       return `${month}/${day}`;
     }
 
-    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; pointer: PointerCfg; labelRotation: LabelRotation; palette: Palette; wheelSize: WheelSize; soundPack: SoundPack; scene: Scene } {
+    function loadState(): { wheels: Wheel[]; currentId: string; muted: boolean; announce: boolean; pointer: PointerCfg; labelRotation: LabelRotation; palette: Palette; wheelSize: WheelSize; soundPack: SoundPack; scene: Scene } {
       const defaultWheel = (): Wheel => ({
         id: newId(),
         name: "My wheel",
@@ -3971,7 +3986,7 @@ const faqJsonLd = {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
           const w = defaultWheel();
-          return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
+          return { wheels: [w], currentId: w.id, muted: false, announce: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
         }
         const parsed = JSON.parse(raw) as AnyPersist;
         if (parsed && (parsed as PersistV2).version === 2 && Array.isArray((parsed as PersistV2).wheels)) {
@@ -4014,10 +4029,10 @@ const faqJsonLd = {
             .slice(0, MAX_WHEELS);
           if (cleaned.length === 0) {
             const w = defaultWheel();
-            return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize), soundPack: validSoundPack(p.soundPack), scene: validScene(p.scene) };
+            return { wheels: [w], currentId: w.id, muted: !!p.muted, announce: !!p.announce, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize), soundPack: validSoundPack(p.soundPack), scene: validScene(p.scene) };
           }
           const cid = cleaned.find((w) => w.id === p.currentId)?.id ?? cleaned[0].id;
-          return { wheels: cleaned, currentId: cid, muted: !!p.muted, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize), soundPack: validSoundPack(p.soundPack), scene: validScene(p.scene) };
+          return { wheels: cleaned, currentId: cid, muted: !!p.muted, announce: !!p.announce, pointer: validPointer(p.pointer), labelRotation: validLabelRotation(p.labelRotation), palette: validPalette(p.palette), wheelSize: validWheelSize(p.wheelSize), soundPack: validSoundPack(p.soundPack), scene: validScene(p.scene) };
         }
         // v1 migration
         if (parsed && (parsed as PersistV1).version === 1 && Array.isArray((parsed as PersistV1).entries)) {
@@ -4027,13 +4042,13 @@ const faqJsonLd = {
             name: "My wheel",
             entries: p.entries.filter((e) => e && typeof e.label === "string").slice(0, 200),
           };
-          return { wheels: [w], currentId: w.id, muted: !!p.muted, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
+          return { wheels: [w], currentId: w.id, muted: !!p.muted, announce: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
         }
       } catch {
         // fall through
       }
       const w = defaultWheel();
-      return { wheels: [w], currentId: w.id, muted: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
+      return { wheels: [w], currentId: w.id, muted: false, announce: false, pointer: { ...DEFAULT_POINTER }, labelRotation: DEFAULT_LABEL_ROTATION, palette: DEFAULT_PALETTE, wheelSize: DEFAULT_WHEEL_SIZE, soundPack: DEFAULT_SOUND_PACK, scene: DEFAULT_SCENE };
     }
 
     function save() {
@@ -4041,7 +4056,7 @@ const faqJsonLd = {
       if (cw) cw.entries = entries;
       if (IS_EMBED) return;
       try {
-        const data: PersistV2 = { version: 2, wheels, currentId, muted, pointer: pointerCfg, labelRotation, palette, wheelSize, soundPack, scene };
+        const data: PersistV2 = { version: 2, wheels, currentId, muted, announce, pointer: pointerCfg, labelRotation, palette, wheelSize, soundPack, scene };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
         // ignore quota
@@ -5610,6 +5625,7 @@ const faqJsonLd = {
       hintEl!.textContent = isFinal
         ? `Champion: ${entry.label}`
         : `Winner: ${entry.label}`;
+      speakWinner(entry.label);
       // Focus the primary action for keyboard users
       if (isFinal && closeBtn) {
         (closeBtn as HTMLButtonElement).focus();
@@ -5619,6 +5635,7 @@ const faqJsonLd = {
     }
 
     function hideWinner() {
+      cancelSpeech();
       if (pendingEliminate && lastWinnerIdx !== null && entries[lastWinnerIdx]) {
         const cw = currentWheel();
         const removedEntry = entries[lastWinnerIdx];
@@ -5958,6 +5975,56 @@ const faqJsonLd = {
       if (!c) return;
       SOUND_PACKS[soundPack].fanfare(c);
     }
+
+    const speechSupported = typeof window !== "undefined" && "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function";
+    function speakWinner(text: string) {
+      if (!announce || muted || !speechSupported) return;
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(trimmed.slice(0, 200));
+        u.rate = 1;
+        u.pitch = 1;
+        u.volume = 1;
+        const lang = document.documentElement.lang || navigator.language || "en-US";
+        u.lang = lang;
+        window.speechSynthesis.speak(u);
+      } catch {
+        // SpeechSynthesis can throw on locked-down browsers; silent fail is correct.
+      }
+    }
+    function cancelSpeech() {
+      if (!speechSupported) return;
+      try { window.speechSynthesis.cancel(); } catch { /* noop */ }
+    }
+    function updateAnnounceBtn() {
+      if (!announceToggle) return;
+      announceToggle.setAttribute("aria-pressed", announce ? "true" : "false");
+      announceToggle.setAttribute(
+        "aria-label",
+        announce ? "Stop reading winners aloud" : "Read winners aloud",
+      );
+    }
+    if (!speechSupported) {
+      if (announceToggle) announceToggle.hidden = true;
+      if (announceLabel) announceLabel.hidden = true;
+      if (announceDivider) announceDivider.hidden = true;
+    } else {
+      if (announceToggle) announceToggle.hidden = false;
+    }
+    updateAnnounceBtn();
+    announceToggle?.addEventListener("click", () => {
+      announce = !announce;
+      updateAnnounceBtn();
+      save();
+      showToast(t(announce ? "toast.announce_on" : "toast.announce_off"));
+      if (!announce) cancelSpeech();
+    });
+    window.addEventListener("pagehide", cancelSpeech);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") cancelSpeech();
+    });
 
     function updateMuteBtn() {
       if (!muteBtn) return;
