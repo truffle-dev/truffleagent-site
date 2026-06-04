@@ -1,0 +1,954 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "TL;DR · paste any text and summarize";
+const description =
+  "Paste long text. Get a fast TL;DR. Extractive summary with adjustable length, reading time, copy as markdown, highlight mode. Runs in your browser. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/tldr/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "TL;DR",
+  alternateName: ["Text Summarizer", "Article Summarizer", "TLDR Tool", "Reading Time"],
+  url: canonical,
+  applicationCategory: "ProductivityApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Paste any plain text",
+    "Extractive summary of any length",
+    "Sentence or bullet output",
+    "Reading time and word count",
+    "Highlight mode shows the kept sentences in context",
+    "Copy as markdown",
+    "Three baked-in example texts",
+    "Works offline (PWA)",
+    "No accounts, no servers, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is TL;DR?",
+    a: "A small text summarizer. Paste anything plain-text and it picks the most informative sentences and reads them back to you. Adjust the length, switch to bullets, or turn on Highlight mode to see the kept sentences inside the original.",
+  },
+  {
+    q: "Does it use AI or call an external service?",
+    a: "No. It runs entirely in your browser with a frequency-based extractive ranker. No network calls, no API keys, no servers. Your text never leaves the page.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "How does the summarizer choose sentences?",
+    a: "Stopwords are removed and the remaining words are scored by frequency across the text. Each sentence's score is the sum of its word scores, normalised by length. Sentences at the very start and end get a small position boost. The top N are returned in original order.",
+  },
+  {
+    q: "When does this not work well?",
+    a: "Extractive summarizers are weak on heavy dialogue, very short text, or anything that depends on connecting two facts that live in different paragraphs. For those, treat the output as a launching point rather than a final summary.",
+  },
+  {
+    q: "Where is my data stored?",
+    a: "Only in this page. Nothing is sent anywhere. The most recent text is kept in your browser's localStorage so the page restores when you come back.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/tldr/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="td-page">
+    <header class="td-topbar">
+      <div class="td-topbar-inner">
+        <div class="td-brand">
+          <span class="td-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 6h14" />
+              <path d="M5 12h14" opacity="0.7" />
+              <path d="M5 18h8" opacity="0.45" />
+            </svg>
+          </span>
+          <span class="td-brand-name">TL;DR</span>
+        </div>
+        <div class="td-topbar-actions">
+          <select id="example-picker" class="td-select" aria-label="Load an example">
+            <option value="">Examples…</option>
+            <option value="article">Article</option>
+            <option value="transcript">Meeting transcript</option>
+            <option value="pr">PR description</option>
+          </select>
+          <button id="clear-btn" type="button" class="td-btn td-btn-ghost" title="Clear">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+            <span>Clear</span>
+          </button>
+          <button id="share-btn" type="button" class="td-btn td-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="td-stage">
+      <p class="td-eyebrow">A summarizer</p>
+      <h1 class="td-title">Paste, summarize, move on.</h1>
+      <p class="td-sub">Long article, a transcript, a PR body, an email thread. Paste it in. Pick a length. Get the gist.</p>
+    </section>
+
+    <section class="td-grid">
+      <div class="td-card">
+        <header class="td-card-head">
+          <h2 class="td-h3">Your text</h2>
+          <span id="paste-meta" class="td-meta">0 words · 0s read</span>
+        </header>
+        <textarea
+          id="input"
+          class="td-textarea"
+          rows="14"
+          spellcheck="false"
+          placeholder="Paste any plain text here. Articles, meeting notes, PR descriptions, transcripts — anything sentence-shaped."></textarea>
+      </div>
+
+      <div class="td-card">
+        <header class="td-card-head">
+          <h2 class="td-h3">TL;DR</h2>
+          <span id="summary-meta" class="td-meta">0 sentences kept</span>
+        </header>
+        <div id="summary" class="td-output" aria-live="polite"></div>
+        <div class="td-output-actions">
+          <button id="copy-summary-btn" type="button" class="td-btn td-btn-ghost">Copy summary</button>
+          <button id="copy-md-btn" type="button" class="td-btn td-btn-ghost">Copy as markdown</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="td-controls">
+      <div class="td-control-row">
+        <label class="td-label" for="length">Length</label>
+        <input id="length" type="range" min="1" max="12" step="1" value="3" class="td-range" />
+        <span id="length-value" class="td-meta td-tabular">3 sentences</span>
+        <div class="td-spacer"></div>
+        <div class="td-segmented" role="radiogroup" aria-label="Output style">
+          <button id="style-sentences" type="button" class="td-seg-btn is-active" role="radio" aria-checked="true">Sentences</button>
+          <button id="style-bullets" type="button" class="td-seg-btn" role="radio" aria-checked="false">Bullets</button>
+        </div>
+        <div class="td-spacer"></div>
+        <label class="td-label" for="highlight-toggle">Highlight</label>
+        <button id="highlight-toggle" type="button" class="td-toggle" role="switch" aria-checked="false">
+          <span class="td-toggle-thumb"></span>
+        </button>
+      </div>
+    </section>
+
+    <section id="highlight-card" class="td-card td-card-wide" hidden>
+      <header class="td-card-head">
+        <h2 class="td-h3">In context</h2>
+        <span class="td-meta">Kept sentences shaded</span>
+      </header>
+      <div id="highlight-output" class="td-highlight"></div>
+    </section>
+
+    <section class="td-stats">
+      <div class="td-stat"><span class="td-stat-label">Words</span><span id="stat-words" class="td-stat-value td-tabular">0</span></div>
+      <div class="td-stat"><span class="td-stat-label">Sentences</span><span id="stat-sentences" class="td-stat-value td-tabular">0</span></div>
+      <div class="td-stat"><span class="td-stat-label">Read time</span><span id="stat-time" class="td-stat-value td-tabular">0s</span></div>
+      <div class="td-stat"><span class="td-stat-label">Kept</span><span id="stat-kept" class="td-stat-value td-tabular">0%</span></div>
+    </section>
+
+    <section class="td-meta-block">
+      <p class="td-p td-muted">
+        Runs entirely in your browser. No network, no API key, no signup, no trackers. Your text never leaves the page.
+        Built and shared as a tool by <a href="https://truffleagent.com/" class="td-link">Truffle</a>.
+      </p>
+      <details class="td-details">
+        <summary>Common questions</summary>
+        <div class="td-faq">
+          {faq.map((f) => (
+            <div class="td-faq-item">
+              <h4 class="td-faq-q">{f.q}</h4>
+              <p class="td-faq-a">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <div id="toast" class="td-toast" role="status" aria-live="polite" hidden></div>
+
+  <style is:global>
+    :root {
+      --td-paper: #fbfaf5;
+      --td-ink: #1a1716;
+      --td-soft: #6b655e;
+      --td-line: #e8e3d8;
+      --td-line-strong: #d6cebd;
+      --td-card: #ffffff;
+      --td-card-soft: #f6f2e8;
+      --td-accent: #1f4ed8;
+      --td-accent-soft: #e4eafe;
+      --td-highlight: #fff3c4;
+      --td-shadow: 0 1px 2px rgba(26, 23, 22, 0.04), 0 8px 24px rgba(26, 23, 22, 0.05);
+      --td-radius: 14px;
+    }
+
+    html, body { background: var(--td-paper); color: var(--td-ink); }
+    body { font-family: "Iowan Old Style", Georgia, "Times New Roman", serif; }
+
+    .td-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 36px 20px 80px;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .td-topbar { margin-bottom: 22px; }
+    .td-topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .td-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .td-brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--td-card-soft);
+      color: var(--td-accent);
+    }
+    .td-brand-name {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-weight: 500;
+      font-size: 22px;
+    }
+    .td-topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .td-stage { margin: 14px 0 28px; }
+    .td-eyebrow {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--td-soft);
+      margin: 0 0 8px;
+    }
+    .td-title {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-style: italic;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.1;
+      margin: 0 0 10px;
+    }
+    .td-sub {
+      font-size: 17px;
+      color: var(--td-soft);
+      margin: 0;
+      max-width: 60ch;
+    }
+
+    .td-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 760px) {
+      .td-grid { grid-template-columns: 1fr; }
+    }
+    .td-card {
+      background: var(--td-card);
+      border: 1px solid var(--td-line);
+      border-radius: var(--td-radius);
+      box-shadow: var(--td-shadow);
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .td-card-wide { margin-top: 16px; }
+    .td-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .td-h3 {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 18px;
+      margin: 0;
+    }
+    .td-meta {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      color: var(--td-soft);
+    }
+    .td-tabular { font-variant-numeric: tabular-nums; }
+
+    .td-textarea {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--td-ink);
+      background: var(--td-paper);
+      border: 1px solid var(--td-line-strong);
+      border-radius: 10px;
+      padding: 12px 14px;
+      outline: none;
+      resize: vertical;
+      width: 100%;
+      min-height: 220px;
+    }
+    .td-textarea:focus {
+      border-color: var(--td-accent);
+      box-shadow: 0 0 0 3px var(--td-accent-soft);
+    }
+
+    .td-output {
+      font-family: "Iowan Old Style", Georgia, serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 220px;
+      padding: 12px 14px;
+      border: 1px solid var(--td-line);
+      border-radius: 10px;
+      background: var(--td-paper);
+      color: var(--td-ink);
+    }
+    .td-output:empty::before {
+      content: "Paste text on the left to get a summary.";
+      color: var(--td-soft);
+      font-style: italic;
+      opacity: 0.8;
+    }
+    .td-output ul {
+      margin: 0;
+      padding-left: 1.25em;
+    }
+    .td-output ul li { margin: 6px 0; }
+
+    .td-output-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .td-controls {
+      margin: 18px 0;
+      padding: 14px 16px;
+      background: var(--td-card);
+      border: 1px solid var(--td-line);
+      border-radius: var(--td-radius);
+    }
+    .td-control-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .td-label {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--td-soft);
+    }
+    .td-spacer { flex: 1 1 12px; min-width: 12px; }
+
+    .td-range {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 220px;
+      height: 6px;
+      background: var(--td-line);
+      border-radius: 9999px;
+      outline: none;
+    }
+    .td-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--td-accent);
+      cursor: pointer;
+    }
+    .td-range::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--td-accent);
+      cursor: pointer;
+      border: none;
+    }
+
+    .td-segmented {
+      display: inline-flex;
+      gap: 2px;
+      padding: 3px;
+      background: var(--td-card-soft);
+      border-radius: 9999px;
+    }
+    .td-seg-btn {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      color: var(--td-soft);
+      padding: 4px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 9999px;
+      cursor: pointer;
+    }
+    .td-seg-btn.is-active { background: var(--td-card); color: var(--td-ink); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+    .td-toggle {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--td-line);
+      border: none;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .td-toggle[aria-checked="true"] { background: var(--td-accent); }
+    .td-toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.15s ease;
+    }
+    .td-toggle[aria-checked="true"] .td-toggle-thumb { transform: translateX(16px); }
+
+    .td-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      padding: 7px 14px;
+      cursor: pointer;
+      background: none;
+      color: var(--td-ink);
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+    .td-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--td-accent-soft); }
+    .td-btn-ghost { border-color: var(--td-line-strong); background: var(--td-card); }
+    .td-btn-ghost:hover { background: var(--td-card-soft); }
+    .td-btn-primary { background: var(--td-accent); color: #fff; border-color: var(--td-accent); }
+    .td-btn-primary:hover { filter: brightness(0.95); }
+
+    .td-select {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      padding: 7px 28px 7px 12px;
+      border: 1px solid var(--td-line-strong);
+      border-radius: 9999px;
+      background: var(--td-card);
+      color: var(--td-ink);
+      outline: none;
+    }
+    .td-select:focus { border-color: var(--td-accent); box-shadow: 0 0 0 3px var(--td-accent-soft); }
+
+    .td-highlight {
+      font-family: "Iowan Old Style", Georgia, serif;
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--td-ink);
+      max-height: 460px;
+      overflow-y: auto;
+      padding: 12px 14px;
+      border: 1px solid var(--td-line);
+      border-radius: 10px;
+      background: var(--td-paper);
+    }
+    .td-highlight mark {
+      background: var(--td-highlight);
+      color: inherit;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+
+    .td-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 22px 0;
+    }
+    @media (max-width: 600px) {
+      .td-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    .td-stat {
+      padding: 14px 16px;
+      border: 1px solid var(--td-line);
+      border-radius: var(--td-radius);
+      background: var(--td-card);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .td-stat-label {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--td-soft);
+    }
+    .td-stat-value {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 22px;
+      color: var(--td-ink);
+    }
+
+    .td-meta-block { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--td-line); }
+    .td-p { margin: 0 0 10px; font-size: 15px; line-height: 1.55; }
+    .td-muted { color: var(--td-soft); font-size: 14px; }
+    .td-link { color: var(--td-accent); text-decoration: none; border-bottom: 1px solid var(--td-accent-soft); }
+    .td-link:hover { border-color: var(--td-accent); }
+    .td-details summary {
+      cursor: pointer;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      color: var(--td-soft);
+    }
+    .td-faq { margin-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+    .td-faq-q {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 16px;
+      margin: 0 0 4px;
+    }
+    .td-faq-a { font-size: 14px; color: var(--td-soft); margin: 0; }
+
+    .td-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--td-ink);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 9999px;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      z-index: 80;
+    }
+
+    @media print {
+      .td-topbar, .td-controls, .td-stats, .td-meta-block, .td-toast, .td-output-actions {
+        display: none !important;
+      }
+      .td-grid { grid-template-columns: 1fr; }
+      .td-card { box-shadow: none; border: 1px solid #ccc; }
+    }
+  </style>
+
+  <script>
+    type Style = "sentences" | "bullets";
+
+    const STORAGE_KEY = "tldr:v1";
+    const SHARE_KEY = "t";
+
+    const STOPWORDS = new Set([
+      "a","an","the","and","or","but","if","then","so","as","at","by","for","from","in","into","of","on","onto","to","with","without","over","under","up","down","out","off","than","that","this","these","those","is","are","was","were","be","been","being","am","do","does","did","done","doing","have","has","had","having","i","you","he","she","it","we","they","me","him","her","us","them","my","your","his","its","our","their","what","which","who","whom","whose","when","where","why","how","not","no","nor","yes","also","very","just","only","more","most","much","many","some","any","each","every","all","both","few","other","another","such","same","own","because","while","until","upon","amid","along","through","across","about","against","between","among","behind","beside","besides","beyond","near","past","via","per","like","unlike","within","including","such","being","yet","still","ever","never","always","often","sometimes","there","here","said","says","say","tell","told"
+    ]);
+
+    const EXAMPLES: Record<string, string> = {
+      article: `The deep-sea floor, long considered an empty plain of mud, turns out to be one of the most species-rich environments on the planet. A 2024 expedition to the Clarion-Clipperton Zone, a vast region of the Pacific that has become the focus of seabed mining proposals, catalogued more than five thousand species. Most of them have never been formally named.\n\nThe survey relied on autonomous underwater vehicles that took high-resolution photographs and small physical samples from the seafloor. The images revealed crustaceans, sponges, and worms living among polymetallic nodules that have grown for millions of years. The same nodules are the targets of mining companies that hope to extract nickel and cobalt for electric vehicle batteries.\n\nProponents of mining argue that the ocean floor could supply metals more cheaply and with less land disruption than terrestrial sources. Critics counter that destroying habitat we have barely understood is a high-risk trade. The International Seabed Authority is expected to set rules later this year that will determine how much, and how fast, the floor can be touched.\n\nWhat is no longer in dispute is the scale of the biodiversity at stake. Scientists who worked on the survey describe the ecosystem as both fragile and slow-growing. A patch of nodules, once removed, will not be replaced in any human timescale.`,
+      transcript: `Sam: Hey everyone, thanks for joining. The goal of this meeting is to align on the launch plan for the new dashboard. We have about twenty minutes.\n\nPriya: I have a hard stop at the half hour, so let's go.\n\nSam: Quick recap: we promised the customer success team a beta by the fifteenth. Engineering says the auth piece is the long pole — we may slip a few days. Marketing has draft copy ready but is waiting on a screenshot.\n\nDevon: I can give them a screenshot today, even if it changes.\n\nPriya: We should hold off on real screenshots until we ship the new empty-state design. Showing the old one to marketing means we run a launch with a screenshot the product no longer matches.\n\nSam: Agree. Devon, can you mock up the new empty state by Friday?\n\nDevon: Yes, end of day Friday.\n\nPriya: And then I'd like us to lock the launch date once auth lands. We've moved the date twice; I don't want a third.\n\nSam: Agreed. Action items: Devon mocks Friday, engineering ships auth by next Wednesday, marketing locks copy on Thursday, beta sent Friday the twenty-second instead of the fifteenth.`,
+      pr: `This PR introduces a small change to how the rate limiter handles bursts. The previous implementation used a fixed-rate token bucket and refused any request that arrived faster than the limit, even if the burst was within a sensible budget over a longer window. Customers reported that legitimate batch jobs were rejected during the first second of their start-up.\n\nThe new implementation switches to a leaky bucket with a configurable burst size. The bucket drains at the configured rate and holds up to N tokens. Bursts within the burst budget are accepted; sustained excess is rejected with the same 429 status as before.\n\nThe default burst size is 5x the per-second rate, which matches the upper bound of legitimate observed bursts in production traces over the last quarter. Operators can override the default via the existing rate-limit configuration block.\n\nTests cover the new burst behaviour, the steady-state rejection, and the existing per-route rate enforcement. Existing tests pass unchanged. No public API change; the configuration block is backward compatible with deployments that do not set a burst value.`,
+    };
+
+    const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
+
+    const input = $<HTMLTextAreaElement>("#input");
+    const summary = $<HTMLDivElement>("#summary");
+    const pasteMeta = $<HTMLElement>("#paste-meta");
+    const summaryMeta = $<HTMLElement>("#summary-meta");
+    const lengthInput = $<HTMLInputElement>("#length");
+    const lengthValue = $<HTMLElement>("#length-value");
+    const styleSentencesBtn = $<HTMLButtonElement>("#style-sentences");
+    const styleBulletsBtn = $<HTMLButtonElement>("#style-bullets");
+    const highlightToggle = $<HTMLButtonElement>("#highlight-toggle");
+    const highlightCard = $<HTMLElement>("#highlight-card");
+    const highlightOutput = $<HTMLElement>("#highlight-output");
+    const examplePicker = $<HTMLSelectElement>("#example-picker");
+    const clearBtn = $<HTMLButtonElement>("#clear-btn");
+    const shareBtn = $<HTMLButtonElement>("#share-btn");
+    const copySummaryBtn = $<HTMLButtonElement>("#copy-summary-btn");
+    const copyMdBtn = $<HTMLButtonElement>("#copy-md-btn");
+    const statWords = $<HTMLElement>("#stat-words");
+    const statSentences = $<HTMLElement>("#stat-sentences");
+    const statTime = $<HTMLElement>("#stat-time");
+    const statKept = $<HTMLElement>("#stat-kept");
+    const toast = $<HTMLElement>("#toast");
+
+    type Settings = { len: number; style: Style; hl: boolean };
+    const loadSettings = (): Settings => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const j = JSON.parse(raw);
+          return {
+            len: Math.max(1, Math.min(12, Number(j.len) || 3)),
+            style: j.style === "bullets" ? "bullets" : "sentences",
+            hl: !!j.hl,
+          };
+        }
+      } catch {}
+      return { len: 3, style: "sentences", hl: false };
+    };
+    const settings = loadSettings();
+
+    const loadText = (): string => {
+      try { return localStorage.getItem(STORAGE_KEY + ":text") ?? ""; } catch { return ""; }
+    };
+    const saveText = (t: string): void => {
+      try { localStorage.setItem(STORAGE_KEY + ":text", t.slice(0, 200000)); } catch {}
+    };
+    const saveSettings = (): void => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch {}
+    };
+
+    const utf8ToB64 = (s: string): string => {
+      const bytes = new TextEncoder().encode(s);
+      let bin = "";
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    };
+    const b64ToUtf8 = (s: string): string => {
+      const padded = s.replace(/-/g, "+").replace(/_/g, "/");
+      const padding = padded.length % 4 ? "=".repeat(4 - (padded.length % 4)) : "";
+      const bin = atob(padded + padding);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    };
+
+    const splitSentences = (text: string): { idx: number; text: string }[] => {
+      const trimmed = text.trim();
+      if (!trimmed) return [];
+      const out: { idx: number; text: string }[] = [];
+      const regex = /[^.!?\n]+(?:[.!?]+["')\]]*|\n+|$)/g;
+      let m: RegExpExecArray | null;
+      let i = 0;
+      while ((m = regex.exec(trimmed)) !== null) {
+        const t = m[0].trim();
+        if (t.length === 0) continue;
+        out.push({ idx: i++, text: t });
+      }
+      return out;
+    };
+
+    const tokenize = (s: string): string[] => {
+      return s
+        .toLowerCase()
+        .replace(/[^a-z0-9\s'-]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 0 && !STOPWORDS.has(w) && w.length > 1);
+    };
+
+    const summarize = (text: string, n: number): { idx: number; text: string }[] => {
+      const sentences = splitSentences(text);
+      if (sentences.length === 0) return [];
+      if (sentences.length <= n) return sentences;
+
+      const freq = new Map<string, number>();
+      const perSentence: string[][] = sentences.map((s) => tokenize(s.text));
+      perSentence.forEach((tokens) => {
+        tokens.forEach((t) => freq.set(t, (freq.get(t) ?? 0) + 1));
+      });
+
+      const scored = sentences.map((s, i) => {
+        const tokens = perSentence[i];
+        let raw = 0;
+        tokens.forEach((t) => { raw += freq.get(t) ?? 0; });
+        const denom = Math.sqrt(Math.max(tokens.length, 1));
+        let score = raw / denom;
+        if (i === 0 || i === 1) score *= 1.25;
+        if (i === sentences.length - 1) score *= 1.1;
+        const words = s.text.split(/\s+/).length;
+        if (words < 4 || words > 60) score *= 0.6;
+        return { idx: i, sentence: s, score };
+      });
+
+      const ranked = [...scored].sort((a, b) => b.score - a.score).slice(0, n);
+      ranked.sort((a, b) => a.idx - b.idx);
+      return ranked.map((r) => r.sentence);
+    };
+
+    const readTime = (words: number): string => {
+      if (words === 0) return "0s read";
+      const minutes = words / 220;
+      if (minutes < 1) return `${Math.max(1, Math.round(minutes * 60))}s read`;
+      if (minutes < 60) return `${Math.round(minutes)} min read`;
+      const hours = minutes / 60;
+      return `${hours.toFixed(1)} hr read`;
+    };
+
+    const escapeHtml = (s: string): string =>
+      s.replace(/[<>&"']/g, (c) => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"})[c] || c);
+
+    const render = (): void => {
+      const text = input.value;
+      const sentences = splitSentences(text);
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const n = Math.max(1, Math.min(12, Number(lengthInput.value) || 3));
+      lengthValue.textContent = `${n} ${n === 1 ? "sentence" : "sentences"}`;
+      pasteMeta.textContent = `${words.toLocaleString()} word${words === 1 ? "" : "s"} · ${readTime(words)}`;
+
+      const kept = summarize(text, n);
+      summaryMeta.textContent = `${kept.length} of ${sentences.length} sentence${sentences.length === 1 ? "" : "s"} kept`;
+
+      if (kept.length === 0) {
+        summary.innerHTML = "";
+      } else if (settings.style === "bullets") {
+        const items = kept.map((s) => `<li>${escapeHtml(s.text)}</li>`).join("");
+        summary.innerHTML = `<ul>${items}</ul>`;
+      } else {
+        const paras = kept.map((s) => `<p>${escapeHtml(s.text)}</p>`).join("");
+        summary.innerHTML = paras;
+      }
+
+      statWords.textContent = words.toLocaleString();
+      statSentences.textContent = String(sentences.length);
+      statTime.textContent = readTime(words);
+      const pct = sentences.length > 0 ? Math.round((kept.length / sentences.length) * 100) : 0;
+      statKept.textContent = `${pct}%`;
+
+      highlightCard.hidden = !settings.hl || sentences.length === 0;
+      if (settings.hl && sentences.length > 0) {
+        const keptIdx = new Set(kept.map((k) => k.idx));
+        const html = sentences
+          .map((s) => {
+            const safe = escapeHtml(s.text);
+            return keptIdx.has(s.idx) ? `<mark>${safe}</mark>` : safe;
+          })
+          .join(" ");
+        highlightOutput.innerHTML = html;
+      }
+    };
+
+    const setStyle = (s: Style): void => {
+      settings.style = s;
+      styleSentencesBtn.classList.toggle("is-active", s === "sentences");
+      styleSentencesBtn.setAttribute("aria-checked", s === "sentences" ? "true" : "false");
+      styleBulletsBtn.classList.toggle("is-active", s === "bullets");
+      styleBulletsBtn.setAttribute("aria-checked", s === "bullets" ? "true" : "false");
+      saveSettings();
+      render();
+    };
+
+    const setHighlight = (on: boolean): void => {
+      settings.hl = on;
+      highlightToggle.setAttribute("aria-checked", on ? "true" : "false");
+      saveSettings();
+      render();
+    };
+
+    lengthInput.value = String(settings.len);
+    setStyle(settings.style);
+    setHighlight(settings.hl);
+
+    let saveTimer: number | null = null;
+    input.addEventListener("input", () => {
+      saveText(input.value);
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(render, 80);
+    });
+
+    lengthInput.addEventListener("input", () => {
+      settings.len = Number(lengthInput.value) || 3;
+      saveSettings();
+      render();
+    });
+
+    styleSentencesBtn.addEventListener("click", () => setStyle("sentences"));
+    styleBulletsBtn.addEventListener("click", () => setStyle("bullets"));
+    highlightToggle.addEventListener("click", () => setHighlight(!settings.hl));
+
+    examplePicker.addEventListener("change", () => {
+      const key = examplePicker.value;
+      if (!key) return;
+      const ex = EXAMPLES[key];
+      if (ex) {
+        input.value = ex;
+        saveText(ex);
+        render();
+      }
+      examplePicker.value = "";
+    });
+
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      saveText("");
+      render();
+      input.focus();
+    });
+
+    const showToast = (msg: string): void => {
+      toast.textContent = msg;
+      toast.hidden = false;
+      window.setTimeout(() => { toast.hidden = true; }, 1800);
+    };
+
+    const copyText = async (text: string): Promise<boolean> => {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch {}
+        document.body.removeChild(ta);
+        return ok;
+      }
+    };
+
+    const summaryAsText = (): string => {
+      const text = input.value;
+      const n = Math.max(1, Math.min(12, Number(lengthInput.value) || 3));
+      const kept = summarize(text, n);
+      if (kept.length === 0) return "";
+      if (settings.style === "bullets") return kept.map((s) => `• ${s.text}`).join("\n");
+      return kept.map((s) => s.text).join(" ");
+    };
+
+    copySummaryBtn.addEventListener("click", async () => {
+      const out = summaryAsText();
+      if (!out) { showToast("Paste some text first."); return; }
+      const ok = await copyText(out);
+      showToast(ok ? "Summary copied" : "Press Ctrl+C to copy");
+    });
+
+    copyMdBtn.addEventListener("click", async () => {
+      const text = input.value;
+      const n = Math.max(1, Math.min(12, Number(lengthInput.value) || 3));
+      const kept = summarize(text, n);
+      if (kept.length === 0) { showToast("Paste some text first."); return; }
+      const lines: string[] = [];
+      lines.push("**TL;DR**");
+      lines.push("");
+      if (settings.style === "bullets") {
+        kept.forEach((s) => lines.push(`- ${s.text}`));
+      } else {
+        lines.push(kept.map((s) => s.text).join(" "));
+      }
+      lines.push("");
+      lines.push(`_${text.trim().split(/\s+/).length} words · ${readTime(text.trim().split(/\s+/).length)}_`);
+      const ok = await copyText(lines.join("\n"));
+      showToast(ok ? "Markdown copied" : "Press Ctrl+C to copy");
+    });
+
+    shareBtn.addEventListener("click", async () => {
+      const text = input.value;
+      if (!text.trim()) { showToast("Paste some text first."); return; }
+      if (text.length > 6000) {
+        showToast("Text too long for a share link.");
+        return;
+      }
+      const payload = {
+        t: text,
+        l: settings.len,
+        s: settings.style,
+      };
+      const token = utf8ToB64(JSON.stringify(payload));
+      const url = `${location.origin}/tldr/#${SHARE_KEY}=${token}`;
+      const ok = await copyText(url);
+      showToast(ok ? "Share link copied" : "Press Ctrl+C to copy");
+    });
+
+    const consumeHash = (): void => {
+      const hash = location.hash.replace(/^#/, "");
+      if (!hash) return;
+      const p = new URLSearchParams(hash);
+      const token = p.get(SHARE_KEY);
+      if (!token) return;
+      try {
+        const j = JSON.parse(b64ToUtf8(token));
+        if (typeof j.t === "string") input.value = j.t.slice(0, 200000);
+        if (typeof j.l === "number") {
+          settings.len = Math.max(1, Math.min(12, j.l));
+          lengthInput.value = String(settings.len);
+        }
+        if (j.s === "bullets" || j.s === "sentences") setStyle(j.s);
+        saveText(input.value);
+        saveSettings();
+        history.replaceState(null, "", "/tldr/");
+        render();
+      } catch {
+        showToast("That share link is not valid.");
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/tldr/sw.js", { scope: "/tldr/" }).catch(() => {});
+      });
+    }
+
+    input.value = loadText();
+    render();
+    consumeHash();
+  </script>
+</BaseLayout>
