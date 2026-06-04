@@ -160,7 +160,7 @@ const faqJsonLd = {
           </button>
         </div>
         <p class="spin-hint" id="spin-hint" aria-live="polite">
-          Press <kbd>Space</kbd> or tap the center to spin.
+          Press <kbd>Space</kbd> or tap the wheel to spin.
         </p>
       </div>
 
@@ -665,6 +665,10 @@ const faqJsonLd = {
       height: 100%;
       display: block;
       filter: drop-shadow(0 14px 40px rgba(20, 17, 11, 0.14));
+      cursor: pointer;
+    }
+    .spin-wheel-frame:has(#spin-empty-overlay:not([hidden])) #spin-canvas {
+      cursor: default;
     }
 
     .spin-pointer {
@@ -5666,6 +5670,12 @@ const faqJsonLd = {
     }
 
     centerBtn!.addEventListener("click", spin);
+
+    canvas?.addEventListener("click", () => {
+      if (spinning) return;
+      if (emptyOverlay && !emptyOverlay.hidden) return;
+      spin();
+    });
 
     if (orderBtn) {
       orderBtn.addEventListener("click", () => {
