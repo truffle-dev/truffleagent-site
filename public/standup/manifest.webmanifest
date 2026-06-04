@@ -1,0 +1,18 @@
+{
+  "name": "Standup · async daily standup writer",
+  "short_name": "Standup",
+  "description": "A calm, shareable async standup writer. Yesterday, Today, Blockers. Saved in your browser. Works offline.",
+  "start_url": "/standup/",
+  "scope": "/standup/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbfaf5",
+  "theme_color": "#fbfaf5",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "categories": ["productivity", "business"],
+  "lang": "en"
+}

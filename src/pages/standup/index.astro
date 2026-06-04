@@ -1,0 +1,1030 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Standup · Async Daily Standup Writer";
+const description =
+  "A calm, shareable async standup writer. Yesterday, Today, Blockers. Drafts saved to your browser. Paste-back format for team round-ups. Works offline. No accounts. No trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/standup/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Standup",
+  alternateName: ["Async Standup", "Daily Standup", "Yesterday Today Blockers"],
+  url: canonical,
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Three-bucket layout: Yesterday, Today, Blockers",
+    "Drafts auto-save per day in your browser",
+    "Copy as Markdown ready for Slack or email",
+    "Share a single standup by link",
+    "Stack teammates' standups into one round-up",
+    "14-day history",
+    "Works offline (PWA)",
+    "No ads, no signup, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Standup?",
+    a: "An async daily-standup writer. Fill in Yesterday, Today, and Blockers, then copy the result into Slack or share a link with your team. Drafts save automatically per day in your browser.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "How does the team round-up work?",
+    a: "Each teammate writes their own standup on /standup/ and taps Share. They send you a link. You open the link and tap Add to team. After a few links you have everyone's update stacked into one Slack-ready post.",
+  },
+  {
+    q: "Where is my data stored?",
+    a: "In your browser's localStorage. Nothing is sent to a server. Clearing site data wipes your history. Shared links encode the standup in the URL, not on a server.",
+  },
+  {
+    q: "Can I export my history?",
+    a: "Yes. Tap Export on any day to copy that day's standup as Markdown. The current day is exported the same way.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/standup/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="su-page">
+    <header class="su-topbar">
+      <div class="su-topbar-inner">
+        <div class="su-brand">
+          <span class="su-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="M3 9h18" />
+              <path d="M8 13h3" />
+              <path d="M8 16h6" />
+            </svg>
+          </span>
+          <span class="su-brand-name">Standup</span>
+        </div>
+        <div class="su-topbar-actions">
+          <button id="history-btn" type="button" class="su-btn su-btn-ghost" aria-haspopup="dialog" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+            <span>History</span>
+          </button>
+          <button id="share-btn" type="button" class="su-btn su-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+          <button id="copy-btn" type="button" class="su-btn su-btn-primary">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" /></svg>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="su-stage">
+      <p class="su-eyebrow">Standup for</p>
+      <h1 id="date-display" class="su-title">Today</h1>
+      <div class="su-name-row">
+        <label for="name-input" class="su-name-label">Your name</label>
+        <input id="name-input" type="text" class="su-name-input" placeholder="e.g. Alex" autocomplete="name" maxlength="48" />
+      </div>
+    </section>
+
+    <section class="su-editor" aria-label="Standup editor">
+      <article class="su-bucket" data-bucket="y">
+        <header class="su-bucket-head">
+          <span class="su-bucket-mark su-mark-y" aria-hidden="true"></span>
+          <h2 class="su-bucket-title">Yesterday</h2>
+          <span class="su-bucket-hint">What you finished or made progress on.</span>
+        </header>
+        <textarea id="bucket-y" class="su-textarea" rows="6" placeholder="Shipped the login refactor. Wrapped the bug triage. Pair-debugged with Jordan on the slow report query."></textarea>
+      </article>
+
+      <article class="su-bucket" data-bucket="t">
+        <header class="su-bucket-head">
+          <span class="su-bucket-mark su-mark-t" aria-hidden="true"></span>
+          <h2 class="su-bucket-title">Today</h2>
+          <span class="su-bucket-hint">What you plan to do.</span>
+        </header>
+        <textarea id="bucket-t" class="su-textarea" rows="6" placeholder="Finish the migration. Review two PRs. Write the launch note for next week."></textarea>
+      </article>
+
+      <article class="su-bucket" data-bucket="b">
+        <header class="su-bucket-head">
+          <span class="su-bucket-mark su-mark-b" aria-hidden="true"></span>
+          <h2 class="su-bucket-title">Blockers</h2>
+          <span class="su-bucket-hint">What is in your way. Leave empty if none.</span>
+        </header>
+        <textarea id="bucket-b" class="su-textarea" rows="4" placeholder="Need a Stripe sandbox key. Waiting on design for the empty state."></textarea>
+      </article>
+    </section>
+
+    <section id="team-section" class="su-team" hidden>
+      <header class="su-team-head">
+        <div>
+          <p class="su-eyebrow">Team round-up</p>
+          <h2 class="su-h2">Stacked standups</h2>
+        </div>
+        <button id="team-clear-btn" type="button" class="su-btn su-btn-ghost su-btn-sm">Clear team</button>
+      </header>
+      <div id="team-list" class="su-team-list" role="list"></div>
+    </section>
+
+    <section class="su-meta">
+      <p class="su-saved" id="saved-line">Drafts save automatically in your browser.</p>
+    </section>
+
+    <section class="su-why">
+      <p class="su-eyebrow">Why this exists</p>
+      <h2 class="su-h2">Standups should be writing, not theatre.</h2>
+      <p class="su-body">
+        A daily standup is two paragraphs and a yes-or-no on blockers.
+        It does not need a SaaS subscription, a calendar invite, a tool
+        with a dashboard, a kanban view, or a login flow. Type the three
+        sections, copy the result, paste into Slack. Done before the
+        meeting starts.
+      </p>
+      <p class="su-body">
+        Standup is a writing surface, not a tracker. Yesterday on top.
+        Today in the middle. Blockers at the bottom. Drafts save per
+        day so you can come back to it. Share by link so your teammates
+        can stack theirs into the same Slack-ready post. No accounts.
+        No trackers. No reminders pinging you at 9am.
+      </p>
+    </section>
+
+    <section class="su-faq">
+      <p class="su-eyebrow">Frequently asked</p>
+      <h2 class="su-h2">Answers to the obvious questions.</h2>
+      <div class="su-faq-list">
+        {faq.map((f) => (
+          <details class="su-faq-item">
+            <summary class="su-faq-q">{f.q}</summary>
+            <p class="su-faq-a">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <div id="toast" class="su-toast" role="status" aria-live="polite" hidden></div>
+
+    <div id="history-dialog" class="su-dialog" hidden aria-hidden="true">
+      <div class="su-dialog-backdrop" data-close></div>
+      <div class="su-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="history-title">
+        <header class="su-dialog-head">
+          <h2 id="history-title" class="su-h2">History</h2>
+          <button type="button" class="su-btn su-btn-ghost su-btn-sm" data-close aria-label="Close history">Close</button>
+        </header>
+        <div id="history-list" class="su-history-list"></div>
+      </div>
+    </div>
+
+    <div id="import-banner" class="su-import" hidden role="region" aria-label="Shared standup">
+      <div class="su-import-inner">
+        <div>
+          <p class="su-eyebrow">Shared standup</p>
+          <p class="su-import-line"><strong id="import-name">Teammate</strong> for <span id="import-date">today</span></p>
+        </div>
+        <div class="su-row su-import-actions">
+          <button id="import-add" type="button" class="su-btn su-btn-primary su-btn-sm">Add to team</button>
+          <button id="import-dismiss" type="button" class="su-btn su-btn-ghost su-btn-sm">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <style is:global>
+    :root {
+      --su-bg: #fbfaf5;
+      --su-ink: #1a160e;
+      --su-ink-soft: rgba(26, 22, 14, 0.72);
+      --su-ink-soft-2: rgba(26, 22, 14, 0.52);
+      --su-line: rgba(26, 22, 14, 0.12);
+      --su-card: #ffffff;
+      --su-accent: #1f4ed8;
+      --su-accent-soft: rgba(31, 78, 216, 0.12);
+      --su-success: #1f8a4a;
+      --su-warn: #b45309;
+      --su-y: #1f8a4a;
+      --su-t: #1f4ed8;
+      --su-b: #b45309;
+      --su-radius-sm: 8px;
+      --su-radius: 12px;
+      --su-radius-lg: 16px;
+      --su-shadow: 0 1px 0 var(--su-line), 0 8px 24px rgba(26, 22, 14, 0.04);
+      --su-shadow-pop: 0 8px 24px rgba(26, 22, 14, 0.16);
+    }
+    [data-theme="dark"] :root,
+    [data-theme="dark"] {
+      --su-bg: #0e0c08;
+      --su-ink: #f4f1ea;
+      --su-ink-soft: rgba(244, 241, 234, 0.72);
+      --su-ink-soft-2: rgba(244, 241, 234, 0.52);
+      --su-line: rgba(244, 241, 234, 0.14);
+      --su-card: #1a160e;
+      --su-accent: #8fa9ff;
+      --su-accent-soft: rgba(143, 169, 255, 0.18);
+      --su-success: #5dd693;
+      --su-warn: #f5b86b;
+      --su-y: #5dd693;
+      --su-t: #8fa9ff;
+      --su-b: #f5b86b;
+      --su-shadow: 0 1px 0 var(--su-line), 0 8px 24px rgba(0, 0, 0, 0.4);
+      --su-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --su-bg: #0e0c08;
+        --su-ink: #f4f1ea;
+        --su-ink-soft: rgba(244, 241, 234, 0.72);
+        --su-ink-soft-2: rgba(244, 241, 234, 0.52);
+        --su-line: rgba(244, 241, 234, 0.14);
+        --su-card: #1a160e;
+        --su-accent: #8fa9ff;
+        --su-accent-soft: rgba(143, 169, 255, 0.18);
+        --su-success: #5dd693;
+        --su-warn: #f5b86b;
+        --su-y: #5dd693;
+        --su-t: #8fa9ff;
+        --su-b: #f5b86b;
+        --su-shadow: 0 1px 0 var(--su-line), 0 8px 24px rgba(0, 0, 0, 0.4);
+        --su-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+    }
+
+    .su-page {
+      background: var(--su-bg);
+      color: var(--su-ink);
+      min-height: 70vh;
+      padding-bottom: 6rem;
+      font-feature-settings: "ss01", "cv11";
+    }
+    .su-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: color-mix(in oklab, var(--su-bg) 88%, transparent);
+      backdrop-filter: saturate(140%) blur(8px);
+      border-bottom: 1px solid var(--su-line);
+    }
+    .su-topbar-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .su-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+    }
+    .su-brand-mark { color: var(--su-accent); display: inline-flex; }
+    .su-brand-name { font-size: 1.0625rem; }
+    .su-topbar-actions { display: inline-flex; gap: 0.5rem; flex-wrap: wrap; }
+    .su-btn {
+      appearance: none;
+      border: 1px solid var(--su-line);
+      background: var(--su-card);
+      color: var(--su-ink);
+      border-radius: 999px;
+      padding: 0.5rem 0.9rem;
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+    }
+    .su-btn:hover { background: color-mix(in oklab, var(--su-accent) 8%, var(--su-card)); border-color: color-mix(in oklab, var(--su-accent) 35%, var(--su-line)); }
+    .su-btn:active { transform: translateY(1px); }
+    .su-btn:focus-visible { outline: 2px solid var(--su-accent); outline-offset: 2px; }
+    .su-btn-primary { background: var(--su-accent); border-color: var(--su-accent); color: white; }
+    .su-btn-primary:hover { background: color-mix(in oklab, var(--su-accent) 88%, black); border-color: color-mix(in oklab, var(--su-accent) 88%, black); }
+    .su-btn-ghost { background: transparent; }
+    .su-btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8125rem; }
+
+    .su-stage {
+      max-width: 980px;
+      margin: 2.25rem auto 1.25rem;
+      padding: 0 1.25rem;
+    }
+    .su-eyebrow {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--su-ink-soft-2);
+      margin: 0 0 0.35rem;
+      font-weight: 600;
+    }
+    .su-title {
+      font-family: "Fraunces", "Iowan Old Style", "Apple Garamond", Georgia, serif;
+      font-weight: 500;
+      font-style: italic;
+      font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.05;
+      margin: 0 0 1rem;
+    }
+    .su-name-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .su-name-label {
+      font-size: 0.8125rem;
+      color: var(--su-ink-soft);
+      font-weight: 500;
+    }
+    .su-name-input {
+      flex: 1;
+      max-width: 22rem;
+      appearance: none;
+      border: 1px solid var(--su-line);
+      background: var(--su-card);
+      color: var(--su-ink);
+      padding: 0.55rem 0.8rem;
+      border-radius: var(--su-radius-sm);
+      font: inherit;
+      font-size: 0.9375rem;
+    }
+    .su-name-input:focus { outline: 2px solid var(--su-accent); outline-offset: 2px; border-color: transparent; }
+
+    .su-editor {
+      max-width: 980px;
+      margin: 1rem auto 0;
+      padding: 0 1.25rem;
+      display: grid;
+      gap: 1rem;
+    }
+    .su-bucket {
+      background: var(--su-card);
+      border: 1px solid var(--su-line);
+      border-radius: var(--su-radius);
+      padding: 1.1rem 1.1rem 1.2rem;
+      box-shadow: var(--su-shadow);
+    }
+    .su-bucket-head {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.65rem;
+    }
+    .su-bucket-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      flex-shrink: 0;
+      align-self: center;
+    }
+    .su-mark-y { background: var(--su-y); }
+    .su-mark-t { background: var(--su-t); }
+    .su-mark-b { background: var(--su-b); }
+    .su-bucket-title {
+      margin: 0;
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 1.25rem;
+      letter-spacing: -0.005em;
+    }
+    .su-bucket-hint {
+      color: var(--su-ink-soft-2);
+      font-size: 0.8125rem;
+    }
+    .su-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      appearance: none;
+      border: 1px solid var(--su-line);
+      background: var(--su-bg);
+      color: var(--su-ink);
+      padding: 0.75rem 0.85rem;
+      border-radius: var(--su-radius-sm);
+      font: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.55;
+      min-height: 4rem;
+    }
+    .su-textarea::placeholder { color: var(--su-ink-soft-2); }
+    .su-textarea:focus { outline: 2px solid var(--su-accent); outline-offset: 2px; border-color: transparent; }
+
+    .su-team {
+      max-width: 980px;
+      margin: 2rem auto 0;
+      padding: 0 1.25rem;
+    }
+    .su-team-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    .su-team-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .su-team-card {
+      background: var(--su-card);
+      border: 1px solid var(--su-line);
+      border-radius: var(--su-radius);
+      padding: 0.85rem 1rem 1rem;
+      box-shadow: var(--su-shadow);
+    }
+    .su-team-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.55rem;
+    }
+    .su-team-name {
+      margin: 0;
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-size: 1.0625rem;
+    }
+    .su-team-date { color: var(--su-ink-soft-2); font-size: 0.8125rem; }
+    .su-team-remove {
+      appearance: none;
+      background: transparent;
+      color: var(--su-ink-soft);
+      border: 0;
+      padding: 0;
+      font: inherit;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .su-team-remove:hover { color: var(--su-ink); }
+    .su-team-section { margin-top: 0.5rem; }
+    .su-team-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--su-ink-soft-2);
+      margin-bottom: 0.15rem;
+    }
+    .su-team-body {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.55;
+      margin: 0;
+      color: var(--su-ink);
+    }
+
+    .su-row { display: inline-flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    .su-meta {
+      max-width: 980px;
+      margin: 1.5rem auto 0;
+      padding: 0 1.25rem;
+    }
+    .su-saved {
+      margin: 0;
+      color: var(--su-ink-soft-2);
+      font-size: 0.8125rem;
+    }
+    .su-saved.is-active { color: var(--su-success); }
+
+    .su-why, .su-faq {
+      max-width: 980px;
+      margin: 3rem auto 0;
+      padding: 0 1.25rem;
+    }
+    .su-h2 {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-weight: 500;
+      font-size: clamp(1.5rem, 3.6vw, 2rem);
+      margin: 0 0 0.85rem;
+    }
+    .su-body { color: var(--su-ink-soft); font-size: 1rem; line-height: 1.65; max-width: 60ch; }
+    .su-body + .su-body { margin-top: 0.6rem; }
+    .su-faq-list { display: grid; gap: 0.5rem; margin-top: 1rem; }
+    .su-faq-item {
+      border: 1px solid var(--su-line);
+      border-radius: var(--su-radius-sm);
+      background: var(--su-card);
+      padding: 0.75rem 0.9rem;
+    }
+    .su-faq-q {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      list-style: none;
+    }
+    .su-faq-q::-webkit-details-marker { display: none; }
+    .su-faq-q::after { content: "+"; float: right; color: var(--su-ink-soft-2); font-weight: 400; }
+    details[open] .su-faq-q::after { content: "–"; }
+    .su-faq-a { color: var(--su-ink-soft); margin: 0.5rem 0 0; font-size: 0.9375rem; line-height: 1.55; }
+
+    .su-toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--su-ink);
+      color: var(--su-bg);
+      padding: 0.55rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      box-shadow: var(--su-shadow-pop);
+      z-index: 50;
+    }
+
+    .su-dialog { position: fixed; inset: 0; z-index: 40; }
+    .su-dialog-backdrop { position: absolute; inset: 0; background: rgba(26, 22, 14, 0.4); backdrop-filter: blur(2px); }
+    .su-dialog-panel {
+      position: relative;
+      max-width: 540px;
+      margin: 4rem auto 0;
+      background: var(--su-card);
+      border: 1px solid var(--su-line);
+      border-radius: var(--su-radius-lg);
+      box-shadow: var(--su-shadow-pop);
+      padding: 1.25rem 1.25rem 1.5rem;
+    }
+    .su-dialog-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.85rem;
+      gap: 1rem;
+    }
+    .su-history-list { display: grid; gap: 0.4rem; max-height: 60vh; overflow: auto; }
+    .su-history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--su-line);
+      border-radius: var(--su-radius-sm);
+      background: var(--su-bg);
+    }
+    .su-history-date {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.8125rem;
+      color: var(--su-ink-soft);
+    }
+    .su-history-counts {
+      display: inline-flex;
+      gap: 0.4rem;
+      color: var(--su-ink-soft-2);
+      font-size: 0.75rem;
+    }
+    .su-history-counts span::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 0.35rem;
+    }
+    .su-history-counts .c-y::before { background: var(--su-y); }
+    .su-history-counts .c-t::before { background: var(--su-t); }
+    .su-history-counts .c-b::before { background: var(--su-b); }
+    .su-history-empty { color: var(--su-ink-soft-2); padding: 0.5rem 0.25rem; font-size: 0.875rem; }
+
+    .su-import {
+      max-width: 980px;
+      margin: 1.5rem auto 0;
+      padding: 0 1.25rem;
+    }
+    .su-import-inner {
+      background: var(--su-accent-soft);
+      border: 1px solid color-mix(in oklab, var(--su-accent) 30%, var(--su-line));
+      border-radius: var(--su-radius);
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .su-import-line { margin: 0; color: var(--su-ink); }
+    .su-import-actions { gap: 0.4rem; }
+
+    @media (max-width: 600px) {
+      .su-topbar-actions .su-btn span { display: none; }
+      .su-topbar-actions .su-btn-primary span { display: inline; }
+      .su-bucket { padding: 0.95rem 0.95rem 1.05rem; }
+      .su-name-input { max-width: none; }
+    }
+  </style>
+
+  <script>
+    type DayDraft = { y: string; t: string; b: string };
+    type TeamItem = { id: string; name: string; date: string; y: string; t: string; b: string };
+    type Store = {
+      name: string;
+      days: Record<string, DayDraft>;
+      team: TeamItem[];
+    };
+
+    const STORAGE_KEY = "standup:v1";
+    const HISTORY_DAYS = 14;
+    const MAX_TEAM = 32;
+
+    function todayKey(d = new Date()): string {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function prettyDate(key: string): string {
+      const [y, m, d] = key.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      const today = todayKey();
+      const yest = todayKey(new Date(Date.now() - 86400000));
+      if (key === today) return "Today";
+      if (key === yest) return "Yesterday";
+      return dt.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+    }
+
+    function loadStore(): Store {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { name: "", days: {}, team: [] };
+        const parsed = JSON.parse(raw);
+        return {
+          name: typeof parsed.name === "string" ? parsed.name : "",
+          days: parsed.days && typeof parsed.days === "object" ? parsed.days : {},
+          team: Array.isArray(parsed.team) ? parsed.team : [],
+        };
+      } catch {
+        return { name: "", days: {}, team: [] };
+      }
+    }
+
+    function saveStore(s: Store): void {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      } catch {}
+    }
+
+    function utf8ToB64(s: string): string {
+      const bytes = new TextEncoder().encode(s);
+      let bin = "";
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+    function b64ToUtf8(s: string): string {
+      const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
+      const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    function $(id: string): HTMLElement {
+      const el = document.getElementById(id);
+      if (!el) throw new Error("Missing #" + id);
+      return el;
+    }
+
+    function toast(msg: string): void {
+      const t = $("toast");
+      t.textContent = msg;
+      t.hidden = false;
+      setTimeout(() => { t.hidden = true; }, 1800);
+    }
+
+    function uid(): string {
+      return Math.random().toString(36).slice(2, 9);
+    }
+
+    const store: Store = loadStore();
+    const day = todayKey();
+    if (!store.days[day]) store.days[day] = { y: "", t: "", b: "" };
+
+    const nameInput = $("name-input") as HTMLInputElement;
+    const dateDisplay = $("date-display");
+    const taY = $("bucket-y") as HTMLTextAreaElement;
+    const taT = $("bucket-t") as HTMLTextAreaElement;
+    const taB = $("bucket-b") as HTMLTextAreaElement;
+    const savedLine = $("saved-line");
+
+    nameInput.value = store.name;
+    dateDisplay.textContent = prettyDate(day);
+    taY.value = store.days[day].y;
+    taT.value = store.days[day].t;
+    taB.value = store.days[day].b;
+
+    let saveTimer: number | undefined;
+    function scheduleSave(): void {
+      savedLine.classList.remove("is-active");
+      savedLine.textContent = "Drafts save automatically in your browser.";
+      if (saveTimer) window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        store.name = nameInput.value.trim();
+        store.days[day] = { y: taY.value, t: taT.value, b: taB.value };
+        prune(store);
+        saveStore(store);
+        savedLine.classList.add("is-active");
+        savedLine.textContent = "Saved a moment ago.";
+      }, 350);
+    }
+
+    function prune(s: Store): void {
+      const keys = Object.keys(s.days).sort();
+      const keep = new Set(keys.slice(-HISTORY_DAYS));
+      keep.add(day);
+      for (const k of keys) {
+        if (!keep.has(k) && !s.days[k].y && !s.days[k].t && !s.days[k].b) delete s.days[k];
+      }
+    }
+
+    [nameInput, taY, taT, taB].forEach((el) => {
+      el.addEventListener("input", scheduleSave);
+    });
+
+    function markdownFor(name: string, key: string, d: DayDraft): string {
+      const header = `*${name || "Standup"}* — ${prettyDate(key)}`;
+      const sections: string[] = [header];
+      if (d.y.trim()) sections.push("*Yesterday*\n" + d.y.trim());
+      if (d.t.trim()) sections.push("*Today*\n" + d.t.trim());
+      if (d.b.trim()) sections.push("*Blockers*\n" + d.b.trim());
+      else sections.push("*Blockers*\nNone.");
+      return sections.join("\n\n");
+    }
+
+    function teamMarkdown(): string {
+      const me = { id: "me", name: store.name || "You", date: day, ...store.days[day] };
+      const items = [me, ...store.team];
+      return items.map((it) => markdownFor(it.name, it.date, it)).join("\n\n———\n\n");
+    }
+
+    async function copyText(text: string): Promise<void> {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch {}
+        document.body.removeChild(ta);
+      }
+    }
+
+    $("copy-btn").addEventListener("click", async () => {
+      store.name = nameInput.value.trim();
+      store.days[day] = { y: taY.value, t: taT.value, b: taB.value };
+      saveStore(store);
+      const text = store.team.length ? teamMarkdown() : markdownFor(store.name, day, store.days[day]);
+      await copyText(text);
+      toast(store.team.length ? "Team round-up copied" : "Standup copied");
+    });
+
+    $("share-btn").addEventListener("click", async () => {
+      store.name = nameInput.value.trim();
+      store.days[day] = { y: taY.value, t: taT.value, b: taB.value };
+      saveStore(store);
+      const payload = { n: store.name || "Teammate", d: day, ...store.days[day] };
+      const code = utf8ToB64(JSON.stringify(payload));
+      const url = `${window.location.origin}/standup/?u=${code}`;
+      await copyText(url);
+      toast("Share link copied");
+    });
+
+    function renderTeam(): void {
+      const section = $("team-section");
+      const list = $("team-list");
+      if (!store.team.length) {
+        section.hidden = true;
+        list.innerHTML = "";
+        return;
+      }
+      section.hidden = false;
+      list.innerHTML = "";
+      store.team.forEach((it) => {
+        const card = document.createElement("article");
+        card.className = "su-team-card";
+        const head = document.createElement("div");
+        head.className = "su-team-card-head";
+        const name = document.createElement("h3");
+        name.className = "su-team-name";
+        name.textContent = it.name || "Teammate";
+        const meta = document.createElement("span");
+        meta.className = "su-team-date";
+        meta.textContent = prettyDate(it.date);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "su-team-remove";
+        remove.textContent = "Remove";
+        remove.addEventListener("click", () => {
+          store.team = store.team.filter((x) => x.id !== it.id);
+          saveStore(store);
+          renderTeam();
+        });
+        const wrap = document.createElement("div");
+        wrap.appendChild(name);
+        wrap.appendChild(document.createElement("br"));
+        wrap.appendChild(meta);
+        head.appendChild(wrap);
+        head.appendChild(remove);
+        card.appendChild(head);
+
+        for (const [label, key, cls] of [["Yesterday", "y", "y"], ["Today", "t", "t"], ["Blockers", "b", "b"]] as const) {
+          const text = (it[key] || "").trim();
+          if (!text) continue;
+          const sec = document.createElement("div");
+          sec.className = "su-team-section";
+          const lab = document.createElement("p");
+          lab.className = "su-team-label";
+          lab.textContent = label;
+          const body = document.createElement("p");
+          body.className = "su-team-body";
+          body.textContent = text;
+          sec.appendChild(lab);
+          sec.appendChild(body);
+          card.appendChild(sec);
+        }
+        list.appendChild(card);
+      });
+    }
+
+    $("team-clear-btn").addEventListener("click", () => {
+      if (!confirm("Remove all teammates from the round-up?")) return;
+      store.team = [];
+      saveStore(store);
+      renderTeam();
+    });
+
+    function openDialog(id: string): void {
+      const dlg = $(id);
+      dlg.hidden = false;
+      dlg.setAttribute("aria-hidden", "false");
+    }
+    function closeDialog(id: string): void {
+      const dlg = $(id);
+      dlg.hidden = true;
+      dlg.setAttribute("aria-hidden", "true");
+    }
+
+    document.querySelectorAll("[data-close]").forEach((el) => {
+      el.addEventListener("click", () => closeDialog("history-dialog"));
+    });
+
+    function renderHistory(): void {
+      const list = $("history-list");
+      list.innerHTML = "";
+      const keys = Object.keys(store.days)
+        .filter((k) => store.days[k].y || store.days[k].t || store.days[k].b)
+        .sort()
+        .reverse();
+      if (!keys.length) {
+        const p = document.createElement("p");
+        p.className = "su-history-empty";
+        p.textContent = "No history yet. Write today's standup and it will show up here tomorrow.";
+        list.appendChild(p);
+        return;
+      }
+      keys.forEach((k) => {
+        const row = document.createElement("div");
+        row.className = "su-history-item";
+
+        const left = document.createElement("div");
+        const date = document.createElement("div");
+        date.className = "su-history-date";
+        date.textContent = `${prettyDate(k)} · ${k}`;
+        const counts = document.createElement("div");
+        counts.className = "su-history-counts";
+        const dy = store.days[k];
+        const cY = document.createElement("span"); cY.className = "c-y"; cY.textContent = `${dy.y ? "Y" : "—"}`;
+        const cT = document.createElement("span"); cT.className = "c-t"; cT.textContent = `${dy.t ? "T" : "—"}`;
+        const cB = document.createElement("span"); cB.className = "c-b"; cB.textContent = `${dy.b ? "B" : "—"}`;
+        counts.appendChild(cY); counts.appendChild(cT); counts.appendChild(cB);
+        left.appendChild(date);
+        left.appendChild(counts);
+
+        const right = document.createElement("div");
+        right.className = "su-row";
+        const exportBtn = document.createElement("button");
+        exportBtn.type = "button";
+        exportBtn.className = "su-btn su-btn-ghost su-btn-sm";
+        exportBtn.textContent = "Export";
+        exportBtn.addEventListener("click", async () => {
+          await copyText(markdownFor(store.name || "You", k, dy));
+          toast(`${prettyDate(k)} copied`);
+        });
+        right.appendChild(exportBtn);
+
+        if (k !== day) {
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "su-btn su-btn-ghost su-btn-sm";
+          delBtn.textContent = "Delete";
+          delBtn.addEventListener("click", () => {
+            if (!confirm(`Delete the ${prettyDate(k)} standup?`)) return;
+            delete store.days[k];
+            saveStore(store);
+            renderHistory();
+          });
+          right.appendChild(delBtn);
+        }
+
+        row.appendChild(left);
+        row.appendChild(right);
+        list.appendChild(row);
+      });
+    }
+
+    $("history-btn").addEventListener("click", () => {
+      renderHistory();
+      openDialog("history-dialog");
+    });
+
+    function tryImport(): void {
+      const params = new URLSearchParams(window.location.search);
+      const u = params.get("u");
+      if (!u) return;
+      try {
+        const payload = JSON.parse(b64ToUtf8(u));
+        if (typeof payload !== "object" || !payload) return;
+        const name = String(payload.n || "Teammate").slice(0, 48);
+        const date = String(payload.d || day).slice(0, 10);
+        const y = String(payload.y || "");
+        const t = String(payload.t || "");
+        const b = String(payload.b || "");
+        const banner = $("import-banner");
+        banner.hidden = false;
+        $("import-name").textContent = name;
+        $("import-date").textContent = prettyDate(date);
+        $("import-add").onclick = () => {
+          if (store.team.length >= MAX_TEAM) {
+            toast("Team round-up is full");
+            return;
+          }
+          store.team.push({ id: uid(), name, date, y, t, b });
+          saveStore(store);
+          renderTeam();
+          banner.hidden = true;
+          history.replaceState(null, "", window.location.pathname);
+          toast("Added to team round-up");
+        };
+        $("import-dismiss").onclick = () => {
+          banner.hidden = true;
+          history.replaceState(null, "", window.location.pathname);
+        };
+      } catch {}
+    }
+
+    renderTeam();
+    tryImport();
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/standup/sw.js").catch(() => {});
+      });
+    }
+  </script>
+</BaseLayout>
