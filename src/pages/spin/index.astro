@@ -583,6 +583,7 @@ const faqJsonLd = {
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Backspace</kbd></dt><dd>Delete entry (when input is empty)</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">Ctrl</kbd> / <kbd class="spin-kbd">⌘</kbd> + <kbd class="spin-kbd">Z</kbd></dt><dd>Undo last entry delete</dd></div>
         <div class="spin-help-row"><dt><kbd class="spin-kbd">F</kbd></dt><dd>Toggle fullscreen presentation</dd></div>
+        <div class="spin-help-row"><dt><kbd class="spin-kbd">1</kbd>–<kbd class="spin-kbd">6</kbd></dt><dd>Switch mode (Single / Eliminate / Accumulate / Order / Teams / Rotation)</dd></div>
       </dl>
       <p class="spin-help-foot">Shortcuts skip when an input is focused.</p>
     </div>
@@ -3614,6 +3615,15 @@ const faqJsonLd = {
     const AUTO_TANGENT_MIN = 7;
     const AUTO_TANGENT_MAX = 16;
 
+    const MODE_HOTKEYS: Record<string, string> = {
+      "1": "spin-mode-single",
+      "2": "spin-eliminate",
+      "3": "spin-accumulate",
+      "4": "spin-order",
+      "5": "spin-teams",
+      "6": "spin-rotation",
+    };
+
     const DEFAULT_WHEEL_SIZE: WheelSize = "l";
     function validWheelSize(v: unknown): WheelSize {
       return v === "s" || v === "m" || v === "l" || v === "full" ? v : DEFAULT_WHEEL_SIZE;
@@ -6037,6 +6047,24 @@ const faqJsonLd = {
         return;
       }
       if (helpModal && !helpModal.hidden) return;
+      if (
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.shiftKey &&
+        !e.altKey &&
+        e.key >= "1" &&
+        e.key <= "6"
+      ) {
+        const modeBtnId = MODE_HOTKEYS[e.key];
+        if (modeBtnId) {
+          const btn = document.getElementById(modeBtnId) as HTMLButtonElement | null;
+          if (btn && !btn.disabled) {
+            e.preventDefault();
+            btn.click();
+            return;
+          }
+        }
+      }
       if (e.key === " " || e.code === "Space") {
         e.preventDefault();
         if (!spinning) spin();
