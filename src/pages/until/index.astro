@@ -1,0 +1,731 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Until · Countdown to Any Date or Time";
+const description =
+  "A calm, shareable countdown to any date or time. Multiple countdowns saved in your browser. Share by link. Works offline. No accounts. No trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/until/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Until",
+  alternateName: ["Countdown Timer", "Date Countdown", "Days Until"],
+  url: canonical,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Live countdown to any date and time",
+    "Save multiple countdowns in your browser",
+    "Share a countdown by link",
+    "Quick presets (next New Year, next Christmas, this Friday)",
+    "Works offline (PWA)",
+    "No ads, no signup, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Until?",
+    a: "A countdown timer to any date and time. Type a date, give it a name, and the page shows the days, hours, minutes, and seconds remaining. Save multiple countdowns and share them by link.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit, the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "Can I save my countdowns?",
+    a: "Yes. Each countdown is saved automatically to your browser's localStorage. You can switch between them from the Saved menu.",
+  },
+  {
+    q: "How do I share a countdown?",
+    a: "Tap Share to copy a link that encodes the target time and title in the URL. Anyone who opens it sees the same countdown ticking in their browser.",
+  },
+  {
+    q: "What about time zones?",
+    a: "Times are interpreted in your local time zone when you pick them. The share link encodes the absolute moment, so everyone sees the same countdown regardless of their time zone.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/until/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="until-page">
+    <header class="until-topbar">
+      <div class="until-topbar-inner">
+        <div class="until-brand">
+          <span class="until-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+          </span>
+          <span class="until-brand-name">Until</span>
+        </div>
+        <div class="until-topbar-actions">
+          <button id="saved-btn" type="button" class="until-btn until-btn-ghost" aria-haspopup="dialog" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14v15l-7-4-7 4V5z" /></svg>
+            <span>Saved</span>
+          </button>
+          <button id="share-btn" type="button" class="until-btn until-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="until-stage" aria-live="polite">
+      <p class="until-eyebrow">Until</p>
+      <h1 id="title-display" class="until-title">New countdown</h1>
+      <div id="countdown" class="until-countdown" aria-label="Time remaining">
+        <div class="until-unit"><span class="until-num" id="d-days">0</span><span class="until-label">days</span></div>
+        <div class="until-unit"><span class="until-num" id="d-hours">0</span><span class="until-label">hours</span></div>
+        <div class="until-unit"><span class="until-num" id="d-mins">0</span><span class="until-label">minutes</span></div>
+        <div class="until-unit"><span class="until-num" id="d-secs">0</span><span class="until-label">seconds</span></div>
+      </div>
+      <p id="reached-line" class="until-reached" hidden></p>
+      <p id="target-line" class="until-target"></p>
+    </section>
+
+    <section class="until-editor">
+      <div class="until-editor-row">
+        <label class="until-field">
+          <span class="until-field-label">Title</span>
+          <input id="title-input" type="text" maxlength="80" placeholder="What are you counting to?" autocomplete="off" />
+        </label>
+        <label class="until-field">
+          <span class="until-field-label">Date &amp; time</span>
+          <input id="when-input" type="datetime-local" />
+        </label>
+        <button id="apply-btn" type="button" class="until-btn until-btn-primary">Save</button>
+      </div>
+      <div class="until-presets">
+        <span class="until-presets-label">Quick:</span>
+        <button type="button" class="until-chip" data-preset="newyear">Next New Year</button>
+        <button type="button" class="until-chip" data-preset="christmas">Next Christmas</button>
+        <button type="button" class="until-chip" data-preset="friday">This Friday 5pm</button>
+        <button type="button" class="until-chip" data-preset="tomorrow">Tomorrow 9am</button>
+        <button type="button" class="until-chip" data-preset="monday">Next Monday 9am</button>
+      </div>
+    </section>
+
+    <section class="until-why">
+      <h2>Why this exists</h2>
+      <p>
+        Most countdown sites are heavy with ads, signups, or notification permission prompts. Until
+        is a single page that loads instantly, lives in your browser, and shows the time remaining
+        to anything you care about. The link is the share. Open the same URL on any device and the
+        countdown ticks in sync because the moment is encoded in the URL, not in some server.
+      </p>
+    </section>
+
+    <section class="until-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="until-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div id="saved-popover" class="until-popover" role="dialog" aria-label="Saved countdowns" hidden>
+    <div class="until-popover-head">
+      <strong>Saved countdowns</strong>
+      <button id="new-saved" type="button" class="until-btn until-btn-ghost until-btn-sm">+ New</button>
+    </div>
+    <ul id="saved-list" class="until-saved-list"></ul>
+    <p class="until-popover-foot">Up to 24 countdowns. Saved in this browser only.</p>
+  </div>
+
+  <div id="toast" class="until-toast" role="status" aria-live="polite" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --until-bg: #fbfaf5;
+    --until-fg: #1a1611;
+    --until-muted: #6b6359;
+    --until-line: #e5dfd0;
+    --until-card: #ffffff;
+    --until-accent: #b85c2f;
+    --until-accent-soft: #f4e6d4;
+  }
+  :root[data-theme="dark"] {
+    --until-bg: #0e0c08;
+    --until-fg: #f1ece0;
+    --until-muted: #9c9485;
+    --until-line: #2a2620;
+    --until-card: #16130d;
+    --until-accent: #e89968;
+    --until-accent-soft: #2a1f15;
+  }
+
+  body { background: var(--until-bg); color: var(--until-fg); }
+  .until-page { max-width: 880px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .until-topbar { border-bottom: 1px solid var(--until-line); padding: 18px 0; margin-bottom: 8px; }
+  .until-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .until-brand { display: flex; align-items: center; gap: 10px; }
+  .until-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--until-accent-soft); color: var(--until-accent); }
+  .until-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+  .until-topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  .until-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px; border: 1px solid var(--until-line);
+    background: var(--until-card); color: var(--until-fg);
+    font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .until-btn:hover { border-color: var(--until-accent); color: var(--until-accent); }
+  .until-btn-primary { background: var(--until-accent); color: var(--until-bg); border-color: var(--until-accent); font-weight: 600; }
+  .until-btn-primary:hover { color: var(--until-bg); filter: brightness(1.05); }
+  .until-btn-ghost { background: transparent; }
+  .until-btn-sm { padding: 4px 10px; font-size: 13px; }
+
+  .until-stage { padding: 56px 0 32px; text-align: center; }
+  .until-eyebrow { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--until-muted); margin: 0 0 12px; }
+  .until-title { font-family: "Fraunces", serif; font-weight: 400; font-size: clamp(36px, 7vw, 64px); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 28px; }
+  .until-countdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+  .until-unit {
+    background: var(--until-card); border: 1px solid var(--until-line);
+    border-radius: 16px; padding: 20px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .until-num { font-family: "Fraunces", serif; font-weight: 500; font-size: clamp(34px, 6vw, 56px); line-height: 1; font-variant-numeric: tabular-nums; }
+  .until-label { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--until-muted); }
+  .until-target { color: var(--until-muted); font-size: 14px; margin: 8px 0 0; }
+  .until-reached { color: var(--until-accent); font-size: 18px; font-weight: 600; margin: 4px 0 0; }
+
+  .until-editor { background: var(--until-card); border: 1px solid var(--until-line); border-radius: 16px; padding: 18px; margin-top: 24px; }
+  .until-editor-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 12px; align-items: end; }
+  .until-field { display: flex; flex-direction: column; gap: 6px; }
+  .until-field-label { font-size: 12px; color: var(--until-muted); font-weight: 500; }
+  .until-field input {
+    font: inherit; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--until-line); background: var(--until-bg); color: var(--until-fg);
+    outline: none;
+  }
+  .until-field input:focus { border-color: var(--until-accent); }
+  .until-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--until-line); }
+  .until-presets-label { font-size: 12px; color: var(--until-muted); margin-right: 4px; }
+  .until-chip {
+    font: inherit; font-size: 13px;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--until-line); background: transparent; color: var(--until-fg);
+    cursor: pointer; transition: background .15s ease, border-color .15s ease;
+  }
+  .until-chip:hover { border-color: var(--until-accent); color: var(--until-accent); }
+
+  .until-why { margin-top: 64px; }
+  .until-why h2, .until-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .until-why p { font-size: 16px; line-height: 1.6; color: var(--until-fg); max-width: 64ch; margin: 0; }
+
+  .until-faq { margin-top: 56px; }
+  .until-faq dl { display: grid; gap: 18px; margin: 0; }
+  .until-faq-item { background: var(--until-card); border: 1px solid var(--until-line); border-radius: 14px; padding: 16px 20px; }
+  .until-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .until-faq-item dd { color: var(--until-muted); line-height: 1.55; margin: 0; }
+
+  .until-popover {
+    position: fixed; top: 84px; right: 24px;
+    width: min(340px, calc(100vw - 32px));
+    background: var(--until-card); border: 1px solid var(--until-line);
+    border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.12);
+    z-index: 50; padding: 14px;
+  }
+  .until-popover[hidden] { display: none !important; }
+  .until-popover-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .until-saved-list { list-style: none; padding: 0; margin: 0; max-height: 360px; overflow-y: auto; }
+  .until-saved-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 10px;
+    cursor: pointer; transition: background .12s ease;
+  }
+  .until-saved-item:hover { background: var(--until-accent-soft); }
+  .until-saved-item.is-active { background: var(--until-accent-soft); }
+  .until-saved-name { display: flex; flex-direction: column; min-width: 0; }
+  .until-saved-name strong { font-weight: 500; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .until-saved-name small { font-size: 11px; color: var(--until-muted); }
+  .until-saved-delete {
+    background: none; border: none; cursor: pointer;
+    color: var(--until-muted); font-size: 18px; line-height: 1; padding: 4px 6px;
+  }
+  .until-saved-delete:hover { color: var(--until-accent); }
+  .until-popover-foot { font-size: 11px; color: var(--until-muted); margin: 10px 0 0; text-align: center; }
+
+  .until-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--until-fg); color: var(--until-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+    animation: until-toast-in .2s ease-out;
+  }
+  .until-toast[hidden] { display: none !important; }
+  @keyframes until-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+  @media (max-width: 640px) {
+    .until-editor-row { grid-template-columns: 1fr; }
+    .until-countdown { gap: 8px; }
+    .until-unit { padding: 14px 4px; border-radius: 12px; }
+  }
+</style>
+
+<script>
+type Item = { id: string; title: string; target: string };
+type Persist = { v: 1; items: Item[]; activeId: string | null };
+
+const STORAGE_KEY = "until:v1";
+const MAX_ITEMS = 24;
+
+function uid(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function loadPersist(): Persist {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { v: 1, items: [], activeId: null };
+    const p = JSON.parse(raw);
+    if (p && p.v === 1 && Array.isArray(p.items)) return p as Persist;
+  } catch {}
+  return { v: 1, items: [], activeId: null };
+}
+
+function savePersist(p: Persist): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+  } catch {}
+}
+
+let persist = loadPersist();
+
+function utf8ToB64(s: string): string {
+  const bytes = new TextEncoder().encode(s);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function b64ToUtf8(s: string): string {
+  const padded = s.replaceAll("-", "+").replaceAll("_", "/");
+  const pad = (4 - (padded.length % 4)) % 4;
+  const b = atob(padded + "=".repeat(pad));
+  const bytes = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) bytes[i] = b.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function encodeShare(item: Item): string {
+  return utf8ToB64(JSON.stringify({ t: item.target, n: item.title }));
+}
+
+function decodeShare(s: string): { title: string; target: string } | null {
+  try {
+    const parsed = JSON.parse(b64ToUtf8(s));
+    if (parsed && typeof parsed.t === "string" && typeof parsed.n === "string") {
+      return { title: String(parsed.n).slice(0, 80), target: String(parsed.t) };
+    }
+  } catch {}
+  return null;
+}
+
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInput(local: string): string {
+  const d = new Date(local);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+}
+
+function activeItem(): Item | null {
+  if (!persist.activeId) return null;
+  return persist.items.find((it) => it.id === persist.activeId) ?? null;
+}
+
+function setActive(id: string): void {
+  persist.activeId = id;
+  savePersist(persist);
+  renderActive();
+  renderSavedList();
+}
+
+function addItem(title: string, target: string, makeActive = true): Item {
+  const item: Item = { id: uid(), title: title.slice(0, 80) || "New countdown", target };
+  persist.items.unshift(item);
+  if (persist.items.length > MAX_ITEMS) persist.items.length = MAX_ITEMS;
+  if (makeActive) persist.activeId = item.id;
+  savePersist(persist);
+  return item;
+}
+
+function updateActive(updates: Partial<Item>): void {
+  const it = activeItem();
+  if (!it) return;
+  Object.assign(it, updates);
+  savePersist(persist);
+}
+
+function deleteItem(id: string): void {
+  const idx = persist.items.findIndex((it) => it.id === id);
+  if (idx < 0) return;
+  persist.items.splice(idx, 1);
+  if (persist.activeId === id) {
+    persist.activeId = persist.items[0]?.id ?? null;
+  }
+  savePersist(persist);
+  renderActive();
+  renderSavedList();
+}
+
+function formatTarget(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Pick a date below";
+  return d.toLocaleString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
+function tick(): void {
+  const it = activeItem();
+  const dDays = document.getElementById("d-days") as HTMLElement;
+  const dHours = document.getElementById("d-hours") as HTMLElement;
+  const dMins = document.getElementById("d-mins") as HTMLElement;
+  const dSecs = document.getElementById("d-secs") as HTMLElement;
+  const reached = document.getElementById("reached-line") as HTMLElement;
+  const target = document.getElementById("target-line") as HTMLElement;
+
+  if (!it || !it.target) {
+    dDays.textContent = "—";
+    dHours.textContent = "—";
+    dMins.textContent = "—";
+    dSecs.textContent = "—";
+    reached.hidden = true;
+    target.textContent = "Pick a date below to start a countdown.";
+    return;
+  }
+
+  const t = new Date(it.target).getTime();
+  if (Number.isNaN(t)) {
+    target.textContent = "Invalid date.";
+    return;
+  }
+
+  const now = Date.now();
+  const diff = t - now;
+  target.textContent = formatTarget(it.target);
+
+  if (diff <= 0) {
+    dDays.textContent = "0";
+    dHours.textContent = "0";
+    dMins.textContent = "0";
+    dSecs.textContent = "0";
+    const past = -diff;
+    const pastDays = Math.floor(past / 86400000);
+    if (pastDays === 0) {
+      reached.textContent = "Reached.";
+    } else if (pastDays === 1) {
+      reached.textContent = "Reached 1 day ago.";
+    } else {
+      reached.textContent = `Reached ${pastDays} days ago.`;
+    }
+    reached.hidden = false;
+    return;
+  }
+
+  reached.hidden = true;
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  dDays.textContent = String(days);
+  dHours.textContent = String(hours);
+  dMins.textContent = String(mins);
+  dSecs.textContent = String(secs);
+}
+
+function renderActive(): void {
+  const titleDisp = document.getElementById("title-display") as HTMLElement;
+  const titleInput = document.getElementById("title-input") as HTMLInputElement;
+  const whenInput = document.getElementById("when-input") as HTMLInputElement;
+  const it = activeItem();
+  if (it) {
+    titleDisp.textContent = it.title;
+    titleInput.value = it.title;
+    whenInput.value = it.target ? toLocalInput(it.target) : "";
+  } else {
+    titleDisp.textContent = "New countdown";
+    titleInput.value = "";
+    whenInput.value = "";
+  }
+  tick();
+}
+
+function renderSavedList(): void {
+  const list = document.getElementById("saved-list") as HTMLElement;
+  list.innerHTML = "";
+  if (persist.items.length === 0) {
+    const li = document.createElement("li");
+    li.className = "until-saved-empty";
+    li.style.cssText = "padding: 16px; text-align: center; color: var(--until-muted); font-size: 13px;";
+    li.textContent = "No saved countdowns yet.";
+    list.appendChild(li);
+    return;
+  }
+  for (const it of persist.items) {
+    const li = document.createElement("li");
+    li.className = "until-saved-item" + (it.id === persist.activeId ? " is-active" : "");
+    const left = document.createElement("div");
+    left.className = "until-saved-name";
+    const strong = document.createElement("strong");
+    strong.textContent = it.title;
+    const small = document.createElement("small");
+    small.textContent = it.target ? new Date(it.target).toLocaleDateString() : "no date";
+    left.appendChild(strong);
+    left.appendChild(small);
+    li.appendChild(left);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "until-saved-delete";
+    del.setAttribute("aria-label", `Delete ${it.title}`);
+    del.textContent = "×";
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (confirm(`Delete "${it.title}"?`)) deleteItem(it.id);
+    });
+    li.appendChild(del);
+    li.addEventListener("click", () => {
+      setActive(it.id);
+      closePopover();
+    });
+    list.appendChild(li);
+  }
+}
+
+function showToast(msg: string): void {
+  const toast = document.getElementById("toast") as HTMLElement;
+  toast.textContent = msg;
+  toast.hidden = false;
+  setTimeout(() => { toast.hidden = true; }, 2200);
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return true;
+    } catch {
+      document.body.removeChild(ta);
+      return false;
+    }
+  }
+}
+
+function shareActive(): void {
+  const it = activeItem();
+  if (!it || !it.target) { showToast("Pick a date first."); return; }
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("u", encodeShare(it));
+  copyToClipboard(url.toString()).then((ok) => {
+    showToast(ok ? "Link copied!" : "Copy failed.");
+  });
+}
+
+function openPopover(): void {
+  const pop = document.getElementById("saved-popover") as HTMLElement;
+  const btn = document.getElementById("saved-btn") as HTMLButtonElement;
+  renderSavedList();
+  pop.hidden = false;
+  btn.setAttribute("aria-expanded", "true");
+}
+
+function closePopover(): void {
+  const pop = document.getElementById("saved-popover") as HTMLElement;
+  const btn = document.getElementById("saved-btn") as HTMLButtonElement;
+  pop.hidden = true;
+  btn.setAttribute("aria-expanded", "false");
+}
+
+function presetTarget(kind: string): { title: string; target: string } | null {
+  const now = new Date();
+  const y = now.getFullYear();
+  switch (kind) {
+    case "newyear": {
+      const t = new Date(y + 1, 0, 1, 0, 0, 0);
+      return { title: `New Year ${y + 1}`, target: t.toISOString() };
+    }
+    case "christmas": {
+      let t = new Date(y, 11, 25, 0, 0, 0);
+      if (t.getTime() < now.getTime()) t = new Date(y + 1, 11, 25, 0, 0, 0);
+      return { title: `Christmas ${t.getFullYear()}`, target: t.toISOString() };
+    }
+    case "friday": {
+      const t = new Date(now);
+      const day = t.getDay();
+      const offset = day < 5 ? 5 - day : day === 5 ? 7 : 6;
+      t.setDate(t.getDate() + offset);
+      t.setHours(17, 0, 0, 0);
+      return { title: "Friday at 5pm", target: t.toISOString() };
+    }
+    case "tomorrow": {
+      const t = new Date(now);
+      t.setDate(t.getDate() + 1);
+      t.setHours(9, 0, 0, 0);
+      return { title: "Tomorrow at 9am", target: t.toISOString() };
+    }
+    case "monday": {
+      const t = new Date(now);
+      const day = t.getDay();
+      const offset = day === 0 ? 1 : 8 - day;
+      t.setDate(t.getDate() + offset);
+      t.setHours(9, 0, 0, 0);
+      return { title: "Monday at 9am", target: t.toISOString() };
+    }
+  }
+  return null;
+}
+
+function applyEditor(): void {
+  const titleInput = document.getElementById("title-input") as HTMLInputElement;
+  const whenInput = document.getElementById("when-input") as HTMLInputElement;
+  const title = titleInput.value.trim() || "New countdown";
+  const target = whenInput.value ? fromLocalInput(whenInput.value) : "";
+  if (!target) { showToast("Pick a date."); return; }
+  if (activeItem()) {
+    updateActive({ title, target });
+  } else {
+    addItem(title, target);
+  }
+  renderActive();
+  showToast("Saved.");
+}
+
+function importShareFromUrl(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  const u = params.get("u");
+  if (!u) return false;
+  const decoded = decodeShare(u);
+  if (!decoded) return false;
+  const item = addItem(decoded.title, decoded.target);
+  history.replaceState(null, "", window.location.pathname);
+  setActive(item.id);
+  return true;
+}
+
+function init(): void {
+  const imported = importShareFromUrl();
+  if (!imported && persist.items.length === 0) {
+    const p = presetTarget("newyear");
+    if (p) addItem(p.title, p.target);
+  }
+  if (!persist.activeId && persist.items.length > 0) {
+    persist.activeId = persist.items[0].id;
+    savePersist(persist);
+  }
+  renderActive();
+
+  document.getElementById("apply-btn")?.addEventListener("click", applyEditor);
+  document.getElementById("title-input")?.addEventListener("change", applyEditor);
+  document.getElementById("when-input")?.addEventListener("change", applyEditor);
+
+  document.querySelectorAll<HTMLButtonElement>(".until-chip[data-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const kind = btn.dataset.preset ?? "";
+      const p = presetTarget(kind);
+      if (!p) return;
+      const item = addItem(p.title, p.target);
+      setActive(item.id);
+      showToast("Preset added.");
+    });
+  });
+
+  document.getElementById("share-btn")?.addEventListener("click", shareActive);
+  document.getElementById("saved-btn")?.addEventListener("click", () => {
+    const pop = document.getElementById("saved-popover") as HTMLElement;
+    if (pop.hidden) openPopover(); else closePopover();
+  });
+  document.getElementById("new-saved")?.addEventListener("click", () => {
+    const t = new Date();
+    t.setDate(t.getDate() + 7);
+    t.setHours(9, 0, 0, 0);
+    const item = addItem("New countdown", t.toISOString());
+    setActive(item.id);
+    closePopover();
+  });
+
+  document.addEventListener("click", (e) => {
+    const pop = document.getElementById("saved-popover") as HTMLElement;
+    const btn = document.getElementById("saved-btn") as HTMLButtonElement;
+    if (pop.hidden) return;
+    const target = e.target as Node;
+    if (!pop.contains(target) && !btn.contains(target)) closePopover();
+  });
+
+  setInterval(tick, 1000);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/until/sw.js").catch(() => {});
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+</script>
