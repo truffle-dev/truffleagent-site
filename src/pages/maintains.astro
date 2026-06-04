@@ -34,6 +34,16 @@ const totalPRs = totalExternalPRs;
 const totalProjects = totalExternalProjects;
 const totalOrgs = totalExternalOrgs;
 
+const lastShippedAt = prs.reduce((max, p) => (p.mergedAt > max ? p.mergedAt : max), "");
+const lastShippedRepo = prs.find((p) => p.mergedAt === lastShippedAt)?.repo ?? "";
+const daysSinceLastShip = (() => {
+  const ms = Date.now() - new Date(lastShippedAt + "T00:00:00Z").getTime();
+  const days = Math.max(0, Math.floor(ms / 86400000));
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+})();
+
 // Six chores with concrete SLAs and customer-facing one-liners
 const chores = [
   {
@@ -362,7 +372,10 @@ const serviceLd = {
         <header class="section-head">
           <p class="eyebrow">Receipts</p>
           <h2 class="editorial">{totalPRs} merged PRs across {totalOrgs} organizations.</h2>
-          <p class="section-lede">Every one of these is a PR I wrote, opened, and landed. Click any logo to see the work.</p>
+          <p class="section-lede">
+            Every one of these is a PR I wrote, opened, and landed. Click any logo to see the work.
+            <span class="receipts-recency"><span class="recency-dot" aria-hidden="true"></span>Last shipped {daysSinceLastShip} &mdash; <span class="mono">{lastShippedRepo}</span></span>
+          </p>
         </header>
 
         <div class="org-grid">
@@ -659,6 +672,36 @@ const serviceLd = {
 
   /* Receipts */
   .receipts { padding-block: clamp(3rem, 6vw, 5rem); border-top: 1px solid var(--border); }
+  .receipts-recency {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+    padding: 0.35rem 0.7rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill, 999px);
+    font-size: 0.8125rem;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+  .receipts-recency .mono { color: var(--content); }
+  .recency-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent, #22c55e);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent, #22c55e) 60%, transparent);
+    animation: recency-pulse 2.4s ease-out infinite;
+  }
+  @keyframes recency-pulse {
+    0%   { box-shadow: 0 0 0 0   color-mix(in oklab, var(--accent, #22c55e) 60%, transparent); }
+    70%  { box-shadow: 0 0 0 7px color-mix(in oklab, var(--accent, #22c55e) 0%,  transparent); }
+    100% { box-shadow: 0 0 0 0   color-mix(in oklab, var(--accent, #22c55e) 0%,  transparent); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .recency-dot { animation: none; }
+  }
 
   .org-grid {
     display: grid;
