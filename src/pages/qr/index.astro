@@ -1,0 +1,520 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "QR · Instant QR Code Maker";
+const description =
+  "Make a QR code for any link or text. PNG and SVG download. Customize colors and size. Works offline. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/qr/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "QR Code Maker",
+  alternateName: ["QR Generator", "QR Code", "QR Code Maker"],
+  url: canonical,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Instant QR code generation as you type",
+    "PNG and SVG download",
+    "Customizable foreground and background colors",
+    "Four error correction levels (L, M, Q, H)",
+    "Works offline (PWA)",
+    "No ads, no signup, no servers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is QR for?",
+    a: "Anything you want to share quickly: a link, a wifi password, plain text, a contact card. Type the text, point a phone at the screen, done.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit, the page and the generator library are cached as a Progressive Web App and work without an internet connection.",
+  },
+  {
+    q: "What is error correction level?",
+    a: "QR codes can survive being partially damaged. L tolerates about 7%, M about 15%, Q about 25%, H about 30%. Higher correction makes the code denser and visually busier. M is a fine default.",
+  },
+  {
+    q: "PNG or SVG?",
+    a: "Use SVG for print, slides, and high-res signage so it stays sharp at any size. Use PNG for chat apps, doc embeds, and anywhere a raster image is easier.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/qr/manifest.webmanifest" />
+    <script src="/qr/qrcode.min.js" is:inline></script>
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="qr-page">
+    <header class="qr-topbar">
+      <div class="qr-topbar-inner">
+        <div class="qr-brand">
+          <span class="qr-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <path d="M14 14h3v3h-3z" />
+              <path d="M18 18h3v3h-3z" />
+            </svg>
+          </span>
+          <span class="qr-brand-name">QR</span>
+        </div>
+        <div class="qr-topbar-actions">
+          <button id="share-btn" type="button" class="qr-btn qr-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="qr-stage">
+      <div class="qr-preview" id="qr-preview" role="img" aria-label="QR code preview"></div>
+      <div class="qr-actions">
+        <button id="png-btn" type="button" class="qr-btn qr-btn-primary">Download PNG</button>
+        <button id="svg-btn" type="button" class="qr-btn qr-btn-ghost">Download SVG</button>
+      </div>
+    </section>
+
+    <section class="qr-config">
+      <label class="qr-field qr-field-wide">
+        <span class="qr-field-label">Text or link</span>
+        <textarea id="text-input" rows="3" maxlength="2048" placeholder="https://truffleagent.com" autocomplete="off"></textarea>
+      </label>
+      <div class="qr-config-row">
+        <label class="qr-field">
+          <span class="qr-field-label">Error correction</span>
+          <select id="ec-input">
+            <option value="L">L · 7% (small)</option>
+            <option value="M" selected>M · 15% (default)</option>
+            <option value="Q">Q · 25%</option>
+            <option value="H">H · 30% (densest)</option>
+          </select>
+        </label>
+        <label class="qr-field">
+          <span class="qr-field-label">Foreground</span>
+          <input id="fg-input" type="color" value="#1a1611" />
+        </label>
+        <label class="qr-field">
+          <span class="qr-field-label">Background</span>
+          <input id="bg-input" type="color" value="#ffffff" />
+        </label>
+      </div>
+      <div class="qr-presets">
+        <span class="qr-presets-label">Preset:</span>
+        <button type="button" class="qr-chip" data-preset="url">Open a URL</button>
+        <button type="button" class="qr-chip" data-preset="wifi">Wifi password</button>
+        <button type="button" class="qr-chip" data-preset="email">Email me</button>
+        <button type="button" class="qr-chip" data-preset="phone">Call me</button>
+        <button type="button" class="qr-chip" data-preset="sms">Text me</button>
+      </div>
+    </section>
+
+    <section class="qr-why">
+      <h2>Why this exists</h2>
+      <p>
+        Most QR generators are ad-rotted, signup-walled, or push a tracking redirect into the
+        encoded URL so they can resell the scan data. QR is a single page that generates the code
+        locally, draws it as SVG, and lets you download it as either PNG or SVG. Your link goes
+        nowhere except into the image.
+      </p>
+    </section>
+
+    <section class="qr-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="qr-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div id="toast" class="qr-toast" role="status" aria-live="polite" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --qr-bg: #fbfaf5;
+    --qr-fg: #1a1611;
+    --qr-muted: #6b6359;
+    --qr-line: #e5dfd0;
+    --qr-card: #ffffff;
+    --qr-accent: #3a5b8c;
+    --qr-accent-soft: #d8e2ee;
+  }
+  :root[data-theme="dark"] {
+    --qr-bg: #0e0c08;
+    --qr-fg: #f1ece0;
+    --qr-muted: #9c9485;
+    --qr-line: #2a2620;
+    --qr-card: #16130d;
+    --qr-accent: #7ba5d4;
+    --qr-accent-soft: #1a232e;
+  }
+
+  body { background: var(--qr-bg); color: var(--qr-fg); }
+  .qr-page { max-width: 860px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .qr-topbar { border-bottom: 1px solid var(--qr-line); padding: 18px 0; margin-bottom: 36px; }
+  .qr-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .qr-brand { display: flex; align-items: center; gap: 10px; }
+  .qr-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--qr-accent-soft); color: var(--qr-accent); }
+  .qr-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+
+  .qr-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--qr-line);
+    background: var(--qr-card); color: var(--qr-fg);
+    font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .qr-btn:hover { border-color: var(--qr-accent); color: var(--qr-accent); }
+  .qr-btn-primary { background: var(--qr-accent); color: var(--qr-bg); border-color: var(--qr-accent); font-weight: 600; }
+  .qr-btn-primary:hover { color: var(--qr-bg); filter: brightness(1.05); }
+  .qr-btn-ghost { background: transparent; }
+
+  .qr-stage { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 8px 0 32px; }
+  .qr-preview {
+    width: min(340px, calc(100vw - 80px));
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--qr-line); border-radius: 16px;
+    background: #fff; padding: 16px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .qr-preview svg { width: 100% !important; height: 100% !important; }
+  .qr-preview .qr-placeholder { color: var(--qr-muted); font-size: 14px; }
+  .qr-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .qr-config { background: var(--qr-card); border: 1px solid var(--qr-line); border-radius: 16px; padding: 22px; }
+  .qr-field { display: flex; flex-direction: column; gap: 6px; }
+  .qr-field-wide { margin-bottom: 16px; }
+  .qr-field-label { font-size: 12px; color: var(--qr-muted); font-weight: 500; }
+  .qr-field input, .qr-field select, .qr-field textarea {
+    font: inherit; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--qr-line); background: var(--qr-bg); color: var(--qr-fg);
+    outline: none;
+  }
+  .qr-field textarea { resize: vertical; min-height: 64px; font-family: "JetBrains Mono", monospace; font-size: 14px; }
+  .qr-field input:focus, .qr-field select:focus, .qr-field textarea:focus { border-color: var(--qr-accent); }
+  .qr-field input[type="color"] { padding: 4px; height: 40px; cursor: pointer; }
+  .qr-config-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .qr-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--qr-line); }
+  .qr-presets-label { font-size: 12px; color: var(--qr-muted); margin-right: 4px; }
+  .qr-chip {
+    font: inherit; font-size: 13px;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--qr-line); background: transparent; color: var(--qr-fg);
+    cursor: pointer; transition: background .15s ease, border-color .15s ease;
+  }
+  .qr-chip:hover { border-color: var(--qr-accent); color: var(--qr-accent); }
+
+  .qr-why { margin-top: 64px; }
+  .qr-why h2, .qr-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .qr-why p { font-size: 16px; line-height: 1.6; color: var(--qr-fg); max-width: 64ch; margin: 0; }
+
+  .qr-faq { margin-top: 56px; }
+  .qr-faq dl { display: grid; gap: 18px; margin: 0; }
+  .qr-faq-item { background: var(--qr-card); border: 1px solid var(--qr-line); border-radius: 14px; padding: 16px 20px; }
+  .qr-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .qr-faq-item dd { color: var(--qr-muted); line-height: 1.55; margin: 0; }
+
+  .qr-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--qr-fg); color: var(--qr-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+  }
+  .qr-toast[hidden] { display: none !important; }
+
+  @media (max-width: 640px) {
+    .qr-config-row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+declare global {
+  function qrcode(typeNumber: number, errorCorrectionLevel: string): {
+    addData(text: string): void;
+    make(): void;
+    getModuleCount(): number;
+    isDark(row: number, col: number): boolean;
+    createSvgTag(opts: { cellSize?: number; margin?: number }): string;
+  };
+}
+
+type Persist = { v: 1; text: string; ec: string; fg: string; bg: string };
+
+const STORAGE_KEY = "qr:v1";
+const DEFAULT: Persist = { v: 1, text: "https://truffleagent.com/qr/", ec: "M", fg: "#1a1611", bg: "#ffffff" };
+
+function loadPersist(): Persist {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { ...DEFAULT };
+    const p = JSON.parse(raw);
+    if (p && p.v === 1) return { ...DEFAULT, ...p };
+  } catch {}
+  return { ...DEFAULT };
+}
+
+function savePersist(p: Persist): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
+}
+
+let persist = loadPersist();
+let renderTimer: number | undefined;
+
+function utf8ToB64(s: string): string {
+  const bytes = new TextEncoder().encode(s);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function b64ToUtf8(s: string): string {
+  const padded = s.replaceAll("-", "+").replaceAll("_", "/");
+  const pad = (4 - (padded.length % 4)) % 4;
+  const b = atob(padded + "=".repeat(pad));
+  const bytes = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) bytes[i] = b.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function showToast(msg: string): void {
+  const toast = document.getElementById("toast") as HTMLElement;
+  toast.textContent = msg;
+  toast.hidden = false;
+  setTimeout(() => { toast.hidden = true; }, 2200);
+}
+
+function buildSvg(text: string, ec: string, fg: string, bg: string, cellSize = 8): string {
+  if (!text) return "";
+  try {
+    const qr = qrcode(0, ec);
+    qr.addData(text);
+    qr.make();
+    const count = qr.getModuleCount();
+    const margin = 4;
+    const size = (count + margin * 2) * cellSize;
+    let path = "";
+    for (let r = 0; r < count; r++) {
+      for (let c = 0; c < count; c++) {
+        if (qr.isDark(r, c)) {
+          const x = (c + margin) * cellSize;
+          const y = (r + margin) * cellSize;
+          path += `M${x},${y}h${cellSize}v${cellSize}h-${cellSize}z`;
+        }
+      }
+    }
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${bg}"/><path d="${path}" fill="${fg}"/></svg>`;
+  } catch {
+    return "";
+  }
+}
+
+function render(): void {
+  const preview = document.getElementById("qr-preview") as HTMLElement;
+  if (!persist.text.trim()) {
+    preview.innerHTML = '<span class="qr-placeholder">Type something to generate a QR code.</span>';
+    preview.style.background = "#fff";
+    return;
+  }
+  const svg = buildSvg(persist.text, persist.ec, persist.fg, persist.bg);
+  if (!svg) {
+    preview.innerHTML = '<span class="qr-placeholder">Could not encode. Try shorter text or lower error correction.</span>';
+    return;
+  }
+  preview.innerHTML = svg;
+  preview.style.background = persist.bg;
+}
+
+function scheduleRender(): void {
+  if (renderTimer !== undefined) window.clearTimeout(renderTimer);
+  renderTimer = window.setTimeout(render, 50);
+}
+
+function writeForm(): void {
+  (document.getElementById("text-input") as HTMLTextAreaElement).value = persist.text;
+  (document.getElementById("ec-input") as HTMLSelectElement).value = persist.ec;
+  (document.getElementById("fg-input") as HTMLInputElement).value = persist.fg;
+  (document.getElementById("bg-input") as HTMLInputElement).value = persist.bg;
+}
+
+function downloadSvg(): void {
+  if (!persist.text.trim()) { showToast("Type something first."); return; }
+  const svg = buildSvg(persist.text, persist.ec, persist.fg, persist.bg);
+  if (!svg) { showToast("Encoding failed."); return; }
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "qr.svg";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+function downloadPng(): void {
+  if (!persist.text.trim()) { showToast("Type something first."); return; }
+  const svg = buildSvg(persist.text, persist.ec, persist.fg, persist.bg, 12);
+  if (!svg) { showToast("Encoding failed."); return; }
+  const img = new Image();
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  img.onload = () => {
+    const targetPx = 1024;
+    const canvas = document.createElement("canvas");
+    canvas.width = targetPx;
+    canvas.height = targetPx;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { showToast("Canvas not supported."); return; }
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = persist.bg;
+    ctx.fillRect(0, 0, targetPx, targetPx);
+    ctx.drawImage(img, 0, 0, targetPx, targetPx);
+    canvas.toBlob((b) => {
+      if (!b) { showToast("PNG encode failed."); return; }
+      const pngUrl = URL.createObjectURL(b);
+      const a = document.createElement("a");
+      a.href = pngUrl;
+      a.download = "qr.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(pngUrl), 500);
+    }, "image/png");
+    URL.revokeObjectURL(url);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); showToast("PNG render failed."); };
+  img.src = url;
+}
+
+function shareLink(): void {
+  if (!persist.text.trim()) { showToast("Type something first."); return; }
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("t", utf8ToB64(persist.text));
+  if (persist.ec !== "M") url.searchParams.set("l", persist.ec);
+  navigator.clipboard.writeText(url.toString()).then(
+    () => showToast("Link copied!"),
+    () => showToast("Copy failed."),
+  );
+}
+
+function applyPreset(kind: string): void {
+  const samples: Record<string, string> = {
+    url: "https://truffleagent.com",
+    wifi: "WIFI:T:WPA;S:MyNetwork;P:MyPassword;;",
+    email: "mailto:hello@example.com?subject=Hi",
+    phone: "tel:+15551234567",
+    sms: "sms:+15551234567?body=Hi",
+  };
+  const sample = samples[kind];
+  if (sample) {
+    persist.text = sample;
+    savePersist(persist);
+    writeForm();
+    render();
+    showToast("Preset applied.");
+  }
+}
+
+function importParams(): void {
+  const params = new URLSearchParams(window.location.search);
+  const t = params.get("t");
+  const l = params.get("l");
+  if (t) {
+    try {
+      const decoded = b64ToUtf8(t);
+      persist.text = decoded.slice(0, 2048);
+    } catch {}
+  }
+  if (l && ["L", "M", "Q", "H"].includes(l)) persist.ec = l;
+  savePersist(persist);
+  if (t || l) history.replaceState(null, "", window.location.pathname);
+}
+
+function init(): void {
+  importParams();
+  writeForm();
+  render();
+
+  document.getElementById("text-input")?.addEventListener("input", (e) => {
+    persist.text = (e.target as HTMLTextAreaElement).value.slice(0, 2048);
+    savePersist(persist);
+    scheduleRender();
+  });
+  document.getElementById("ec-input")?.addEventListener("change", (e) => {
+    persist.ec = (e.target as HTMLSelectElement).value;
+    savePersist(persist);
+    render();
+  });
+  document.getElementById("fg-input")?.addEventListener("input", (e) => {
+    persist.fg = (e.target as HTMLInputElement).value;
+    savePersist(persist);
+    render();
+  });
+  document.getElementById("bg-input")?.addEventListener("input", (e) => {
+    persist.bg = (e.target as HTMLInputElement).value;
+    savePersist(persist);
+    render();
+  });
+
+  document.getElementById("png-btn")?.addEventListener("click", downloadPng);
+  document.getElementById("svg-btn")?.addEventListener("click", downloadSvg);
+  document.getElementById("share-btn")?.addEventListener("click", shareLink);
+
+  document.querySelectorAll<HTMLButtonElement>(".qr-chip[data-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => applyPreset(btn.dataset.preset ?? ""));
+  });
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/qr/sw.js").catch(() => {});
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+</script>
