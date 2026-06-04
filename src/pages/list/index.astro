@@ -1,0 +1,1484 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "List · shared decision lists";
+const description =
+  "Build a shared decision list. Add options, score them, rank them, share a snapshot by link. Collect ballots from friends without an account. Saved in your browser. Works offline. No trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/list/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "List",
+  alternateName: ["Decision List", "Decision Tool", "Vote List", "Choice Ranker"],
+  url: canonical,
+  applicationCategory: "ProductivityApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Add options with notes",
+    "Vote each row up, sideways, or down",
+    "Optional one-to-five star rating",
+    "Auto-rank by score",
+    "Highlight the top pick",
+    "Share a snapshot by link",
+    "Collect ballots from others via link",
+    "Markdown export for Slack or email",
+    "Decision history kept in your browser",
+    "Works offline (PWA)",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is List?",
+    a: "A small tool for shared decisions. Add the options you are choosing between, vote each row up, sideways, or down, see the ranking, and share a snapshot by link.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "How do I collect votes from other people?",
+    a: "Tap Share to copy a snapshot link. The recipient opens the same product, types their name, and votes. They tap Send my ballot, which copies a small link with just their votes. You paste that link in Receive ballot and their votes merge into your list.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "Where is my data stored?",
+    a: "In your browser's localStorage. Nothing is sent to a server. Snapshots and ballots are encoded inside the URL, not on a server.",
+  },
+  {
+    q: "Can I have more than one decision at a time?",
+    a: "Yes. The picker at the top switches between decisions and you can keep as many as you want. New decisions appear at the top.",
+  },
+  {
+    q: "How is the ranking computed?",
+    a: "Each up vote scores plus two, each sideways vote scores plus one, each down vote scores zero. Star ratings, when set, add a small tiebreaker. Higher total wins.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/list/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="ls-page">
+    <header class="ls-topbar">
+      <div class="ls-topbar-inner">
+        <div class="ls-brand">
+          <span class="ls-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6h16" />
+              <path d="M4 12h10" />
+              <path d="M4 18h13" />
+              <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+              <circle cx="20" cy="6" r="1.4" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+          <span class="ls-brand-name">List</span>
+        </div>
+        <div class="ls-topbar-actions">
+          <select id="decision-picker" class="ls-select" aria-label="Switch decision"></select>
+          <button id="new-decision-btn" type="button" class="ls-btn ls-btn-ghost" title="Start a new decision">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            <span>New</span>
+          </button>
+          <button id="share-btn" type="button" class="ls-btn ls-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="ls-stage">
+      <p class="ls-eyebrow">A decision</p>
+      <h1 id="title-input" class="ls-title" contenteditable="true" spellcheck="true" data-placeholder="What are you choosing between?"></h1>
+      <p id="notes-input" class="ls-sub" contenteditable="true" spellcheck="true" data-placeholder="Add a sentence of context. Why this decision matters, what the constraints are."></p>
+    </section>
+
+    <section class="ls-controls">
+      <div class="ls-control-row">
+        <label class="ls-label">Voting as</label>
+        <input id="voter-name" type="text" class="ls-input" maxlength="40" placeholder="Your name" />
+        <div class="ls-spacer"></div>
+        <label class="ls-label" for="stars-toggle">Star ratings</label>
+        <button id="stars-toggle" type="button" class="ls-toggle" role="switch" aria-checked="false">
+          <span class="ls-toggle-thumb"></span>
+        </button>
+      </div>
+    </section>
+
+    <section id="top-pick" class="ls-top-pick" hidden>
+      <span class="ls-top-pick-eyebrow">Top pick</span>
+      <h2 id="top-pick-title" class="ls-top-pick-title"></h2>
+      <p id="top-pick-meta" class="ls-top-pick-meta"></p>
+    </section>
+
+    <section id="option-list" class="ls-options" aria-label="Options"></section>
+
+    <div class="ls-add-row">
+      <button id="add-btn" type="button" class="ls-btn ls-btn-primary">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        <span>Add option</span>
+      </button>
+    </div>
+
+    <section id="empty-state" class="ls-empty" hidden>
+      <h2 class="ls-h2">No options yet.</h2>
+      <p class="ls-p">Add the things you are choosing between. Notes are optional. Vote each row up, sideways, or down. Top pick floats to the top.</p>
+      <button id="empty-add-btn" type="button" class="ls-btn ls-btn-primary">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        <span>Add first option</span>
+      </button>
+    </section>
+
+    <section class="ls-secondary">
+      <div class="ls-secondary-card">
+        <h3 class="ls-h3">Send your ballot</h3>
+        <p class="ls-p ls-muted">After you vote, copy a short link with just your votes. Send it back to whoever owns this decision and they paste it in their Receive box. Your snapshot stays the same on their device, only the vote columns merge.</p>
+        <button id="copy-ballot-btn" type="button" class="ls-btn ls-btn-ghost">Copy my ballot link</button>
+      </div>
+      <div class="ls-secondary-card">
+        <h3 class="ls-h3">Receive a ballot</h3>
+        <p class="ls-p ls-muted">Paste a ballot link below to merge someone else's votes into this decision. Their votes appear as their own column. No data leaves your device.</p>
+        <textarea id="ballot-paste" class="ls-textarea" rows="2" placeholder="Paste a ballot link"></textarea>
+        <button id="receive-ballot-btn" type="button" class="ls-btn ls-btn-ghost">Receive ballot</button>
+      </div>
+      <div class="ls-secondary-card">
+        <h3 class="ls-h3">Export</h3>
+        <p class="ls-p ls-muted">Copy a markdown summary you can paste into Slack, email, or a doc. The ranking is preserved.</p>
+        <button id="copy-md-btn" type="button" class="ls-btn ls-btn-ghost">Copy as markdown</button>
+      </div>
+    </section>
+
+    <section class="ls-meta">
+      <p class="ls-p ls-muted">
+        Saved in your browser. No accounts, no servers, no trackers.
+        Works offline after first load. Built and shared as a tool by
+        <a href="https://truffleagent.com/" class="ls-link">Truffle</a>.
+      </p>
+      <details class="ls-details">
+        <summary>Common questions</summary>
+        <div class="ls-faq">
+          {faq.map((f) => (
+            <div class="ls-faq-item">
+              <h4 class="ls-faq-q">{f.q}</h4>
+              <p class="ls-faq-a">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <div id="import-banner" class="ls-banner" hidden>
+    <div class="ls-banner-inner">
+      <div>
+        <strong>Snapshot received.</strong>
+        <span>Vote on it locally, or fork it into your own list.</span>
+      </div>
+      <div class="ls-banner-actions">
+        <button id="banner-fork-btn" type="button" class="ls-btn ls-btn-ghost">Fork as new</button>
+        <button id="banner-dismiss-btn" type="button" class="ls-btn ls-btn-link">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="ls-toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="edit-dialog" class="ls-dialog">
+    <form method="dialog" class="ls-dialog-form">
+      <h3 class="ls-dialog-title">Edit option</h3>
+      <label class="ls-label" for="edit-title">Title</label>
+      <input id="edit-title" type="text" class="ls-input" maxlength="200" />
+      <label class="ls-label" for="edit-notes">Notes (optional)</label>
+      <textarea id="edit-notes" class="ls-textarea" rows="3" maxlength="500" placeholder="Pros, cons, link, anything"></textarea>
+      <div class="ls-dialog-actions">
+        <button type="button" id="edit-delete-btn" class="ls-btn ls-btn-danger">Delete</button>
+        <div class="ls-spacer"></div>
+        <button type="button" id="edit-cancel-btn" class="ls-btn ls-btn-ghost">Cancel</button>
+        <button type="button" id="edit-save-btn" class="ls-btn ls-btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <style is:global>
+    :root {
+      --ls-paper: #fbfaf5;
+      --ls-ink: #1a1716;
+      --ls-soft: #6b655e;
+      --ls-line: #e8e3d8;
+      --ls-line-strong: #d6cebd;
+      --ls-card: #ffffff;
+      --ls-card-soft: #f6f2e8;
+      --ls-accent: #1f4ed8;
+      --ls-accent-soft: #e4eafe;
+      --ls-up: #1f8a4a;
+      --ls-up-soft: #e3f6ea;
+      --ls-mid: #b45309;
+      --ls-mid-soft: #fceedc;
+      --ls-down: #b91c1c;
+      --ls-down-soft: #fbe5e5;
+      --ls-shadow: 0 1px 2px rgba(26, 23, 22, 0.04), 0 8px 24px rgba(26, 23, 22, 0.05);
+      --ls-radius: 14px;
+      --ls-radius-sm: 10px;
+    }
+
+    html, body { background: var(--ls-paper); color: var(--ls-ink); }
+    body { font-family: "Iowan Old Style", Georgia, "Times New Roman", serif; }
+
+    .ls-page {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 36px 20px 80px;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .ls-topbar { margin-bottom: 24px; }
+    .ls-topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .ls-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ls-ink);
+    }
+    .ls-brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--ls-card-soft);
+      color: var(--ls-accent);
+    }
+    .ls-brand-name {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-weight: 500;
+      font-size: 22px;
+    }
+    .ls-topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ls-stage { margin: 28px 0 22px; }
+    .ls-eyebrow {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ls-soft);
+      margin: 0 0 8px;
+    }
+    .ls-title {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.12;
+      margin: 0 0 8px;
+      outline: none;
+    }
+    .ls-title:empty::before,
+    .ls-sub:empty::before {
+      content: attr(data-placeholder);
+      color: var(--ls-soft);
+      opacity: 0.65;
+    }
+    .ls-sub {
+      font-size: 17px;
+      color: var(--ls-soft);
+      margin: 0;
+      max-width: 60ch;
+      outline: none;
+    }
+
+    .ls-controls {
+      margin: 24px 0 8px;
+      padding: 14px 16px;
+      border: 1px solid var(--ls-line);
+      border-radius: var(--ls-radius);
+      background: var(--ls-card);
+    }
+    .ls-control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .ls-spacer { flex: 1 1 auto; min-width: 0; }
+    .ls-label {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      color: var(--ls-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .ls-input, .ls-textarea, .ls-select {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 14px;
+      color: var(--ls-ink);
+      background: var(--ls-paper);
+      border: 1px solid var(--ls-line-strong);
+      border-radius: 10px;
+      padding: 8px 12px;
+      outline: none;
+    }
+    .ls-input:focus, .ls-textarea:focus, .ls-select:focus {
+      border-color: var(--ls-accent);
+      box-shadow: 0 0 0 3px var(--ls-accent-soft);
+    }
+    .ls-textarea {
+      resize: vertical;
+      width: 100%;
+      min-height: 64px;
+    }
+    .ls-select { padding-right: 28px; max-width: 220px; }
+
+    .ls-toggle {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--ls-line);
+      border: none;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .ls-toggle[aria-checked="true"] { background: var(--ls-accent); }
+    .ls-toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.15s ease;
+    }
+    .ls-toggle[aria-checked="true"] .ls-toggle-thumb { transform: translateX(16px); }
+
+    .ls-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      padding: 7px 14px;
+      cursor: pointer;
+      background: none;
+      color: var(--ls-ink);
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    }
+    .ls-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--ls-accent-soft);
+    }
+    .ls-btn-ghost {
+      border-color: var(--ls-line-strong);
+      background: var(--ls-card);
+    }
+    .ls-btn-ghost:hover { background: var(--ls-card-soft); }
+    .ls-btn-primary {
+      background: var(--ls-accent);
+      color: #fff;
+      border-color: var(--ls-accent);
+    }
+    .ls-btn-primary:hover { filter: brightness(0.95); }
+    .ls-btn-danger {
+      color: var(--ls-down);
+      border-color: var(--ls-down-soft);
+      background: var(--ls-card);
+    }
+    .ls-btn-danger:hover { background: var(--ls-down-soft); }
+    .ls-btn-link {
+      color: var(--ls-soft);
+      padding: 6px 8px;
+      border-color: transparent;
+    }
+    .ls-btn-link:hover { color: var(--ls-ink); }
+
+    .ls-top-pick {
+      margin: 20px 0;
+      padding: 18px 20px;
+      border-radius: var(--ls-radius);
+      background: linear-gradient(135deg, var(--ls-up-soft), var(--ls-card-soft));
+      border: 1px solid var(--ls-up-soft);
+    }
+    .ls-top-pick-eyebrow {
+      display: inline-block;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ls-up);
+      margin-bottom: 4px;
+    }
+    .ls-top-pick-title {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-weight: 500;
+      font-size: 26px;
+      margin: 0 0 4px;
+    }
+    .ls-top-pick-meta {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      color: var(--ls-soft);
+      margin: 0;
+    }
+
+    .ls-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 10px 0 20px;
+    }
+
+    .ls-option {
+      border: 1px solid var(--ls-line);
+      border-radius: var(--ls-radius);
+      background: var(--ls-card);
+      box-shadow: var(--ls-shadow);
+      padding: 16px 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px 18px;
+      align-items: start;
+    }
+    .ls-option.is-top { border-color: var(--ls-up-soft); }
+
+    .ls-option-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .ls-option-rank {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ls-soft);
+      min-width: 28px;
+    }
+    .ls-option-title {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 20px;
+      margin: 0;
+      cursor: text;
+    }
+    .ls-option-edit {
+      border: none;
+      background: none;
+      color: var(--ls-soft);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+    }
+    .ls-option-edit:hover { color: var(--ls-ink); background: var(--ls-card-soft); }
+    .ls-option-notes {
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 14px;
+      color: var(--ls-soft);
+      margin: 6px 0 0;
+      grid-column: 1 / 2;
+    }
+
+    .ls-vote-controls {
+      grid-column: 2 / 3;
+      grid-row: 1 / span 3;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .ls-vote-buttons {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 9999px;
+      background: var(--ls-card-soft);
+    }
+    .ls-vote-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 9999px;
+      background: transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ls-soft);
+      transition: background 0.1s ease, color 0.1s ease;
+    }
+    .ls-vote-btn:hover { background: rgba(255,255,255,0.6); }
+    .ls-vote-btn[data-active="up"] { background: var(--ls-up-soft); color: var(--ls-up); }
+    .ls-vote-btn[data-active="mid"] { background: var(--ls-mid-soft); color: var(--ls-mid); }
+    .ls-vote-btn[data-active="down"] { background: var(--ls-down-soft); color: var(--ls-down); }
+
+    .ls-stars {
+      display: inline-flex;
+      gap: 2px;
+    }
+    .ls-stars[hidden] { display: none; }
+    .ls-star {
+      border: none;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+      color: var(--ls-line-strong);
+      font-size: 18px;
+      line-height: 1;
+    }
+    .ls-star.is-on { color: var(--ls-mid); }
+
+    .ls-tally {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--ls-line);
+    }
+    .ls-tally:empty { display: none; }
+    .ls-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      color: var(--ls-ink);
+      background: var(--ls-card-soft);
+    }
+    .ls-chip.is-up { background: var(--ls-up-soft); color: var(--ls-up); }
+    .ls-chip.is-mid { background: var(--ls-mid-soft); color: var(--ls-mid); }
+    .ls-chip.is-down { background: var(--ls-down-soft); color: var(--ls-down); }
+
+    .ls-add-row {
+      display: flex;
+      justify-content: center;
+      margin: 18px 0 28px;
+    }
+
+    .ls-empty {
+      padding: 28px 22px;
+      border: 1px dashed var(--ls-line-strong);
+      border-radius: var(--ls-radius);
+      text-align: center;
+      background: var(--ls-card);
+    }
+    .ls-h2 {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 24px;
+      margin: 0 0 8px;
+    }
+    .ls-h3 {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 18px;
+      margin: 0 0 6px;
+    }
+    .ls-p { margin: 0 0 10px; font-size: 15px; line-height: 1.55; }
+    .ls-muted { color: var(--ls-soft); font-size: 14px; }
+    .ls-link { color: var(--ls-accent); text-decoration: none; border-bottom: 1px solid var(--ls-accent-soft); }
+    .ls-link:hover { border-color: var(--ls-accent); }
+
+    .ls-secondary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin: 32px 0 24px;
+    }
+    .ls-secondary-card {
+      padding: 16px 18px;
+      border: 1px solid var(--ls-line);
+      border-radius: var(--ls-radius);
+      background: var(--ls-card);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .ls-secondary-card .ls-textarea { margin-bottom: 8px; }
+
+    .ls-meta { margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--ls-line); }
+    .ls-details { margin-top: 14px; }
+    .ls-details summary {
+      cursor: pointer;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      color: var(--ls-soft);
+    }
+    .ls-faq { margin-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+    .ls-faq-q {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 16px;
+      margin: 0 0 4px;
+    }
+    .ls-faq-a { font-size: 14px; color: var(--ls-soft); margin: 0; }
+
+    .ls-banner {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 560px;
+      width: calc(100vw - 24px);
+      background: var(--ls-ink);
+      color: #fff;
+      border-radius: var(--ls-radius);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      z-index: 70;
+    }
+    .ls-banner-inner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      flex-wrap: wrap;
+    }
+    .ls-banner .ls-btn-ghost { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.06); color: #fff; }
+    .ls-banner .ls-btn-ghost:hover { background: rgba(255,255,255,0.12); }
+    .ls-banner .ls-btn-link { color: rgba(255,255,255,0.75); }
+    .ls-banner .ls-btn-link:hover { color: #fff; }
+
+    .ls-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ls-ink);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 9999px;
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 13px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      z-index: 80;
+    }
+
+    .ls-dialog {
+      border: none;
+      border-radius: var(--ls-radius);
+      box-shadow: 0 20px 60px rgba(26, 23, 22, 0.25);
+      padding: 0;
+      background: var(--ls-card);
+      width: min(92vw, 460px);
+    }
+    .ls-dialog::backdrop { background: rgba(26, 23, 22, 0.45); }
+    .ls-dialog-form { padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+    .ls-dialog-title {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-weight: 500;
+      font-size: 22px;
+      margin: 0 0 6px;
+    }
+    .ls-dialog-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .ls-page { padding: 22px 14px 60px; }
+      .ls-option {
+        grid-template-columns: 1fr;
+      }
+      .ls-vote-controls {
+        grid-column: 1 / -1;
+        grid-row: auto;
+        align-items: flex-start;
+      }
+    }
+
+    @media print {
+      .ls-topbar, .ls-controls, .ls-add-row, .ls-secondary, .ls-meta, .ls-banner, .ls-toast, .ls-vote-controls {
+        display: none !important;
+      }
+      .ls-option { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+      .ls-tally { display: flex !important; }
+    }
+  </style>
+
+  <script>
+    type Reaction = "up" | "mid" | "down" | null;
+    type Vote = { r: Reaction; s: number };
+    type Option = {
+      id: string;
+      title: string;
+      notes: string;
+      votes: Record<string, Vote>;
+    };
+    type Decision = {
+      id: string;
+      title: string;
+      notes: string;
+      voteMode: "reaction" | "stars-on";
+      options: Option[];
+      createdAt: number;
+      updatedAt: number;
+    };
+    type Store = {
+      decisions: Decision[];
+      activeId: string | null;
+      you: string;
+    };
+
+    const STORAGE_KEY = "list:v1";
+    const MAX_OPTIONS = 60;
+    const SCORE = { up: 2, mid: 1, down: 0 } as const;
+
+    const utf8ToB64 = (s: string): string => {
+      const bytes = new TextEncoder().encode(s);
+      let bin = "";
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    };
+    const b64ToUtf8 = (s: string): string => {
+      const padded = s.replace(/-/g, "+").replace(/_/g, "/");
+      const padding = padded.length % 4 ? "=".repeat(4 - (padded.length % 4)) : "";
+      const bin = atob(padded + padding);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    };
+
+    const newId = (): string => Math.random().toString(36).slice(2, 10);
+    const now = (): number => Date.now();
+
+    const emptyDecision = (): Decision => ({
+      id: newId(),
+      title: "",
+      notes: "",
+      voteMode: "reaction",
+      options: [],
+      createdAt: now(),
+      updatedAt: now(),
+    });
+
+    const defaultStore = (): Store => {
+      const d = emptyDecision();
+      d.title = "What I'm choosing between";
+      d.notes = "Add the options below. Tap the up, sideways, or down arrow to vote. The top pick floats to the top.";
+      d.options = [
+        { id: newId(), title: "Option A", notes: "", votes: {} },
+        { id: newId(), title: "Option B", notes: "", votes: {} },
+        { id: newId(), title: "Option C", notes: "", votes: {} },
+      ];
+      return { decisions: [d], activeId: d.id, you: "You" };
+    };
+
+    const loadStore = (): Store => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultStore();
+        const parsed = JSON.parse(raw) as Partial<Store>;
+        if (!parsed || !Array.isArray(parsed.decisions) || parsed.decisions.length === 0) {
+          return defaultStore();
+        }
+        const decisions = parsed.decisions
+          .filter((d): d is Decision => !!d && typeof d.id === "string")
+          .map((d) => ({
+            ...d,
+            options: (d.options ?? []).map((o) => ({
+              ...o,
+              votes: o.votes ?? {},
+              notes: o.notes ?? "",
+            })),
+          }));
+        const activeId = decisions.find((d) => d.id === parsed.activeId)?.id ?? decisions[0]?.id ?? null;
+        const you = (parsed.you ?? "You").toString().slice(0, 40) || "You";
+        return { decisions, activeId, you };
+      } catch {
+        return defaultStore();
+      }
+    };
+
+    const saveStore = (s: Store): void => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      } catch {}
+    };
+
+    let store = loadStore();
+    let pendingSnapshot: Decision | null = null;
+
+    const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
+
+    const titleEl = $<HTMLHeadingElement>("#title-input");
+    const notesEl = $<HTMLParagraphElement>("#notes-input");
+    const picker = $<HTMLSelectElement>("#decision-picker");
+    const voterNameInput = $<HTMLInputElement>("#voter-name");
+    const starsToggle = $<HTMLButtonElement>("#stars-toggle");
+    const optionList = $<HTMLElement>("#option-list");
+    const emptyState = $<HTMLElement>("#empty-state");
+    const topPickBox = $<HTMLElement>("#top-pick");
+    const topPickTitle = $<HTMLElement>("#top-pick-title");
+    const topPickMeta = $<HTMLElement>("#top-pick-meta");
+    const addBtn = $<HTMLButtonElement>("#add-btn");
+    const emptyAddBtn = $<HTMLButtonElement>("#empty-add-btn");
+    const shareBtn = $<HTMLButtonElement>("#share-btn");
+    const newDecisionBtn = $<HTMLButtonElement>("#new-decision-btn");
+    const copyBallotBtn = $<HTMLButtonElement>("#copy-ballot-btn");
+    const receiveBallotBtn = $<HTMLButtonElement>("#receive-ballot-btn");
+    const ballotPaste = $<HTMLTextAreaElement>("#ballot-paste");
+    const copyMdBtn = $<HTMLButtonElement>("#copy-md-btn");
+    const banner = $<HTMLElement>("#import-banner");
+    const bannerForkBtn = $<HTMLButtonElement>("#banner-fork-btn");
+    const bannerDismissBtn = $<HTMLButtonElement>("#banner-dismiss-btn");
+    const toast = $<HTMLElement>("#toast");
+    const editDialog = $<HTMLDialogElement>("#edit-dialog");
+    const editTitleInput = $<HTMLInputElement>("#edit-title");
+    const editNotesInput = $<HTMLTextAreaElement>("#edit-notes");
+    const editDeleteBtn = $<HTMLButtonElement>("#edit-delete-btn");
+    const editCancelBtn = $<HTMLButtonElement>("#edit-cancel-btn");
+    const editSaveBtn = $<HTMLButtonElement>("#edit-save-btn");
+
+    const getActive = (): Decision | null => {
+      if (pendingSnapshot) return pendingSnapshot;
+      return store.decisions.find((d) => d.id === store.activeId) ?? null;
+    };
+
+    const ensureActive = (): Decision => {
+      let d = getActive();
+      if (!d) {
+        d = emptyDecision();
+        store.decisions.unshift(d);
+        store.activeId = d.id;
+        saveStore(store);
+      }
+      return d;
+    };
+
+    const scoreOption = (o: Option, mode: Decision["voteMode"]): number => {
+      let score = 0;
+      let count = 0;
+      let stars = 0;
+      Object.values(o.votes).forEach((v) => {
+        if (v.r) {
+          score += SCORE[v.r];
+          count += 1;
+        }
+        if (mode === "stars-on" && v.s) {
+          stars += v.s;
+        }
+      });
+      const starsBoost = mode === "stars-on" ? stars * 0.05 : 0;
+      const denom = count === 0 ? 1 : count;
+      return score / denom + starsBoost;
+    };
+
+    const sortedOptions = (d: Decision): Option[] =>
+      [...d.options]
+        .map((o, i) => ({ o, i, s: scoreOption(o, d.voteMode) }))
+        .sort((a, b) => (b.s === a.s ? a.i - b.i : b.s - a.s))
+        .map((x) => x.o);
+
+    const arrow = (type: "up" | "mid" | "down"): string => {
+      if (type === "up") return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7-7 7 7"/></svg>';
+      if (type === "mid") return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M14 5l5 7-5 7"/></svg>';
+      return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
+    };
+
+    const renderTallyChip = (name: string, vote: Vote): string => {
+      const safe = name.replace(/[<>&"']/g, (c) => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"})[c] || c);
+      const cls = vote.r ? `is-${vote.r}` : "";
+      const reactGlyph = vote.r ? arrow(vote.r) : "";
+      const starText = vote.s > 0 ? ` ★${vote.s}` : "";
+      return `<span class="ls-chip ${cls}">${reactGlyph}<span>${safe}${starText}</span></span>`;
+    };
+
+    const renderOption = (d: Decision, o: Option, rank: number): HTMLElement => {
+      const isTop = rank === 1;
+      const wrap = document.createElement("article");
+      wrap.className = "ls-option" + (isTop ? " is-top" : "");
+      wrap.dataset.optionId = o.id;
+
+      const head = document.createElement("div");
+      head.className = "ls-option-head";
+
+      const rankSpan = document.createElement("span");
+      rankSpan.className = "ls-option-rank";
+      rankSpan.textContent = `#${rank}`;
+      head.appendChild(rankSpan);
+
+      const titleH = document.createElement("h3");
+      titleH.className = "ls-option-title";
+      titleH.textContent = o.title || "Untitled";
+      head.appendChild(titleH);
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "ls-option-edit";
+      editBtn.textContent = "Edit";
+      editBtn.dataset.action = "edit-option";
+      head.appendChild(editBtn);
+
+      wrap.appendChild(head);
+
+      if (o.notes) {
+        const notesP = document.createElement("p");
+        notesP.className = "ls-option-notes";
+        notesP.textContent = o.notes;
+        wrap.appendChild(notesP);
+      }
+
+      const voteWrap = document.createElement("div");
+      voteWrap.className = "ls-vote-controls";
+      const myVote = o.votes[store.you] || { r: null, s: 0 };
+
+      const btnGroup = document.createElement("div");
+      btnGroup.className = "ls-vote-buttons";
+      (["up", "mid", "down"] as const).forEach((kind) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "ls-vote-btn";
+        b.dataset.vote = kind;
+        b.title = kind === "up" ? "Yes" : kind === "mid" ? "Maybe" : "No";
+        b.setAttribute("aria-label", b.title);
+        if (myVote.r === kind) b.dataset.active = kind;
+        b.innerHTML = arrow(kind);
+        btnGroup.appendChild(b);
+      });
+      voteWrap.appendChild(btnGroup);
+
+      const stars = document.createElement("div");
+      stars.className = "ls-stars";
+      stars.hidden = d.voteMode !== "stars-on";
+      for (let i = 1; i <= 5; i++) {
+        const s = document.createElement("button");
+        s.type = "button";
+        s.className = "ls-star" + (myVote.s >= i ? " is-on" : "");
+        s.dataset.star = String(i);
+        s.title = `${i} star${i === 1 ? "" : "s"}`;
+        s.textContent = "★";
+        stars.appendChild(s);
+      }
+      voteWrap.appendChild(stars);
+
+      wrap.appendChild(voteWrap);
+
+      const tally = document.createElement("div");
+      tally.className = "ls-tally";
+      Object.entries(o.votes).forEach(([name, vote]) => {
+        if (!vote.r && !vote.s) return;
+        tally.insertAdjacentHTML("beforeend", renderTallyChip(name, vote));
+      });
+      wrap.appendChild(tally);
+
+      return wrap;
+    };
+
+    const renderTopPick = (d: Decision): void => {
+      const ranked = sortedOptions(d);
+      const hasVotes = ranked.some((o) => Object.values(o.votes).some((v) => v.r));
+      if (!hasVotes || ranked.length === 0) {
+        topPickBox.hidden = true;
+        return;
+      }
+      const top = ranked[0];
+      topPickBox.hidden = false;
+      topPickTitle.textContent = top.title || "Untitled";
+      const yes = Object.values(top.votes).filter((v) => v.r === "up").length;
+      const mid = Object.values(top.votes).filter((v) => v.r === "mid").length;
+      const no = Object.values(top.votes).filter((v) => v.r === "down").length;
+      const parts: string[] = [];
+      if (yes) parts.push(`${yes} yes`);
+      if (mid) parts.push(`${mid} maybe`);
+      if (no) parts.push(`${no} no`);
+      topPickMeta.textContent = parts.join(" · ") || "Top by score";
+    };
+
+    const renderOptions = (): void => {
+      const d = ensureActive();
+      optionList.innerHTML = "";
+      const ranked = sortedOptions(d);
+      ranked.forEach((o, i) => {
+        optionList.appendChild(renderOption(d, o, i + 1));
+      });
+      emptyState.hidden = ranked.length > 0;
+      renderTopPick(d);
+    };
+
+    const renderPicker = (): void => {
+      picker.innerHTML = "";
+      store.decisions.forEach((d) => {
+        const opt = document.createElement("option");
+        opt.value = d.id;
+        opt.textContent = d.title || "Untitled decision";
+        if (d.id === store.activeId && !pendingSnapshot) opt.selected = true;
+        picker.appendChild(opt);
+      });
+      if (pendingSnapshot) {
+        const opt = document.createElement("option");
+        opt.value = "__snapshot";
+        opt.textContent = `(snapshot) ${pendingSnapshot.title || "Untitled"}`;
+        opt.selected = true;
+        picker.insertBefore(opt, picker.firstChild);
+      }
+    };
+
+    const renderHeader = (): void => {
+      const d = ensureActive();
+      titleEl.textContent = d.title;
+      notesEl.textContent = d.notes;
+      voterNameInput.value = store.you;
+      starsToggle.setAttribute("aria-checked", d.voteMode === "stars-on" ? "true" : "false");
+    };
+
+    const renderAll = (): void => {
+      renderPicker();
+      renderHeader();
+      renderOptions();
+    };
+
+    const persist = (): void => {
+      if (pendingSnapshot) return;
+      const d = ensureActive();
+      d.updatedAt = now();
+      saveStore(store);
+    };
+
+    let saveTimer: number | null = null;
+    const persistDebounced = (): void => {
+      if (saveTimer) window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        persist();
+        renderPicker();
+      }, 350);
+    };
+
+    const showToast = (msg: string): void => {
+      toast.textContent = msg;
+      toast.hidden = false;
+      window.setTimeout(() => { toast.hidden = true; }, 1800);
+    };
+
+    const copyText = async (text: string): Promise<boolean> => {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch {}
+        document.body.removeChild(ta);
+        return ok;
+      }
+    };
+
+    titleEl.addEventListener("input", () => {
+      const d = ensureActive();
+      d.title = (titleEl.textContent ?? "").slice(0, 200);
+      persistDebounced();
+    });
+    notesEl.addEventListener("input", () => {
+      const d = ensureActive();
+      d.notes = (notesEl.textContent ?? "").slice(0, 600);
+      persistDebounced();
+    });
+
+    titleEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); notesEl.focus(); }
+    });
+
+    voterNameInput.addEventListener("input", () => {
+      const name = voterNameInput.value.slice(0, 40) || "You";
+      store.you = name;
+      persist();
+      renderOptions();
+    });
+
+    starsToggle.addEventListener("click", () => {
+      const d = ensureActive();
+      d.voteMode = d.voteMode === "stars-on" ? "reaction" : "stars-on";
+      persist();
+      renderAll();
+    });
+
+    picker.addEventListener("change", () => {
+      const v = picker.value;
+      if (v === "__snapshot") return;
+      pendingSnapshot = null;
+      store.activeId = v;
+      persist();
+      renderAll();
+    });
+
+    const setVote = (optionId: string, reaction: Reaction, star: number | null): void => {
+      const d = ensureActive();
+      const o = d.options.find((x) => x.id === optionId);
+      if (!o) return;
+      const existing = o.votes[store.you] || { r: null, s: 0 };
+      if (reaction !== null) {
+        o.votes[store.you] = { r: existing.r === reaction ? null : reaction, s: existing.s };
+      }
+      if (star !== null) {
+        o.votes[store.you] = { r: existing.r, s: existing.s === star ? 0 : star };
+      }
+      const cur = o.votes[store.you];
+      if (cur && !cur.r && !cur.s) delete o.votes[store.you];
+      persist();
+      renderOptions();
+    };
+
+    optionList.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      const card = target.closest(".ls-option") as HTMLElement | null;
+      if (!card) return;
+      const optionId = card.dataset.optionId ?? "";
+      const editBtn = target.closest('[data-action="edit-option"]') as HTMLElement | null;
+      if (editBtn) { openEditDialog(optionId); return; }
+      const voteBtn = target.closest(".ls-vote-btn") as HTMLElement | null;
+      if (voteBtn) {
+        setVote(optionId, voteBtn.dataset.vote as Reaction, null);
+        return;
+      }
+      const star = target.closest(".ls-star") as HTMLElement | null;
+      if (star) {
+        const n = Number(star.dataset.star) || 0;
+        setVote(optionId, null, n);
+        return;
+      }
+    });
+
+    optionList.addEventListener("dblclick", (e) => {
+      const titleH = (e.target as HTMLElement).closest(".ls-option-title");
+      if (!titleH) return;
+      const card = (titleH as HTMLElement).closest(".ls-option") as HTMLElement | null;
+      if (card?.dataset.optionId) openEditDialog(card.dataset.optionId);
+    });
+
+    let editingOptionId: string | null = null;
+    const openEditDialog = (optionId: string): void => {
+      const d = ensureActive();
+      const o = d.options.find((x) => x.id === optionId);
+      if (!o) return;
+      editingOptionId = optionId;
+      editTitleInput.value = o.title;
+      editNotesInput.value = o.notes;
+      if (typeof editDialog.showModal === "function") editDialog.showModal();
+      else editDialog.setAttribute("open", "");
+      window.setTimeout(() => editTitleInput.focus(), 50);
+    };
+    const closeEditDialog = (): void => {
+      if (typeof editDialog.close === "function") editDialog.close();
+      else editDialog.removeAttribute("open");
+      editingOptionId = null;
+    };
+    editCancelBtn.addEventListener("click", closeEditDialog);
+    editSaveBtn.addEventListener("click", () => {
+      if (!editingOptionId) return;
+      const d = ensureActive();
+      const o = d.options.find((x) => x.id === editingOptionId);
+      if (!o) { closeEditDialog(); return; }
+      o.title = editTitleInput.value.trim().slice(0, 200);
+      o.notes = editNotesInput.value.trim().slice(0, 500);
+      persist();
+      renderOptions();
+      closeEditDialog();
+    });
+    editDeleteBtn.addEventListener("click", () => {
+      if (!editingOptionId) return;
+      const d = ensureActive();
+      d.options = d.options.filter((x) => x.id !== editingOptionId);
+      persist();
+      renderOptions();
+      closeEditDialog();
+    });
+
+    const addOption = (): void => {
+      const d = ensureActive();
+      if (d.options.length >= MAX_OPTIONS) {
+        showToast(`Up to ${MAX_OPTIONS} options.`);
+        return;
+      }
+      const o: Option = { id: newId(), title: "New option", notes: "", votes: {} };
+      d.options.push(o);
+      persist();
+      renderOptions();
+      window.setTimeout(() => openEditDialog(o.id), 50);
+    };
+    addBtn.addEventListener("click", addOption);
+    emptyAddBtn.addEventListener("click", addOption);
+
+    newDecisionBtn.addEventListener("click", () => {
+      pendingSnapshot = null;
+      const d = emptyDecision();
+      d.title = "New decision";
+      store.decisions.unshift(d);
+      store.activeId = d.id;
+      persist();
+      renderAll();
+      window.setTimeout(() => {
+        titleEl.focus();
+        const range = document.createRange();
+        range.selectNodeContents(titleEl);
+        const sel = window.getSelection();
+        if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+      }, 50);
+    });
+
+    const compactSnapshot = (d: Decision): string => {
+      const payload = {
+        v: 1,
+        kind: "snapshot",
+        t: d.title,
+        n: d.notes,
+        m: d.voteMode,
+        o: d.options.map((o) => ({
+          i: o.id,
+          t: o.title,
+          n: o.notes,
+          v: o.votes,
+        })),
+      };
+      return utf8ToB64(JSON.stringify(payload));
+    };
+
+    const compactBallot = (d: Decision): string => {
+      const payload = {
+        v: 1,
+        kind: "ballot",
+        k: d.id,
+        w: store.you,
+        b: Object.fromEntries(
+          d.options
+            .map((o) => [o.id, o.votes[store.you]])
+            .filter(([, vote]) => vote && (vote.r || vote.s))
+        ),
+      };
+      return utf8ToB64(JSON.stringify(payload));
+    };
+
+    type SnapshotPayload = {
+      v: number;
+      kind?: string;
+      t?: string;
+      n?: string;
+      m?: Decision["voteMode"];
+      o?: Array<{ i: string; t: string; n: string; v: Record<string, Vote> }>;
+    };
+    type BallotPayload = {
+      v: number;
+      kind?: string;
+      k?: string;
+      w?: string;
+      b?: Record<string, Vote>;
+    };
+
+    const parsePayload = (raw: string): SnapshotPayload | BallotPayload | null => {
+      try {
+        const json = JSON.parse(b64ToUtf8(raw));
+        if (!json || typeof json !== "object") return null;
+        return json as SnapshotPayload | BallotPayload;
+      } catch { return null; }
+    };
+
+    const hydrateSnapshot = (payload: SnapshotPayload): Decision => {
+      const d = emptyDecision();
+      d.title = (payload.t ?? "").slice(0, 200);
+      d.notes = (payload.n ?? "").slice(0, 600);
+      d.voteMode = payload.m === "stars-on" ? "stars-on" : "reaction";
+      d.options = (payload.o ?? []).slice(0, MAX_OPTIONS).map((o) => ({
+        id: o.i || newId(),
+        title: (o.t ?? "").slice(0, 200),
+        notes: (o.n ?? "").slice(0, 500),
+        votes: o.v && typeof o.v === "object" ? o.v : {},
+      }));
+      return d;
+    };
+
+    shareBtn.addEventListener("click", async () => {
+      const d = ensureActive();
+      const payload = compactSnapshot(d);
+      const url = `${location.origin}/list/#s=${payload}`;
+      const ok = await copyText(url);
+      showToast(ok ? "Snapshot link copied" : "Press Ctrl+C to copy");
+    });
+
+    copyBallotBtn.addEventListener("click", async () => {
+      const d = ensureActive();
+      const myVotes = d.options.some((o) => o.votes[store.you] && (o.votes[store.you].r || o.votes[store.you].s));
+      if (!myVotes) {
+        showToast("Cast at least one vote first.");
+        return;
+      }
+      const payload = compactBallot(d);
+      const url = `${location.origin}/list/#b=${payload}`;
+      const ok = await copyText(url);
+      showToast(ok ? "Ballot link copied" : "Press Ctrl+C to copy");
+    });
+
+    receiveBallotBtn.addEventListener("click", () => {
+      const raw = ballotPaste.value.trim();
+      if (!raw) {
+        showToast("Paste a ballot link first.");
+        return;
+      }
+      const hashMatch = raw.match(/[#&]b=([^&]+)/);
+      const token = hashMatch ? hashMatch[1] : raw;
+      const payload = parsePayload(token);
+      if (!payload || (payload as BallotPayload).kind !== "ballot") {
+        showToast("That doesn't look like a ballot link.");
+        return;
+      }
+      const ballot = payload as BallotPayload;
+      const d = ensureActive();
+      const voter = (ballot.w ?? "Friend").slice(0, 40) || "Friend";
+      let applied = 0;
+      Object.entries(ballot.b ?? {}).forEach(([optId, vote]) => {
+        const o = d.options.find((x) => x.id === optId);
+        if (!o) return;
+        const v = vote as Vote;
+        if (!v || (!v.r && !v.s)) {
+          delete o.votes[voter];
+          return;
+        }
+        o.votes[voter] = { r: v.r ?? null, s: v.s ?? 0 };
+        applied++;
+      });
+      persist();
+      renderOptions();
+      ballotPaste.value = "";
+      showToast(applied > 0 ? `Merged ${applied} vote${applied === 1 ? "" : "s"} from ${voter}.` : "No matching options in that ballot.");
+    });
+
+    const markdownFor = (d: Decision): string => {
+      const lines: string[] = [];
+      lines.push(`# ${d.title || "Decision"}`);
+      if (d.notes) { lines.push(""); lines.push(d.notes); }
+      lines.push("");
+      const ranked = sortedOptions(d);
+      ranked.forEach((o, i) => {
+        const yes = Object.values(o.votes).filter((v) => v.r === "up").length;
+        const mid = Object.values(o.votes).filter((v) => v.r === "mid").length;
+        const no = Object.values(o.votes).filter((v) => v.r === "down").length;
+        const tally: string[] = [];
+        if (yes) tally.push(`${yes} yes`);
+        if (mid) tally.push(`${mid} maybe`);
+        if (no) tally.push(`${no} no`);
+        lines.push(`${i + 1}. **${o.title || "Untitled"}**${tally.length ? `  (${tally.join(", ")})` : ""}`);
+        if (o.notes) lines.push(`   ${o.notes}`);
+      });
+      lines.push("");
+      lines.push(`_Decided with ${location.origin}/list/_`);
+      return lines.join("\n");
+    };
+
+    copyMdBtn.addEventListener("click", async () => {
+      const d = ensureActive();
+      const ok = await copyText(markdownFor(d));
+      showToast(ok ? "Markdown copied" : "Press Ctrl+C to copy");
+    });
+
+    bannerForkBtn.addEventListener("click", () => {
+      if (!pendingSnapshot) return;
+      const d = pendingSnapshot;
+      d.createdAt = now();
+      d.updatedAt = now();
+      d.id = newId();
+      pendingSnapshot = null;
+      store.decisions.unshift(d);
+      store.activeId = d.id;
+      persist();
+      banner.hidden = true;
+      renderAll();
+      showToast("Forked as new decision.");
+      try { history.replaceState(null, "", "/list/"); } catch {}
+    });
+
+    bannerDismissBtn.addEventListener("click", () => {
+      pendingSnapshot = null;
+      banner.hidden = true;
+      renderAll();
+      try { history.replaceState(null, "", "/list/"); } catch {}
+    });
+
+    const handleHash = (): void => {
+      const hash = location.hash.replace(/^#/, "");
+      if (!hash) return;
+      const params = new URLSearchParams(hash);
+      const snap = params.get("s");
+      const ball = params.get("b");
+      if (snap) {
+        const payload = parsePayload(snap);
+        if (payload && (payload as SnapshotPayload).kind === "snapshot") {
+          pendingSnapshot = hydrateSnapshot(payload as SnapshotPayload);
+          banner.hidden = false;
+          renderAll();
+          return;
+        }
+      }
+      if (ball) {
+        ballotPaste.value = `${location.origin}/list/#b=${ball}`;
+        showToast("Ballot link loaded. Tap Receive ballot to merge.");
+        try { history.replaceState(null, "", "/list/"); } catch {}
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/list/sw.js", { scope: "/list/" }).catch(() => {});
+      });
+    }
+
+    renderAll();
+    handleHash();
+  </script>
+</BaseLayout>

@@ -1,0 +1,18 @@
+{
+  "name": "List · shared decision lists",
+  "short_name": "List",
+  "description": "Build a shared decision list. Add options, score them, rank them, share a snapshot. Saved in your browser. Works offline.",
+  "start_url": "/list/",
+  "scope": "/list/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbfaf5",
+  "theme_color": "#fbfaf5",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "en"
+}
