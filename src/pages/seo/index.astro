@@ -1,0 +1,853 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "SEO · social card preview for Open Graph and Twitter";
+const description =
+  "Author or paste Open Graph and Twitter meta tags. See live previews for Twitter / X, LinkedIn / Facebook, Discord, Slack, and Google search. Copy generated meta tags or share a preview link. Runs in your browser. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/seo/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "SEO",
+  alternateName: ["OG Image Preview", "Open Graph Preview", "Social Card Preview", "Twitter Card Preview"],
+  url: canonical,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Live Twitter / X large-image card preview",
+    "LinkedIn and Facebook share preview",
+    "Discord embed preview",
+    "Slack unfurl preview",
+    "Google search snippet preview",
+    "Author Open Graph and Twitter meta tags from form fields",
+    "Parse existing meta tags pasted from any HTML head",
+    "Copy generated meta tags to clipboard",
+    "Share-URL of the current preview",
+    "Works offline (PWA)",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is SEO for?",
+    a: "When you ship a new page and want to know how it will look when shared on Twitter, LinkedIn, or Discord before you actually share it. Fill the fields or paste the head of your page, scan the previews, fix what looks wrong, copy the corrected meta tags, paste them back into your site.",
+  },
+  {
+    q: "Why these specific platforms?",
+    a: "Twitter / X and Facebook / LinkedIn all use Open Graph and Twitter Cards meta tags, and the previews here mirror what each platform renders today within a few pixels. Discord and Slack both unfurl Open Graph too. Google search uses different inputs (title, meta description, URL) but the same fields cover it.",
+  },
+  {
+    q: "Do you fetch my URL?",
+    a: "No. Nothing leaves your browser. If you want to preview a live page, view-source on that page, copy the head, paste it into the Parse tab. The tool reads only what you give it.",
+  },
+  {
+    q: "What size should the OG image be?",
+    a: "1200 by 630 pixels is the safe modern default. Twitter / X uses summary_large_image at the same aspect. LinkedIn requires at least 1200 by 627. Discord crops to roughly 4:3 but is forgiving. Use 1200x630 unless you have a reason to differ.",
+  },
+  {
+    q: "What is the difference between Compose and Parse?",
+    a: "Compose lets you author meta tags from scratch by filling form fields. Parse lets you paste an HTML head block from a real page and pulls the meta tags out for you. Both feed the same set of previews.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. No analytics, no third-party scripts, no telemetry. Your values stay in your browser, persisted to localStorage so they survive a page reload.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/seo/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="seo-page">
+    <header class="seo-topbar">
+      <div class="seo-topbar-inner">
+        <div class="seo-brand">
+          <span class="seo-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="14" rx="2" />
+              <path d="M3 8h18" />
+              <circle cx="7.5" cy="6" r="0.6" fill="currentColor" />
+              <circle cx="9.5" cy="6" r="0.6" fill="currentColor" />
+              <path d="M7 13l2.5-2.5 2 2 3-3 2 2" />
+            </svg>
+          </span>
+          <span class="seo-brand-name">SEO</span>
+        </div>
+        <div class="seo-topbar-actions">
+          <button id="share-btn" type="button" class="seo-btn seo-btn-ghost">Share</button>
+          <button id="example-btn" type="button" class="seo-btn seo-btn-ghost">Try example</button>
+          <button id="copy-meta-btn" type="button" class="seo-btn seo-btn-primary">Copy meta tags</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="seo-tabs" role="tablist" aria-label="Mode">
+      <button id="tab-compose" class="seo-tab" role="tab" type="button" aria-selected="true">Compose</button>
+      <button id="tab-parse" class="seo-tab" role="tab" type="button" aria-selected="false">Parse HTML</button>
+    </div>
+
+    <section id="panel-compose" class="seo-panel" role="tabpanel">
+      <div class="seo-grid">
+        <label class="seo-field seo-field-wide">
+          <span class="seo-field-label">Page URL</span>
+          <input id="f-url" type="url" placeholder="https://example.com/post/launch" autocomplete="off" spellcheck="false" />
+        </label>
+        <label class="seo-field seo-field-wide">
+          <span class="seo-field-label">Title</span>
+          <input id="f-title" type="text" maxlength="120" placeholder="A clear, specific title" autocomplete="off" />
+        </label>
+        <label class="seo-field seo-field-wide">
+          <span class="seo-field-label">Description</span>
+          <textarea id="f-description" rows="3" maxlength="320" placeholder="One or two sentences. 50-160 characters reads best across platforms." autocomplete="off"></textarea>
+        </label>
+        <label class="seo-field seo-field-wide">
+          <span class="seo-field-label">Image URL (or data URI)</span>
+          <input id="f-image" type="text" placeholder="https://example.com/og.png" autocomplete="off" spellcheck="false" />
+        </label>
+        <label class="seo-field">
+          <span class="seo-field-label">Site name</span>
+          <input id="f-site" type="text" placeholder="Example" autocomplete="off" />
+        </label>
+        <label class="seo-field">
+          <span class="seo-field-label">Twitter handle (with @)</span>
+          <input id="f-twitter" type="text" placeholder="@example" autocomplete="off" spellcheck="false" />
+        </label>
+        <label class="seo-field">
+          <span class="seo-field-label">Twitter card</span>
+          <select id="f-card">
+            <option value="summary_large_image">summary_large_image</option>
+            <option value="summary">summary</option>
+          </select>
+        </label>
+      </div>
+      <div class="seo-counts">
+        <span><span id="count-title">0</span> / 120 title</span>
+        <span><span id="count-desc">0</span> / 320 description</span>
+      </div>
+    </section>
+
+    <section id="panel-parse" class="seo-panel" hidden role="tabpanel">
+      <label class="seo-field seo-field-wide">
+        <span class="seo-field-label">Paste raw HTML head (or the whole page)</span>
+        <textarea id="f-html" rows="14" placeholder='Paste here. Looks like:&#10;&#10;<meta property="og:title" content="A clear, specific title" />&#10;<meta property="og:description" content="One or two sentences." />&#10;<meta property="og:image" content="https://example.com/og.png" />&#10;<meta name="twitter:card" content="summary_large_image" />' spellcheck="false" autocomplete="off"></textarea>
+      </label>
+      <div class="seo-parse-meta">
+        <button id="parse-btn" type="button" class="seo-btn seo-btn-primary">Parse and load fields</button>
+        <span id="parse-status" class="seo-muted">Paste any HTML containing Open Graph or Twitter meta tags.</span>
+      </div>
+    </section>
+
+    <section class="seo-previews">
+      <h2 class="seo-section-title">Previews</h2>
+
+      <div class="seo-preview-card">
+        <div class="seo-preview-head">
+          <span class="seo-preview-platform">Twitter / X</span>
+          <span class="seo-preview-spec" id="preview-twitter-spec">summary_large_image · 1200 x 600</span>
+        </div>
+        <div class="seo-tw-card">
+          <div class="seo-tw-image" id="preview-twitter-image"></div>
+          <div class="seo-tw-body">
+            <div class="seo-tw-domain" id="preview-twitter-domain">example.com</div>
+            <div class="seo-tw-title" id="preview-twitter-title">A clear, specific title</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="seo-preview-card">
+        <div class="seo-preview-head">
+          <span class="seo-preview-platform">LinkedIn / Facebook</span>
+          <span class="seo-preview-spec">og:image · 1200 x 627</span>
+        </div>
+        <div class="seo-li-card">
+          <div class="seo-li-image" id="preview-li-image"></div>
+          <div class="seo-li-body">
+            <div class="seo-li-domain" id="preview-li-domain">EXAMPLE.COM</div>
+            <div class="seo-li-title" id="preview-li-title">A clear, specific title</div>
+            <div class="seo-li-desc" id="preview-li-desc">One or two sentences. 50 to 160 characters reads best.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="seo-preview-card">
+        <div class="seo-preview-head">
+          <span class="seo-preview-platform">Discord</span>
+          <span class="seo-preview-spec">embed card</span>
+        </div>
+        <div class="seo-dc-card">
+          <div class="seo-dc-stripe"></div>
+          <div class="seo-dc-body">
+            <div class="seo-dc-site" id="preview-dc-site">example.com</div>
+            <div class="seo-dc-title" id="preview-dc-title">A clear, specific title</div>
+            <div class="seo-dc-desc" id="preview-dc-desc">One or two sentences.</div>
+            <div class="seo-dc-image" id="preview-dc-image"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="seo-preview-card">
+        <div class="seo-preview-head">
+          <span class="seo-preview-platform">Slack unfurl</span>
+          <span class="seo-preview-spec">side-stripe card</span>
+        </div>
+        <div class="seo-sl-card">
+          <div class="seo-sl-stripe"></div>
+          <div class="seo-sl-body">
+            <div class="seo-sl-site" id="preview-sl-site">example</div>
+            <div class="seo-sl-title" id="preview-sl-title">A clear, specific title</div>
+            <div class="seo-sl-desc" id="preview-sl-desc">One or two sentences.</div>
+            <div class="seo-sl-image" id="preview-sl-image"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="seo-preview-card">
+        <div class="seo-preview-head">
+          <span class="seo-preview-platform">Google search</span>
+          <span class="seo-preview-spec">desktop SERP snippet</span>
+        </div>
+        <div class="seo-g-card">
+          <div class="seo-g-url" id="preview-g-url">example.com &rsaquo; post</div>
+          <div class="seo-g-title" id="preview-g-title">A clear, specific title</div>
+          <div class="seo-g-desc" id="preview-g-desc">One or two sentences. 50 to 160 characters reads best.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="seo-output">
+      <h2 class="seo-section-title">Generated meta tags</h2>
+      <pre id="meta-output" class="seo-output-snippet"></pre>
+    </section>
+
+    <section class="seo-why">
+      <h2>Why this exists</h2>
+      <p>
+        Most social card previewers route your URL through a server, hit
+        rate limits, sell you a paid tier, or bake their own watermark into
+        the preview. SEO renders everything from your inputs in the browser
+        and matches the way each platform actually composes the card. No
+        upload, no fetch, no signup.
+      </p>
+    </section>
+
+    <section class="seo-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="seo-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div id="toast" class="seo-toast" role="status" aria-live="polite" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --seo-bg: #fbfaf5;
+    --seo-fg: #1a1611;
+    --seo-muted: #6b6359;
+    --seo-line: #e5dfd0;
+    --seo-card: #ffffff;
+    --seo-accent: #4850c4;
+    --seo-accent-soft: #e3e5fa;
+    --seo-twitter: #14171a;
+    --seo-twitter-muted: #5b7083;
+    --seo-twitter-domain: #74808a;
+    --seo-li-bg: #ffffff;
+    --seo-li-muted: #5e6c7a;
+    --seo-discord-bg: #2b2d31;
+    --seo-discord-fg: #f2f3f5;
+    --seo-discord-muted: #b5bac1;
+    --seo-discord-stripe: #5865f2;
+    --seo-slack-bg: #ffffff;
+    --seo-slack-fg: #1d1c1d;
+    --seo-slack-muted: #616061;
+    --seo-google-bg: #ffffff;
+    --seo-google-blue: #1a0dab;
+    --seo-google-url: #006621;
+    --seo-google-desc: #4d5156;
+  }
+  :root[data-theme="dark"] {
+    --seo-bg: #0e0c08;
+    --seo-fg: #f1ece0;
+    --seo-muted: #9c9485;
+    --seo-line: #2a2620;
+    --seo-card: #16130d;
+    --seo-accent: #7078e0;
+    --seo-accent-soft: #1d1f3a;
+  }
+
+  body { background: var(--seo-bg); color: var(--seo-fg); }
+  .seo-page { max-width: 980px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .seo-topbar { border-bottom: 1px solid var(--seo-line); padding: 18px 0; margin-bottom: 28px; }
+  .seo-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .seo-brand { display: flex; align-items: center; gap: 10px; }
+  .seo-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--seo-accent-soft); color: var(--seo-accent); }
+  .seo-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+  .seo-topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .seo-muted { color: var(--seo-muted); font-size: 13px; }
+
+  .seo-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px; border: 1px solid var(--seo-line);
+    background: var(--seo-card); color: var(--seo-fg);
+    font: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .seo-btn:hover { border-color: var(--seo-accent); color: var(--seo-accent); }
+  .seo-btn-primary { background: var(--seo-accent); color: #fff; border-color: var(--seo-accent); font-weight: 600; }
+  .seo-btn-primary:hover { color: #fff; filter: brightness(1.05); }
+  .seo-btn-ghost { background: transparent; }
+
+  .seo-tabs {
+    display: inline-flex; padding: 3px;
+    background: var(--seo-card); border: 1px solid var(--seo-line); border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .seo-tab {
+    font: inherit; font-size: 13px; font-weight: 500;
+    padding: 8px 18px; border-radius: 999px; border: 0;
+    background: transparent; color: var(--seo-fg); cursor: pointer;
+  }
+  .seo-tab[aria-selected="true"] { background: var(--seo-accent); color: #fff; }
+
+  .seo-panel { margin-bottom: 28px; }
+  .seo-panel[hidden] { display: none !important; }
+  .seo-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    background: var(--seo-card); border: 1px solid var(--seo-line); border-radius: 16px;
+    padding: 22px;
+  }
+  .seo-field { display: flex; flex-direction: column; gap: 6px; }
+  .seo-field-wide { grid-column: span 2; }
+  .seo-field-label { font-size: 12px; color: var(--seo-muted); font-weight: 500; }
+  .seo-field input, .seo-field select, .seo-field textarea {
+    font: inherit; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--seo-line); background: var(--seo-bg); color: var(--seo-fg);
+    outline: none;
+  }
+  .seo-field input:focus, .seo-field select:focus, .seo-field textarea:focus { border-color: var(--seo-accent); }
+  .seo-field textarea {
+    resize: vertical; min-height: 80px;
+    font-family: "JetBrains Mono", monospace; font-size: 13px;
+  }
+  .seo-counts {
+    display: flex; gap: 16px; margin-top: 8px; padding: 0 4px;
+    font-size: 12px; color: var(--seo-muted); font-family: "JetBrains Mono", monospace;
+  }
+  .seo-parse-meta { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+
+  .seo-previews { display: grid; gap: 18px; margin-top: 12px; }
+  .seo-section-title { font-family: "Fraunces", serif; font-weight: 400; font-size: 24px; margin: 0 0 14px; letter-spacing: -0.01em; }
+  .seo-preview-card {
+    background: var(--seo-card); border: 1px solid var(--seo-line); border-radius: 16px;
+    padding: 18px;
+  }
+  .seo-preview-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+  .seo-preview-platform { font-family: "Fraunces", serif; font-size: 18px; letter-spacing: -0.01em; }
+  .seo-preview-spec { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--seo-muted); }
+
+  /* Twitter card */
+  .seo-tw-card {
+    border: 1px solid #cfd9de; border-radius: 14px; overflow: hidden;
+    background: #ffffff; color: var(--seo-twitter);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .seo-tw-image {
+    aspect-ratio: 2 / 1; background: #e1e8ed center/cover no-repeat;
+    background-image: linear-gradient(135deg, #e2dcc8, #c4b89c);
+    display: flex; align-items: center; justify-content: center;
+    color: #6b6359; font-size: 12px;
+  }
+  .seo-tw-image[data-empty="true"]::after { content: "1200 x 600 image"; }
+  .seo-tw-body { padding: 12px 14px; }
+  .seo-tw-domain { font-size: 13px; color: var(--seo-twitter-domain); }
+  .seo-tw-title { font-size: 15px; font-weight: 500; color: var(--seo-twitter); margin-top: 2px; line-height: 1.3; }
+
+  /* LinkedIn / Facebook card */
+  .seo-li-card {
+    border: 1px solid #d6d6d6; border-radius: 0; overflow: hidden;
+    background: var(--seo-li-bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .seo-li-image {
+    aspect-ratio: 1200 / 627; background: #f1ece0 center/cover no-repeat;
+    background-image: linear-gradient(135deg, #f1ece0, #d8d0bd);
+    display: flex; align-items: center; justify-content: center;
+    color: #6b6359; font-size: 12px;
+  }
+  .seo-li-image[data-empty="true"]::after { content: "1200 x 627 image"; }
+  .seo-li-body { padding: 12px 16px; background: #eef3f8; color: #1f1f1f; }
+  .seo-li-domain { font-size: 12px; color: var(--seo-li-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .seo-li-title { font-size: 16px; font-weight: 600; color: #000; margin-top: 4px; line-height: 1.3; }
+  .seo-li-desc { font-size: 13px; color: var(--seo-li-muted); margin-top: 6px; line-height: 1.4; }
+
+  /* Discord card */
+  .seo-dc-card {
+    background: var(--seo-discord-bg); color: var(--seo-discord-fg);
+    border-radius: 8px; overflow: hidden;
+    display: flex; min-height: 80px;
+    font-family: "gg sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  .seo-dc-stripe { width: 4px; background: var(--seo-discord-stripe); }
+  .seo-dc-body { flex: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .seo-dc-site { font-size: 12px; color: var(--seo-discord-muted); }
+  .seo-dc-title { font-size: 16px; font-weight: 600; color: #00a8fc; line-height: 1.3; }
+  .seo-dc-desc { font-size: 14px; color: var(--seo-discord-fg); line-height: 1.4; }
+  .seo-dc-image {
+    aspect-ratio: 1200 / 630; border-radius: 4px; margin-top: 6px; max-width: 400px;
+    background: #1e1f22 center/cover no-repeat;
+    background-image: linear-gradient(135deg, #303236, #1e1f22);
+    display: flex; align-items: center; justify-content: center;
+    color: #5b5f66; font-size: 12px;
+  }
+  .seo-dc-image[data-empty="true"]::after { content: "embed image"; }
+
+  /* Slack unfurl */
+  .seo-sl-card {
+    background: var(--seo-slack-bg); color: var(--seo-slack-fg);
+    border: 1px solid #ddd; border-left: 4px solid #cfd1d3;
+    border-radius: 4px;
+    display: flex; min-height: 60px;
+    font-family: Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  .seo-sl-stripe { display: none; }
+  .seo-sl-body { flex: 1; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .seo-sl-site { font-size: 12px; color: var(--seo-slack-muted); font-weight: 700; }
+  .seo-sl-title { font-size: 14px; font-weight: 700; color: #1264a3; line-height: 1.3; }
+  .seo-sl-desc { font-size: 13px; color: var(--seo-slack-fg); line-height: 1.4; }
+  .seo-sl-image {
+    aspect-ratio: 1200 / 630; border-radius: 4px; margin-top: 6px; max-width: 360px;
+    background: #f1ece0 center/cover no-repeat;
+    background-image: linear-gradient(135deg, #f1ece0, #d8d0bd);
+    display: flex; align-items: center; justify-content: center;
+    color: #6b6359; font-size: 12px;
+  }
+  .seo-sl-image[data-empty="true"]::after { content: "unfurl image"; }
+
+  /* Google search snippet */
+  .seo-g-card {
+    background: var(--seo-google-bg); padding: 14px 16px; border-radius: 8px; border: 1px solid #d0d7de;
+    font-family: arial, sans-serif;
+  }
+  .seo-g-url { font-size: 13px; color: var(--seo-google-url); }
+  .seo-g-title { font-size: 20px; color: var(--seo-google-blue); margin-top: 2px; line-height: 1.3; }
+  .seo-g-desc { font-size: 14px; color: var(--seo-google-desc); margin-top: 4px; line-height: 1.45; }
+
+  .seo-output { margin-top: 28px; background: var(--seo-card); border: 1px solid var(--seo-line); border-radius: 16px; padding: 18px; }
+  .seo-output-snippet {
+    margin: 6px 0 0; padding: 14px 16px; border-radius: 10px;
+    background: var(--seo-bg); border: 1px solid var(--seo-line);
+    color: var(--seo-fg); font-family: "JetBrains Mono", monospace; font-size: 12px;
+    overflow-x: auto; white-space: pre; line-height: 1.6;
+  }
+
+  .seo-why { margin-top: 48px; }
+  .seo-why h2, .seo-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .seo-why p { font-size: 16px; line-height: 1.6; color: var(--seo-fg); max-width: 64ch; margin: 0; }
+
+  .seo-faq { margin-top: 56px; }
+  .seo-faq dl { display: grid; gap: 18px; margin: 0; }
+  .seo-faq-item { background: var(--seo-card); border: 1px solid var(--seo-line); border-radius: 14px; padding: 16px 20px; }
+  .seo-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .seo-faq-item dd { color: var(--seo-muted); line-height: 1.55; margin: 0; }
+
+  .seo-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--seo-fg); color: var(--seo-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+  }
+  .seo-toast[hidden] { display: none !important; }
+
+  @media (max-width: 720px) {
+    .seo-grid { grid-template-columns: 1fr; }
+    .seo-field-wide { grid-column: span 1; }
+  }
+</style>
+
+<script>
+type CardType = "summary_large_image" | "summary";
+
+type Persist = {
+  v: 1;
+  url: string;
+  title: string;
+  description: string;
+  image: string;
+  site: string;
+  twitter: string;
+  card: CardType;
+  mode: "compose" | "parse";
+};
+
+const STORAGE_KEY = "seo:v1";
+const DEFAULT: Persist = {
+  v: 1,
+  url: "",
+  title: "",
+  description: "",
+  image: "",
+  site: "",
+  twitter: "",
+  card: "summary_large_image",
+  mode: "compose",
+};
+
+const EXAMPLE: Persist = {
+  v: 1,
+  url: "https://truffleagent.com/seo/",
+  title: "SEO · social card preview for Open Graph and Twitter",
+  description: "Author or paste Open Graph and Twitter meta tags. See live previews for Twitter / X, LinkedIn / Facebook, Discord, Slack, and Google search.",
+  image: "https://truffleagent.com/img/og.jpg",
+  site: "Truffle",
+  twitter: "@truffle_dev",
+  card: "summary_large_image",
+  mode: "compose",
+};
+
+function loadPersist(): Persist {
+  try {
+    const fromHash = readHash();
+    if (fromHash) return fromHash;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { ...DEFAULT };
+    const p = JSON.parse(raw);
+    if (p && p.v === 1) return { ...DEFAULT, ...p };
+  } catch {}
+  return { ...DEFAULT };
+}
+
+function savePersist(p: Persist): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
+}
+
+function utf8ToB64(s: string): string {
+  const bytes = new TextEncoder().encode(s);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+function b64ToUtf8(s: string): string {
+  const padded = s.replaceAll("-", "+").replaceAll("_", "/");
+  const pad = (4 - (padded.length % 4)) % 4;
+  const b = atob(padded + "=".repeat(pad));
+  const bytes = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) bytes[i] = b.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function readHash(): Persist | null {
+  if (!location.hash.startsWith("#p=")) return null;
+  try {
+    const json = b64ToUtf8(location.hash.slice(3));
+    const p = JSON.parse(json);
+    if (p && p.v === 1) return { ...DEFAULT, ...p };
+  } catch {}
+  return null;
+}
+function writeHash(p: Persist): string {
+  return "#p=" + utf8ToB64(JSON.stringify(p));
+}
+
+function toast(msg: string): void {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.hidden = false;
+  window.setTimeout(() => { el.hidden = true; }, 1800);
+}
+
+function escapeHtml(s: string): string {
+  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+function domain(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.host.replace(/^www\./, "");
+  } catch {
+    return url || "example.com";
+  }
+}
+
+function googleUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    const host = u.host.replace(/^www\./, "");
+    if (parts.length === 0) return host;
+    return `${host} › ${parts.join(" › ")}`;
+  } catch {
+    return "example.com";
+  }
+}
+
+function setImageOrPlaceholder(el: HTMLElement | null, src: string): void {
+  if (!el) return;
+  const sane = src.trim();
+  if (sane && (sane.startsWith("http://") || sane.startsWith("https://") || sane.startsWith("data:image/"))) {
+    el.style.backgroundImage = `url("${sane}")`;
+    el.dataset.empty = "false";
+  } else {
+    el.style.backgroundImage = "";
+    el.dataset.empty = "true";
+  }
+}
+
+let state: Persist = loadPersist();
+
+function generateMeta(p: Persist): string {
+  const lines: string[] = [];
+  if (p.title) lines.push(`<title>${escapeHtml(p.title)}</title>`);
+  if (p.description) lines.push(`<meta name="description" content="${escapeHtml(p.description)}" />`);
+  if (p.url) lines.push(`<link rel="canonical" href="${escapeHtml(p.url)}" />`);
+  lines.push("");
+  if (p.title) lines.push(`<meta property="og:title" content="${escapeHtml(p.title)}" />`);
+  if (p.description) lines.push(`<meta property="og:description" content="${escapeHtml(p.description)}" />`);
+  if (p.url) lines.push(`<meta property="og:url" content="${escapeHtml(p.url)}" />`);
+  if (p.image) lines.push(`<meta property="og:image" content="${escapeHtml(p.image)}" />`);
+  if (p.site) lines.push(`<meta property="og:site_name" content="${escapeHtml(p.site)}" />`);
+  lines.push(`<meta property="og:type" content="website" />`);
+  lines.push("");
+  lines.push(`<meta name="twitter:card" content="${p.card}" />`);
+  if (p.title) lines.push(`<meta name="twitter:title" content="${escapeHtml(p.title)}" />`);
+  if (p.description) lines.push(`<meta name="twitter:description" content="${escapeHtml(p.description)}" />`);
+  if (p.image) lines.push(`<meta name="twitter:image" content="${escapeHtml(p.image)}" />`);
+  if (p.twitter) lines.push(`<meta name="twitter:site" content="${escapeHtml(p.twitter)}" />`);
+  return lines.join("\n");
+}
+
+function renderPreviews(): void {
+  const titleFallback = "Your title goes here";
+  const descFallback = "Your description goes here. 50 to 160 characters reads best across platforms.";
+  const t = state.title || titleFallback;
+  const d = state.description || descFallback;
+  const dom = domain(state.url);
+  const upperDom = dom.toUpperCase();
+  const slackName = state.site || dom.split(".")[0] || "example";
+
+  // Twitter
+  const twSpec = state.card === "summary_large_image" ? "summary_large_image · 1200 x 600" : "summary · 144 x 144";
+  (document.getElementById("preview-twitter-spec") as HTMLElement).textContent = twSpec;
+  setImageOrPlaceholder(document.getElementById("preview-twitter-image"), state.image);
+  (document.getElementById("preview-twitter-domain") as HTMLElement).textContent = dom;
+  (document.getElementById("preview-twitter-title") as HTMLElement).textContent = t;
+
+  // LinkedIn / Facebook
+  setImageOrPlaceholder(document.getElementById("preview-li-image"), state.image);
+  (document.getElementById("preview-li-domain") as HTMLElement).textContent = upperDom;
+  (document.getElementById("preview-li-title") as HTMLElement).textContent = t;
+  (document.getElementById("preview-li-desc") as HTMLElement).textContent = d;
+
+  // Discord
+  (document.getElementById("preview-dc-site") as HTMLElement).textContent = state.site || dom;
+  (document.getElementById("preview-dc-title") as HTMLElement).textContent = t;
+  (document.getElementById("preview-dc-desc") as HTMLElement).textContent = d;
+  setImageOrPlaceholder(document.getElementById("preview-dc-image"), state.image);
+
+  // Slack
+  (document.getElementById("preview-sl-site") as HTMLElement).textContent = slackName;
+  (document.getElementById("preview-sl-title") as HTMLElement).textContent = t;
+  (document.getElementById("preview-sl-desc") as HTMLElement).textContent = d;
+  setImageOrPlaceholder(document.getElementById("preview-sl-image"), state.image);
+
+  // Google
+  (document.getElementById("preview-g-url") as HTMLElement).innerHTML = googleUrl(state.url);
+  (document.getElementById("preview-g-title") as HTMLElement).textContent = t;
+  (document.getElementById("preview-g-desc") as HTMLElement).textContent = d;
+
+  const out = document.getElementById("meta-output");
+  if (out) out.textContent = generateMeta(state);
+
+  (document.getElementById("count-title") as HTMLElement).textContent = String(state.title.length);
+  (document.getElementById("count-desc") as HTMLElement).textContent = String(state.description.length);
+}
+
+function reflectInputs(): void {
+  (document.getElementById("f-url") as HTMLInputElement).value = state.url;
+  (document.getElementById("f-title") as HTMLInputElement).value = state.title;
+  (document.getElementById("f-description") as HTMLTextAreaElement).value = state.description;
+  (document.getElementById("f-image") as HTMLInputElement).value = state.image;
+  (document.getElementById("f-site") as HTMLInputElement).value = state.site;
+  (document.getElementById("f-twitter") as HTMLInputElement).value = state.twitter;
+  (document.getElementById("f-card") as HTMLSelectElement).value = state.card;
+}
+
+function setMode(mode: "compose" | "parse"): void {
+  state = { ...state, mode };
+  savePersist(state);
+  (document.getElementById("tab-compose") as HTMLButtonElement).setAttribute("aria-selected", mode === "compose" ? "true" : "false");
+  (document.getElementById("tab-parse") as HTMLButtonElement).setAttribute("aria-selected", mode === "parse" ? "true" : "false");
+  (document.getElementById("panel-compose") as HTMLElement).hidden = mode !== "compose";
+  (document.getElementById("panel-parse") as HTMLElement).hidden = mode !== "parse";
+}
+
+function parseHtml(html: string): Partial<Persist> {
+  const out: Partial<Persist> = {};
+  const tagRegex = /<meta\s+([^>]+?)\s*\/?>/gi;
+  const titleRegex = /<title[^>]*>([^<]*)<\/title>/i;
+  const canonRegex = /<link\s+[^>]*rel\s*=\s*["']canonical["'][^>]*?>/i;
+  const titleMatch = html.match(titleRegex);
+  if (titleMatch) out.title = decodeEntities(titleMatch[1].trim());
+  const canonMatch = html.match(canonRegex);
+  if (canonMatch) {
+    const href = (canonMatch[0].match(/href\s*=\s*["']([^"']+)["']/i) || [])[1];
+    if (href) out.url = href;
+  }
+  let m: RegExpExecArray | null;
+  while ((m = tagRegex.exec(html)) !== null) {
+    const attrs = m[1];
+    const name = (attrs.match(/(?:property|name)\s*=\s*["']([^"']+)["']/i) || [])[1];
+    const content = (attrs.match(/content\s*=\s*["']([^"']*)["']/i) || [])[1];
+    if (!name || content == null) continue;
+    const key = name.toLowerCase();
+    const val = decodeEntities(content);
+    if (key === "og:title" && !out.title) out.title = val;
+    else if (key === "og:description" && !out.description) out.description = val;
+    else if (key === "og:url" && !out.url) out.url = val;
+    else if (key === "og:image" && !out.image) out.image = val;
+    else if (key === "og:site_name") out.site = val;
+    else if (key === "twitter:title" && !out.title) out.title = val;
+    else if (key === "twitter:description" && !out.description) out.description = val;
+    else if (key === "twitter:image" && !out.image) out.image = val;
+    else if (key === "twitter:site") out.twitter = val;
+    else if (key === "twitter:card") {
+      if (val === "summary" || val === "summary_large_image") out.card = val;
+    } else if (key === "description" && !out.description) out.description = val;
+  }
+  return out;
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&apos;", "'");
+}
+
+function bind(): void {
+  const inputs: Array<[string, keyof Persist]> = [
+    ["f-url", "url"],
+    ["f-title", "title"],
+    ["f-description", "description"],
+    ["f-image", "image"],
+    ["f-site", "site"],
+    ["f-twitter", "twitter"],
+  ];
+  inputs.forEach(([id, key]) => {
+    const el = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement;
+    el.addEventListener("input", () => {
+      state = { ...state, [key]: el.value } as Persist;
+      savePersist(state);
+      renderPreviews();
+    });
+  });
+
+  const cardSel = document.getElementById("f-card") as HTMLSelectElement;
+  cardSel.addEventListener("change", () => {
+    state = { ...state, card: cardSel.value as CardType };
+    savePersist(state);
+    renderPreviews();
+  });
+
+  (document.getElementById("tab-compose") as HTMLButtonElement).addEventListener("click", () => setMode("compose"));
+  (document.getElementById("tab-parse") as HTMLButtonElement).addEventListener("click", () => setMode("parse"));
+
+  (document.getElementById("parse-btn") as HTMLButtonElement).addEventListener("click", () => {
+    const html = (document.getElementById("f-html") as HTMLTextAreaElement).value;
+    const parsed = parseHtml(html);
+    const status = document.getElementById("parse-status") as HTMLElement;
+    const fieldsHit = Object.keys(parsed).length;
+    if (fieldsHit === 0) {
+      status.textContent = "No Open Graph or Twitter meta tags found.";
+      return;
+    }
+    state = { ...state, ...parsed };
+    savePersist(state);
+    reflectInputs();
+    renderPreviews();
+    status.textContent = `Loaded ${fieldsHit} field${fieldsHit === 1 ? "" : "s"} from HTML.`;
+    setMode("compose");
+  });
+
+  (document.getElementById("copy-meta-btn") as HTMLButtonElement).addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(generateMeta(state));
+      toast("Copied meta tags");
+    } catch {
+      toast("Could not copy");
+    }
+  });
+
+  (document.getElementById("example-btn") as HTMLButtonElement).addEventListener("click", () => {
+    state = { ...EXAMPLE, mode: state.mode };
+    savePersist(state);
+    reflectInputs();
+    renderPreviews();
+  });
+
+  (document.getElementById("share-btn") as HTMLButtonElement).addEventListener("click", async () => {
+    const url = location.origin + location.pathname + writeHash(state);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("Copied share link");
+    } catch {
+      history.replaceState(null, "", writeHash(state));
+      toast("Updated URL");
+    }
+  });
+
+  window.addEventListener("hashchange", () => {
+    const fromHash = readHash();
+    if (fromHash) {
+      state = fromHash;
+      reflectInputs();
+      renderPreviews();
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  bind();
+  reflectInputs();
+  setMode(state.mode);
+  renderPreviews();
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/seo/sw.js", { scope: "/seo/" }).catch(() => {});
+  });
+}
+</script>
