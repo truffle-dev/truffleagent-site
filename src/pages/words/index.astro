@@ -1,0 +1,706 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Words · live word, character, syllable, Flesch counter";
+const description =
+  "Paste text, see word count, character count, sentence count, reading time, speaking time, syllable count, Flesch reading ease, and Flesch-Kincaid grade level update as you type. Runs entirely in your browser. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/words/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Words",
+  alternateName: ["Word Counter", "Reading Time Calculator", "Flesch Reading Ease"],
+  url: canonical,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Live word, character, sentence, paragraph count",
+    "Reading time (200 wpm) and speaking time (130 wpm)",
+    "Syllable count and average syllables per word",
+    "Flesch Reading Ease score with plain-English band label",
+    "Flesch-Kincaid grade level",
+    "Most-common words list with stopwords filter",
+    "Longest words list",
+    "Persists draft to localStorage",
+    "Works offline (PWA)",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Words for?",
+    a: "When you have a draft and want to know how long it actually reads, how dense the language is, or whether you accidentally hit 2000 words when the brief asked for 800. Paste, scan the cards, ship the draft.",
+  },
+  {
+    q: "What is the Flesch Reading Ease score?",
+    a: "A formula that estimates how hard text is to read using sentence length and syllables per word. 100 is very easy (children's books), 60 is plain English, 30 is hard (academic). Most news editors aim for 60 or above.",
+  },
+  {
+    q: "What is the Flesch-Kincaid grade level?",
+    a: "Same input as Reading Ease, expressed as a US school grade. A score of 8 means an average eighth grader could read it. Most newspapers sit around 8-10, marketing copy around 6-8, dense technical writing around 12+.",
+  },
+  {
+    q: "How accurate is the syllable count?",
+    a: "It is a heuristic, not a dictionary. Letters are scanned for vowel clusters with a silent-e correction. It will miss the occasional irregular word but is correct often enough that Flesch numbers are usefully comparable across drafts.",
+  },
+  {
+    q: "Why is the reading time 200 words per minute?",
+    a: "200 is the rough median silent-reading speed for adult English readers. Speaking time uses 130 which is the median TED-talk speaking rate. Both are reasonable defaults, not exact predictions.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Your draft stays in your browser, persisted to localStorage so it survives a page reload.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/words/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="wd-page">
+    <header class="wd-topbar">
+      <div class="wd-topbar-inner">
+        <div class="wd-brand">
+          <span class="wd-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6h16" />
+              <path d="M4 12h12" />
+              <path d="M4 18h8" />
+            </svg>
+          </span>
+          <span class="wd-brand-name">Words</span>
+        </div>
+        <div class="wd-topbar-actions">
+          <button id="example-btn" type="button" class="wd-btn wd-btn-ghost">Try example</button>
+          <button id="clear-btn" type="button" class="wd-btn wd-btn-ghost">Clear</button>
+          <button id="copy-btn" type="button" class="wd-btn wd-btn-ghost">Copy stats</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="wd-input-section">
+      <label class="wd-field">
+        <span class="wd-field-label">Paste or type your text</span>
+        <textarea id="text" rows="14" placeholder="Paste a draft, an email, a paragraph, a chapter..." spellcheck="false" autocomplete="off"></textarea>
+      </label>
+      <div class="wd-input-meta">
+        <span id="input-status">Empty</span>
+        <span class="wd-mono" id="input-bytes">0 bytes</span>
+      </div>
+    </section>
+
+    <section class="wd-cards">
+      <div class="wd-card">
+        <div class="wd-card-label">Words</div>
+        <div class="wd-card-value" id="stat-words">0</div>
+        <div class="wd-card-sub" id="stat-unique">0 unique</div>
+      </div>
+      <div class="wd-card">
+        <div class="wd-card-label">Characters</div>
+        <div class="wd-card-value" id="stat-chars">0</div>
+        <div class="wd-card-sub" id="stat-chars-no-spaces">0 without spaces</div>
+      </div>
+      <div class="wd-card">
+        <div class="wd-card-label">Sentences</div>
+        <div class="wd-card-value" id="stat-sentences">0</div>
+        <div class="wd-card-sub" id="stat-paragraphs">0 paragraphs</div>
+      </div>
+      <div class="wd-card">
+        <div class="wd-card-label">Syllables</div>
+        <div class="wd-card-value" id="stat-syllables">0</div>
+        <div class="wd-card-sub" id="stat-syll-per-word">0 per word</div>
+      </div>
+      <div class="wd-card">
+        <div class="wd-card-label">Reading time</div>
+        <div class="wd-card-value" id="stat-read-time">0:00</div>
+        <div class="wd-card-sub">200 words / min</div>
+      </div>
+      <div class="wd-card">
+        <div class="wd-card-label">Speaking time</div>
+        <div class="wd-card-value" id="stat-speak-time">0:00</div>
+        <div class="wd-card-sub">130 words / min</div>
+      </div>
+      <div class="wd-card wd-card-wide">
+        <div class="wd-card-label">Flesch Reading Ease</div>
+        <div class="wd-card-value-row">
+          <div class="wd-card-value" id="stat-flesch">—</div>
+          <div class="wd-card-band" id="stat-flesch-band">no text yet</div>
+        </div>
+        <div class="wd-gauge">
+          <div class="wd-gauge-track">
+            <div class="wd-gauge-fill" id="stat-flesch-fill" style="width:0%"></div>
+            <div class="wd-gauge-tick" style="left:30%"></div>
+            <div class="wd-gauge-tick" style="left:60%"></div>
+            <div class="wd-gauge-tick" style="left:90%"></div>
+          </div>
+          <div class="wd-gauge-legend">
+            <span>0 hard</span>
+            <span>60 plain</span>
+            <span>100 easy</span>
+          </div>
+        </div>
+      </div>
+      <div class="wd-card">
+        <div class="wd-card-label">FK grade level</div>
+        <div class="wd-card-value" id="stat-grade">—</div>
+        <div class="wd-card-sub" id="stat-grade-label">no text yet</div>
+      </div>
+    </section>
+
+    <section class="wd-lists">
+      <div class="wd-list-card">
+        <div class="wd-list-head">
+          <h2 class="wd-list-title">Most common words</h2>
+          <label class="wd-stopwords">
+            <input id="stopwords-toggle" type="checkbox" checked />
+            <span>Hide stopwords</span>
+          </label>
+        </div>
+        <ol id="common-list" class="wd-list"><li class="wd-empty">Paste some text to see word frequencies.</li></ol>
+      </div>
+      <div class="wd-list-card">
+        <div class="wd-list-head">
+          <h2 class="wd-list-title">Longest words</h2>
+        </div>
+        <ol id="long-list" class="wd-list"><li class="wd-empty">Paste some text to see the longest words used.</li></ol>
+      </div>
+    </section>
+
+    <section class="wd-why">
+      <h2>Why this exists</h2>
+      <p>
+        Most word-counter pages are ad-rotted and lock the useful numbers
+        behind a signup. Words runs the whole thing in your browser, updates
+        every keystroke, and shows you what most editors actually want to
+        know: how long is this draft, how dense is the language, and how
+        hard is it to read.
+      </p>
+    </section>
+
+    <section class="wd-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="wd-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div id="toast" class="wd-toast" role="status" aria-live="polite" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --wd-bg: #fbfaf5;
+    --wd-fg: #1a1611;
+    --wd-muted: #6b6359;
+    --wd-line: #e5dfd0;
+    --wd-card: #ffffff;
+    --wd-accent: #4850c4;
+    --wd-accent-soft: #e3e5fa;
+    --wd-good: #16a34a;
+    --wd-warn: #ca8a04;
+    --wd-hard: #b45309;
+  }
+  :root[data-theme="dark"] {
+    --wd-bg: #0e0c08;
+    --wd-fg: #f1ece0;
+    --wd-muted: #9c9485;
+    --wd-line: #2a2620;
+    --wd-card: #16130d;
+    --wd-accent: #7078e0;
+    --wd-accent-soft: #1d1f3a;
+    --wd-good: #4ade80;
+    --wd-warn: #fbbf24;
+    --wd-hard: #f59e0b;
+  }
+
+  body { background: var(--wd-bg); color: var(--wd-fg); }
+  .wd-page { max-width: 980px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .wd-topbar { border-bottom: 1px solid var(--wd-line); padding: 18px 0; margin-bottom: 28px; }
+  .wd-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .wd-brand { display: flex; align-items: center; gap: 10px; }
+  .wd-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--wd-accent-soft); color: var(--wd-accent); }
+  .wd-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+  .wd-topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .wd-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px; border: 1px solid var(--wd-line);
+    background: var(--wd-card); color: var(--wd-fg);
+    font: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .wd-btn:hover { border-color: var(--wd-accent); color: var(--wd-accent); }
+  .wd-btn-ghost { background: transparent; }
+  .wd-mono { font-family: "JetBrains Mono", monospace; }
+
+  .wd-input-section { margin-bottom: 24px; }
+  .wd-field { display: flex; flex-direction: column; gap: 6px; }
+  .wd-field-label { font-size: 12px; color: var(--wd-muted); font-weight: 500; }
+  .wd-field textarea {
+    font: inherit; padding: 16px 18px; border-radius: 14px;
+    border: 1px solid var(--wd-line); background: var(--wd-card); color: var(--wd-fg);
+    outline: none; resize: vertical; min-height: 180px;
+    font-family: ui-monospace, "JetBrains Mono", monospace;
+    font-size: 14px; line-height: 1.55;
+    transition: border-color .15s ease;
+  }
+  .wd-field textarea:focus { border-color: var(--wd-accent); }
+  .wd-input-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 0 4px; font-size: 12px; color: var(--wd-muted); }
+
+  .wd-cards {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    margin-bottom: 28px;
+  }
+  .wd-card {
+    background: var(--wd-card); border: 1px solid var(--wd-line); border-radius: 14px;
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .wd-card-wide { grid-column: span 3; }
+  .wd-card-label { font-size: 11px; color: var(--wd-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .wd-card-value {
+    font-family: "Fraunces", serif; font-weight: 400; font-size: 28px;
+    letter-spacing: -0.01em; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .wd-card-value-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .wd-card-band { font-size: 13px; color: var(--wd-muted); }
+  .wd-card-sub { font-size: 12px; color: var(--wd-muted); font-family: "JetBrains Mono", monospace; }
+
+  .wd-gauge { margin-top: 10px; }
+  .wd-gauge-track {
+    position: relative; height: 8px; border-radius: 999px;
+    background: var(--wd-bg); border: 1px solid var(--wd-line);
+    overflow: hidden;
+  }
+  .wd-gauge-fill {
+    position: absolute; top: 0; left: 0; bottom: 0;
+    background: var(--wd-accent);
+    transition: width .25s ease, background .25s ease;
+  }
+  .wd-gauge-tick {
+    position: absolute; top: -2px; bottom: -2px; width: 1px;
+    background: var(--wd-line);
+  }
+  .wd-gauge-legend {
+    display: flex; justify-content: space-between; margin-top: 6px;
+    font-size: 11px; color: var(--wd-muted); font-family: "JetBrains Mono", monospace;
+  }
+
+  .wd-lists {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    margin-bottom: 36px;
+  }
+  .wd-list-card {
+    background: var(--wd-card); border: 1px solid var(--wd-line); border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .wd-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .wd-list-title { font-family: "Fraunces", serif; font-weight: 400; font-size: 18px; margin: 0; letter-spacing: -0.01em; }
+  .wd-stopwords { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--wd-muted); cursor: pointer; }
+  .wd-stopwords input { accent-color: var(--wd-accent); }
+  .wd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .wd-list li { display: flex; justify-content: space-between; gap: 12px; font-family: "JetBrains Mono", monospace; font-size: 13px; padding: 6px 8px; border-radius: 8px; }
+  .wd-list li:nth-child(odd) { background: color-mix(in oklab, var(--wd-bg) 50%, transparent); }
+  .wd-list li .word { color: var(--wd-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wd-list li .count { color: var(--wd-muted); }
+  .wd-list .wd-empty { color: var(--wd-muted); font-family: inherit; font-style: italic; padding: 12px 8px; background: transparent; }
+
+  .wd-why { margin-top: 48px; }
+  .wd-why h2, .wd-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .wd-why p { font-size: 16px; line-height: 1.6; color: var(--wd-fg); max-width: 64ch; margin: 0; }
+
+  .wd-faq { margin-top: 56px; }
+  .wd-faq dl { display: grid; gap: 18px; margin: 0; }
+  .wd-faq-item { background: var(--wd-card); border: 1px solid var(--wd-line); border-radius: 14px; padding: 16px 20px; }
+  .wd-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .wd-faq-item dd { color: var(--wd-muted); line-height: 1.55; margin: 0; }
+
+  .wd-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--wd-fg); color: var(--wd-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+  }
+  .wd-toast[hidden] { display: none !important; }
+
+  @media (max-width: 760px) {
+    .wd-cards { grid-template-columns: repeat(2, 1fr); }
+    .wd-card-wide { grid-column: span 2; }
+    .wd-lists { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+type Persist = { v: 1; text: string; hideStopwords: boolean };
+
+const STORAGE_KEY = "words:v1";
+const DEFAULT: Persist = { v: 1, text: "", hideStopwords: true };
+
+const STOPWORDS = new Set([
+  "the","a","an","and","or","but","if","then","else","when","while","of","to","in","on","at","by",
+  "for","with","about","against","between","into","through","during","before","after","above",
+  "below","from","up","down","out","off","over","under","again","further","is","am","are","was",
+  "were","be","been","being","have","has","had","having","do","does","did","doing","this","that",
+  "these","those","i","you","he","she","it","we","they","what","which","who","whom","whose","as",
+  "so","because","as","until","while","of","at","by","for","with","about","not","no","nor","only",
+  "own","same","than","too","very","s","t","can","will","just","don","should","now","my","your",
+  "his","her","its","our","their","also","more","most","some","any","each","few","other","such",
+  "yes","one","two","three","there","here","like","get","got","make","made","go","goes","went",
+  "say","said","says","know","knows","knew","think","thought","want","wants","wanted","use","used",
+  "uses","need","needs","needed","find","found","take","took","taken","come","came","look","looked",
+  "see","saw","seen","may","might","must","could","would","shall","into","onto","upon","off","than"
+]);
+
+const EXAMPLE = `When the brief said eight hundred words, I shipped twelve hundred and called it tight. The first round of feedback was kind. "Could be punchier." The second round was less kind. "I lose interest by paragraph three." The third round was the only one that mattered. "Cut the throat-clearing in the first two paragraphs and we have a piece."
+
+That is the lesson nobody puts on the cover of the writing book. The first two paragraphs of almost any draft are scaffolding. You wrote them to find the door. Once you are inside the room, the door is no longer interesting. Delete the door. Keep the room.
+
+A pragmatic test is the half-out-loud read. Set the draft aside for an hour, come back, and read the opening at half-voice. If your eyes skim toward the third paragraph before your mouth finishes the second, the first two paragraphs are scaffolding. Cut them. Lead with the third paragraph. Notice how the piece suddenly stands up by itself.
+
+Most writing is rewriting, and most rewriting is subtraction. Not glamorous, not chart-worthy, not the kind of advice that sells a workshop. But it is the one move that, applied honestly, makes the next draft better than the last.`;
+
+function loadPersist(): Persist {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { ...DEFAULT };
+    const p = JSON.parse(raw);
+    if (p && p.v === 1) return { ...DEFAULT, ...p };
+  } catch {}
+  return { ...DEFAULT };
+}
+
+function savePersist(p: Persist): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
+}
+
+function toast(msg: string): void {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.hidden = false;
+  window.setTimeout(() => { el.hidden = true; }, 1800);
+}
+
+function tokenize(text: string): string[] {
+  return (text.toLowerCase().match(/[a-z']+/g) || []).filter(t => t.length > 0);
+}
+
+function countSyllables(word: string): number {
+  let w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (w.length === 0) return 0;
+  if (w.length <= 3) return 1;
+  w = w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "");
+  w = w.replace(/^y/, "");
+  const groups = w.match(/[aeiouy]{1,2}/g);
+  const n = groups ? groups.length : 1;
+  return Math.max(1, n);
+}
+
+function countSentences(text: string): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  const chunks = trimmed.split(/[.!?]+(?=\s|$)/).filter(s => s.trim().length > 0);
+  return Math.max(chunks.length, 1);
+}
+
+function countParagraphs(text: string): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/\n\s*\n+/).filter(p => p.trim().length > 0).length;
+}
+
+function pad2(n: number): string { return n < 10 ? "0" + n : String(n); }
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds - m * 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const mm = m - h * 60;
+    return `${h}:${pad2(mm)}:${pad2(s)}`;
+  }
+  return `${m}:${pad2(s)}`;
+}
+
+function fleschBand(score: number): { label: string; color: string; pct: number } {
+  const pct = Math.max(0, Math.min(100, score));
+  if (score >= 90) return { label: "very easy (5th grade)", color: "var(--wd-good)", pct };
+  if (score >= 80) return { label: "easy (6th grade)", color: "var(--wd-good)", pct };
+  if (score >= 70) return { label: "fairly easy (7th grade)", color: "var(--wd-good)", pct };
+  if (score >= 60) return { label: "plain English (8-9th)", color: "var(--wd-accent)", pct };
+  if (score >= 50) return { label: "fairly difficult (10-12th)", color: "var(--wd-warn)", pct };
+  if (score >= 30) return { label: "difficult (college)", color: "var(--wd-warn)", pct };
+  return { label: "very difficult (graduate)", color: "var(--wd-hard)", pct };
+}
+
+function gradeLabel(g: number): string {
+  if (g <= 0) return "below grade 1";
+  if (g < 6) return "elementary";
+  if (g < 9) return "middle school";
+  if (g < 13) return "high school";
+  if (g < 17) return "college";
+  return "graduate";
+}
+
+type Stats = {
+  words: number;
+  unique: number;
+  chars: number;
+  charsNoSpace: number;
+  sentences: number;
+  paragraphs: number;
+  syllables: number;
+  readSeconds: number;
+  speakSeconds: number;
+  flesch: number | null;
+  grade: number | null;
+  freq: Map<string, number>;
+  longest: { word: string; len: number }[];
+};
+
+function compute(text: string): Stats {
+  const tokens = tokenize(text);
+  const words = tokens.length;
+  const chars = text.length;
+  const charsNoSpace = text.replace(/\s/g, "").length;
+  const sentences = countSentences(text);
+  const paragraphs = countParagraphs(text);
+  let syllables = 0;
+  for (const t of tokens) syllables += countSyllables(t);
+
+  const freq = new Map<string, number>();
+  const longSet = new Map<string, number>();
+  for (const t of tokens) {
+    freq.set(t, (freq.get(t) || 0) + 1);
+    if (!longSet.has(t)) longSet.set(t, t.length);
+  }
+
+  const longest = [...longSet.entries()]
+    .map(([word, len]) => ({ word, len }))
+    .sort((a, b) => b.len - a.len || a.word.localeCompare(b.word))
+    .slice(0, 8);
+
+  let flesch: number | null = null;
+  let grade: number | null = null;
+  if (words >= 5 && sentences > 0) {
+    const wps = words / sentences;
+    const spw = syllables / words;
+    flesch = 206.835 - 1.015 * wps - 84.6 * spw;
+    grade = 0.39 * wps + 11.8 * spw - 15.59;
+  }
+
+  return {
+    words,
+    unique: freq.size,
+    chars,
+    charsNoSpace,
+    sentences,
+    paragraphs,
+    syllables,
+    readSeconds: (words / 200) * 60,
+    speakSeconds: (words / 130) * 60,
+    flesch,
+    grade,
+    freq,
+    longest,
+  };
+}
+
+function renderFreqList(freq: Map<string, number>, hideStopwords: boolean): void {
+  const list = document.getElementById("common-list");
+  if (!list) return;
+  if (freq.size === 0) {
+    list.innerHTML = '<li class="wd-empty">Paste some text to see word frequencies.</li>';
+    return;
+  }
+  const entries = [...freq.entries()]
+    .filter(([w]) => (hideStopwords ? !STOPWORDS.has(w) && w.length > 1 : true))
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 10);
+  if (entries.length === 0) {
+    list.innerHTML = '<li class="wd-empty">Only stopwords found. Toggle the filter off to see them.</li>';
+    return;
+  }
+  list.innerHTML = entries
+    .map(([w, c]) => `<li><span class="word">${escapeHtml(w)}</span><span class="count">${c}</span></li>`)
+    .join("");
+}
+
+function renderLongList(longest: { word: string; len: number }[]): void {
+  const list = document.getElementById("long-list");
+  if (!list) return;
+  if (longest.length === 0) {
+    list.innerHTML = '<li class="wd-empty">Paste some text to see the longest words used.</li>';
+    return;
+  }
+  list.innerHTML = longest
+    .map(({ word, len }) => `<li><span class="word">${escapeHtml(word)}</span><span class="count">${len}</span></li>`)
+    .join("");
+}
+
+function escapeHtml(s: string): string {
+  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function setText(id: string, value: string): void {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+let persist: Persist = loadPersist();
+
+function render(): void {
+  const s = compute(persist.text);
+
+  setText("stat-words", s.words.toLocaleString());
+  setText("stat-unique", `${s.unique.toLocaleString()} unique`);
+  setText("stat-chars", s.chars.toLocaleString());
+  setText("stat-chars-no-spaces", `${s.charsNoSpace.toLocaleString()} without spaces`);
+  setText("stat-sentences", s.sentences.toLocaleString());
+  setText("stat-paragraphs", `${s.paragraphs.toLocaleString()} paragraph${s.paragraphs === 1 ? "" : "s"}`);
+  setText("stat-syllables", s.syllables.toLocaleString());
+  setText("stat-syll-per-word", `${(s.words ? s.syllables / s.words : 0).toFixed(2)} per word`);
+  setText("stat-read-time", formatTime(s.readSeconds));
+  setText("stat-speak-time", formatTime(s.speakSeconds));
+
+  const fleschEl = document.getElementById("stat-flesch");
+  const fleschBandEl = document.getElementById("stat-flesch-band");
+  const fleschFill = document.getElementById("stat-flesch-fill");
+  if (s.flesch === null) {
+    if (fleschEl) fleschEl.textContent = "—";
+    if (fleschBandEl) fleschBandEl.textContent = persist.text.trim() ? "need at least 5 words" : "no text yet";
+    if (fleschFill) {
+      fleschFill.style.width = "0%";
+      fleschFill.style.background = "var(--wd-line)";
+    }
+  } else {
+    const band = fleschBand(s.flesch);
+    if (fleschEl) fleschEl.textContent = s.flesch.toFixed(1);
+    if (fleschBandEl) fleschBandEl.textContent = band.label;
+    if (fleschFill) {
+      fleschFill.style.width = `${band.pct}%`;
+      fleschFill.style.background = band.color;
+    }
+  }
+
+  const gradeEl = document.getElementById("stat-grade");
+  const gradeLabelEl = document.getElementById("stat-grade-label");
+  if (s.grade === null) {
+    if (gradeEl) gradeEl.textContent = "—";
+    if (gradeLabelEl) gradeLabelEl.textContent = persist.text.trim() ? "need at least 5 words" : "no text yet";
+  } else {
+    const g = Math.max(0, s.grade);
+    if (gradeEl) gradeEl.textContent = g.toFixed(1);
+    if (gradeLabelEl) gradeLabelEl.textContent = gradeLabel(g);
+  }
+
+  renderFreqList(s.freq, persist.hideStopwords);
+  renderLongList(s.longest);
+
+  const inputStatus = document.getElementById("input-status");
+  const inputBytes = document.getElementById("input-bytes");
+  if (inputStatus) inputStatus.textContent = persist.text.trim() ? "Counting" : "Empty";
+  if (inputBytes) {
+    const bytes = new Blob([persist.text]).size;
+    inputBytes.textContent = `${bytes.toLocaleString()} byte${bytes === 1 ? "" : "s"}`;
+  }
+}
+
+function copyStats(): string {
+  const s = compute(persist.text);
+  const lines = [
+    `Words: ${s.words}`,
+    `Characters: ${s.chars} (${s.charsNoSpace} without spaces)`,
+    `Sentences: ${s.sentences}`,
+    `Paragraphs: ${s.paragraphs}`,
+    `Syllables: ${s.syllables}`,
+    `Reading time: ${formatTime(s.readSeconds)} at 200 wpm`,
+    `Speaking time: ${formatTime(s.speakSeconds)} at 130 wpm`,
+  ];
+  if (s.flesch !== null) lines.push(`Flesch Reading Ease: ${s.flesch.toFixed(1)} (${fleschBand(s.flesch).label})`);
+  if (s.grade !== null) lines.push(`Flesch-Kincaid grade: ${Math.max(0, s.grade).toFixed(1)} (${gradeLabel(Math.max(0, s.grade))})`);
+  return lines.join("\n");
+}
+
+function bind(): void {
+  const ta = document.getElementById("text") as HTMLTextAreaElement;
+  ta.value = persist.text;
+  ta.addEventListener("input", () => {
+    persist = { ...persist, text: ta.value };
+    savePersist(persist);
+    render();
+  });
+
+  (document.getElementById("clear-btn") as HTMLButtonElement).addEventListener("click", () => {
+    persist = { ...persist, text: "" };
+    ta.value = "";
+    savePersist(persist);
+    render();
+    ta.focus();
+  });
+
+  (document.getElementById("example-btn") as HTMLButtonElement).addEventListener("click", () => {
+    persist = { ...persist, text: EXAMPLE };
+    ta.value = EXAMPLE;
+    savePersist(persist);
+    render();
+  });
+
+  (document.getElementById("copy-btn") as HTMLButtonElement).addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(copyStats());
+      toast("Copied stats");
+    } catch {
+      toast("Could not copy");
+    }
+  });
+
+  const stop = document.getElementById("stopwords-toggle") as HTMLInputElement;
+  stop.checked = persist.hideStopwords;
+  stop.addEventListener("change", () => {
+    persist = { ...persist, hideStopwords: stop.checked };
+    savePersist(persist);
+    render();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  bind();
+  render();
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/words/sw.js", { scope: "/words/" }).catch(() => {});
+  });
+}
+</script>
