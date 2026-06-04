@@ -1,0 +1,1194 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Timer · Pomodoro Focus Timer";
+const description =
+  "A calm focus timer in your browser. Pomodoro presets, custom intervals, four sound packs, six background scenes. Tracks daily and weekly sessions. Works offline. No accounts. No trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/timer/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Timer",
+  alternateName: ["Pomodoro Timer", "Focus Timer", "Deep Work Timer"],
+  url: canonical,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Pomodoro, Deep Work, and Ultradian presets",
+    "Custom focus and break intervals",
+    "Four sound packs (Classic, Soft, Arcade, Sparkle)",
+    "Six background scenes (Paper, Ink, Ocean, Sunset, Noir)",
+    "Daily and weekly completed-cycle stats",
+    "Wake-lock keeps the screen on during focus",
+    "Share a configuration by URL",
+    "Works offline (PWA)",
+    "No ads, no signup, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Timer?",
+    a: "A focus timer with the Pomodoro shape baked in. Pick a preset or set your own focus and break minutes, choose a sound pack and a scene, hit start. The page shows the time remaining and tracks how many cycles you have completed today and this week.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No ads, no signup, no paid tier. The full feature set is free forever.",
+  },
+  {
+    q: "Does it work offline?",
+    a: "Yes. After your first visit the page is cached as a Progressive Web App and works without an internet connection.",
+  },
+  {
+    q: "What is a Pomodoro?",
+    a: "A 25-minute block of focused work followed by a 5-minute break. After four blocks you take a longer break. Named after the tomato-shaped kitchen timer Francesco Cirillo used while studying.",
+  },
+  {
+    q: "How accurate is the timer?",
+    a: "Timer uses your device clock for ticking. Switching tabs or locking the screen does not slow it down. If you stay on the tab the screen-wake lock keeps the display on so the countdown stays visible.",
+  },
+  {
+    q: "How do sound packs work?",
+    a: "Each pack synthesises its own end-of-phase sound with the Web Audio API. No audio files to download. Classic is a bell, Soft is a chime, Arcade is an 8-bit beep, Sparkle is a soft rim sound.",
+  },
+  {
+    q: "Where is my data stored?",
+    a: "In your browser's localStorage. Nothing is sent to a server. Clearing site data wipes your stats. Settings shared via URL are encoded in the URL itself.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Everything runs in your browser.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <link rel="manifest" href="/timer/manifest.webmanifest" />
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="tm-page" data-scene="none">
+    <div class="tm-scene" aria-hidden="true"></div>
+
+    <header class="tm-topbar">
+      <div class="tm-topbar-inner">
+        <div class="tm-brand">
+          <span class="tm-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="13" r="8" />
+              <path d="M12 13V8" />
+              <path d="M9 2h6" />
+            </svg>
+          </span>
+          <span class="tm-brand-name">Timer</span>
+        </div>
+        <div class="tm-topbar-actions">
+          <button id="settings-btn" type="button" class="tm-btn tm-btn-ghost" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 4.21 16.96l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.29l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+            <span>Settings</span>
+          </button>
+          <button id="share-btn" type="button" class="tm-btn tm-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="tm-stage">
+      <p class="tm-phase" id="phase-line">Focus</p>
+      <div class="tm-dial" aria-label="Time remaining">
+        <svg class="tm-dial-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="tm-track" cx="100" cy="100" r="92" />
+          <circle class="tm-progress" cx="100" cy="100" r="92" id="progress-ring" />
+        </svg>
+        <div class="tm-dial-inner">
+          <div id="time-display" class="tm-time">25:00</div>
+          <div id="cycle-display" class="tm-cycle">Cycle 1 / 4</div>
+        </div>
+      </div>
+
+      <div class="tm-controls">
+        <button id="reset-btn" type="button" class="tm-btn tm-btn-ghost" aria-label="Reset timer">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></svg>
+        </button>
+        <button id="play-btn" type="button" class="tm-btn tm-btn-primary tm-btn-play" aria-label="Start timer">
+          <svg id="play-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 5l12 7-12 7V5z" /></svg>
+          <svg id="pause-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" hidden aria-hidden="true"><rect x="7" y="5" width="3.5" height="14" rx="1" /><rect x="13.5" y="5" width="3.5" height="14" rx="1" /></svg>
+        </button>
+        <button id="skip-btn" type="button" class="tm-btn tm-btn-ghost" aria-label="Skip phase">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l10 8-10 8V4z" /><path d="M19 5v14" /></svg>
+        </button>
+      </div>
+
+      <div class="tm-preset-row" role="tablist" aria-label="Preset timers">
+        <button class="tm-preset" type="button" data-preset="pomodoro" role="tab">
+          <span class="tm-preset-name">Pomodoro</span>
+          <span class="tm-preset-meta">25 / 5</span>
+        </button>
+        <button class="tm-preset" type="button" data-preset="deep" role="tab">
+          <span class="tm-preset-name">Deep Work</span>
+          <span class="tm-preset-meta">50 / 10</span>
+        </button>
+        <button class="tm-preset" type="button" data-preset="ultradian" role="tab">
+          <span class="tm-preset-name">Ultradian</span>
+          <span class="tm-preset-meta">90 / 15</span>
+        </button>
+        <button class="tm-preset" type="button" data-preset="custom" role="tab">
+          <span class="tm-preset-name">Custom</span>
+          <span class="tm-preset-meta" id="custom-meta">—</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="tm-stats">
+      <div class="tm-stat">
+        <span class="tm-stat-label">Today</span>
+        <span class="tm-stat-value" id="stat-today">0</span>
+        <span class="tm-stat-suffix">cycles</span>
+      </div>
+      <div class="tm-stat">
+        <span class="tm-stat-label">This week</span>
+        <span class="tm-stat-value" id="stat-week">0</span>
+        <span class="tm-stat-suffix">cycles</span>
+      </div>
+      <div class="tm-stat">
+        <span class="tm-stat-label">Total</span>
+        <span class="tm-stat-value" id="stat-total">0</span>
+        <span class="tm-stat-suffix">cycles</span>
+      </div>
+    </section>
+
+    <section class="tm-why">
+      <p class="tm-eyebrow">Why this exists</p>
+      <h2 class="tm-h2">A focus timer that looks good in a pinned tab.</h2>
+      <p class="tm-body">
+        Existing Pomodoro apps are noisy, ad-supported, or hidden behind
+        a sign-up wall. Timer is one URL with three presets, four sound
+        packs, six scenes, and a wake-lock that keeps the screen on
+        while you work. Open it, hit play. Close it when you are done.
+      </p>
+      <p class="tm-body">
+        Your settings save to your browser. Your stats track today,
+        this week, and lifetime cycles. The configuration is encoded
+        in the URL so you can pin a particular setup to your
+        bookmarks and your colleague can do the same with one click.
+      </p>
+    </section>
+
+    <section class="tm-faq">
+      <p class="tm-eyebrow">Frequently asked</p>
+      <h2 class="tm-h2">Answers to the obvious questions.</h2>
+      <div class="tm-faq-list">
+        {faq.map((f) => (
+          <details class="tm-faq-item">
+            <summary class="tm-faq-q">{f.q}</summary>
+            <p class="tm-faq-a">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <div id="toast" class="tm-toast" role="status" aria-live="polite" hidden></div>
+
+    <div id="settings-dialog" class="tm-dialog" hidden aria-hidden="true">
+      <div class="tm-dialog-backdrop" data-close></div>
+      <div class="tm-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header class="tm-dialog-head">
+          <h2 id="settings-title" class="tm-h2">Settings</h2>
+          <button type="button" class="tm-btn tm-btn-ghost tm-btn-sm" data-close aria-label="Close settings">Close</button>
+        </header>
+
+        <div class="tm-form">
+          <div class="tm-form-row tm-form-row-double">
+            <label class="tm-field">
+              <span class="tm-label">Focus minutes</span>
+              <input id="focus-input" type="number" class="tm-input" min="1" max="180" step="1" />
+            </label>
+            <label class="tm-field">
+              <span class="tm-label">Break minutes</span>
+              <input id="break-input" type="number" class="tm-input" min="1" max="60" step="1" />
+            </label>
+          </div>
+
+          <label class="tm-field">
+            <span class="tm-label">Cycles before long break</span>
+            <input id="cycles-input" type="number" class="tm-input" min="1" max="12" step="1" />
+          </label>
+
+          <div class="tm-field">
+            <span class="tm-label">Sound pack</span>
+            <div class="tm-chip-row" role="radiogroup" aria-label="Sound pack">
+              <button type="button" class="tm-chip" data-pack="classic" role="radio">Classic</button>
+              <button type="button" class="tm-chip" data-pack="soft" role="radio">Soft</button>
+              <button type="button" class="tm-chip" data-pack="arcade" role="radio">Arcade</button>
+              <button type="button" class="tm-chip" data-pack="sparkle" role="radio">Sparkle</button>
+              <button type="button" class="tm-chip" data-pack="silent" role="radio">Silent</button>
+              <button type="button" class="tm-btn tm-btn-ghost tm-btn-sm" id="preview-pack">Test</button>
+            </div>
+          </div>
+
+          <div class="tm-field">
+            <span class="tm-label">Scene</span>
+            <div class="tm-chip-row" role="radiogroup" aria-label="Scene">
+              <button type="button" class="tm-chip" data-scene="none" role="radio">None</button>
+              <button type="button" class="tm-chip" data-scene="paper" role="radio">Paper</button>
+              <button type="button" class="tm-chip" data-scene="ink" role="radio">Ink</button>
+              <button type="button" class="tm-chip" data-scene="ocean" role="radio">Ocean</button>
+              <button type="button" class="tm-chip" data-scene="sunset" role="radio">Sunset</button>
+              <button type="button" class="tm-chip" data-scene="noir" role="radio">Noir</button>
+            </div>
+          </div>
+
+          <label class="tm-toggle">
+            <input id="autostart-input" type="checkbox" />
+            <span>Auto-start the next phase</span>
+          </label>
+
+          <label class="tm-toggle">
+            <input id="wakelock-input" type="checkbox" />
+            <span>Keep the screen on during focus (where supported)</span>
+          </label>
+
+          <button id="reset-stats" type="button" class="tm-btn tm-btn-ghost tm-btn-sm">Reset stats</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <style is:global>
+    :root {
+      --tm-bg: #fbfaf5;
+      --tm-ink: #1a160e;
+      --tm-ink-soft: rgba(26, 22, 14, 0.72);
+      --tm-ink-soft-2: rgba(26, 22, 14, 0.52);
+      --tm-line: rgba(26, 22, 14, 0.12);
+      --tm-card: #ffffff;
+      --tm-accent: #1f4ed8;
+      --tm-accent-soft: rgba(31, 78, 216, 0.12);
+      --tm-break: #1f8a4a;
+      --tm-radius-sm: 8px;
+      --tm-radius: 12px;
+      --tm-radius-lg: 16px;
+      --tm-shadow: 0 1px 0 var(--tm-line), 0 8px 24px rgba(26, 22, 14, 0.04);
+      --tm-shadow-pop: 0 8px 24px rgba(26, 22, 14, 0.16);
+    }
+    [data-theme="dark"] {
+      --tm-bg: #0e0c08;
+      --tm-ink: #f4f1ea;
+      --tm-ink-soft: rgba(244, 241, 234, 0.72);
+      --tm-ink-soft-2: rgba(244, 241, 234, 0.52);
+      --tm-line: rgba(244, 241, 234, 0.14);
+      --tm-card: #1a160e;
+      --tm-accent: #8fa9ff;
+      --tm-accent-soft: rgba(143, 169, 255, 0.18);
+      --tm-break: #5dd693;
+      --tm-shadow: 0 1px 0 var(--tm-line), 0 8px 24px rgba(0, 0, 0, 0.4);
+      --tm-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --tm-bg: #0e0c08;
+        --tm-ink: #f4f1ea;
+        --tm-ink-soft: rgba(244, 241, 234, 0.72);
+        --tm-ink-soft-2: rgba(244, 241, 234, 0.52);
+        --tm-line: rgba(244, 241, 234, 0.14);
+        --tm-card: #1a160e;
+        --tm-accent: #8fa9ff;
+        --tm-accent-soft: rgba(143, 169, 255, 0.18);
+        --tm-break: #5dd693;
+        --tm-shadow: 0 1px 0 var(--tm-line), 0 8px 24px rgba(0, 0, 0, 0.4);
+        --tm-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+    }
+
+    .tm-page {
+      position: relative;
+      background: var(--tm-bg);
+      color: var(--tm-ink);
+      min-height: 80vh;
+      padding-bottom: 6rem;
+      overflow: hidden;
+    }
+    .tm-scene {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 600ms ease;
+    }
+    [data-scene="none"] .tm-scene { opacity: 0; }
+    [data-scene="paper"] .tm-scene {
+      opacity: 1;
+      background:
+        radial-gradient(800px circle at 20% 20%, rgba(248, 232, 200, 0.6), transparent 60%),
+        radial-gradient(700px circle at 80% 70%, rgba(255, 240, 220, 0.55), transparent 65%);
+    }
+    [data-scene="ink"] .tm-scene {
+      opacity: 1;
+      background:
+        radial-gradient(700px circle at 70% 30%, rgba(26, 22, 14, 0.06), transparent 65%),
+        radial-gradient(600px circle at 20% 80%, rgba(26, 22, 14, 0.08), transparent 65%);
+    }
+    [data-scene="ocean"] .tm-scene {
+      opacity: 1;
+      background:
+        radial-gradient(900px circle at 30% 30%, rgba(120, 170, 220, 0.4), transparent 60%),
+        radial-gradient(700px circle at 80% 80%, rgba(80, 130, 200, 0.35), transparent 60%);
+    }
+    [data-scene="sunset"] .tm-scene {
+      opacity: 1;
+      background:
+        radial-gradient(900px circle at 20% 80%, rgba(255, 160, 120, 0.5), transparent 60%),
+        radial-gradient(700px circle at 80% 20%, rgba(255, 200, 130, 0.45), transparent 65%);
+    }
+    [data-scene="noir"] .tm-scene {
+      opacity: 1;
+      background:
+        radial-gradient(900px circle at 50% 50%, rgba(26, 22, 14, 0.18), transparent 65%);
+    }
+
+    .tm-topbar {
+      position: relative;
+      z-index: 5;
+      background: color-mix(in oklab, var(--tm-bg) 86%, transparent);
+      backdrop-filter: saturate(140%) blur(8px);
+      border-bottom: 1px solid var(--tm-line);
+    }
+    .tm-topbar-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .tm-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+    }
+    .tm-brand-mark { color: var(--tm-accent); display: inline-flex; }
+    .tm-brand-name { font-size: 1.0625rem; }
+    .tm-topbar-actions { display: inline-flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    .tm-btn {
+      appearance: none;
+      border: 1px solid var(--tm-line);
+      background: var(--tm-card);
+      color: var(--tm-ink);
+      border-radius: 999px;
+      padding: 0.5rem 0.9rem;
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+    }
+    .tm-btn:hover { background: color-mix(in oklab, var(--tm-accent) 8%, var(--tm-card)); border-color: color-mix(in oklab, var(--tm-accent) 35%, var(--tm-line)); }
+    .tm-btn:active { transform: translateY(1px); }
+    .tm-btn:focus-visible { outline: 2px solid var(--tm-accent); outline-offset: 2px; }
+    .tm-btn-primary { background: var(--tm-accent); border-color: var(--tm-accent); color: white; }
+    .tm-btn-primary:hover { background: color-mix(in oklab, var(--tm-accent) 88%, black); border-color: color-mix(in oklab, var(--tm-accent) 88%, black); }
+    .tm-btn-ghost { background: transparent; }
+    .tm-btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8125rem; }
+    .tm-btn-play {
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+      padding: 0;
+      justify-content: center;
+      box-shadow: 0 6px 20px color-mix(in oklab, var(--tm-accent) 30%, transparent);
+    }
+
+    .tm-stage {
+      position: relative;
+      z-index: 2;
+      max-width: 640px;
+      margin: 2.25rem auto 0;
+      padding: 0 1.25rem;
+      text-align: center;
+    }
+    .tm-phase {
+      font-size: 0.8125rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+      color: var(--tm-ink-soft-2);
+      margin: 0 0 1rem;
+    }
+    .tm-page.is-break .tm-phase { color: var(--tm-break); }
+    .tm-page.is-focus .tm-phase { color: var(--tm-accent); }
+
+    .tm-dial {
+      position: relative;
+      width: clamp(240px, 60vw, 340px);
+      aspect-ratio: 1;
+      margin: 0 auto;
+    }
+    .tm-dial-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .tm-track {
+      fill: none;
+      stroke: var(--tm-line);
+      stroke-width: 6;
+    }
+    .tm-progress {
+      fill: none;
+      stroke: var(--tm-accent);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 578;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 200ms linear, stroke 300ms ease;
+    }
+    .tm-page.is-break .tm-progress { stroke: var(--tm-break); }
+    .tm-dial-inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .tm-time {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-feature-settings: "tnum" 1, "ss01";
+      font-weight: 500;
+      font-size: clamp(3rem, 9vw, 4.5rem);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .tm-cycle {
+      color: var(--tm-ink-soft-2);
+      font-size: 0.8125rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .tm-controls {
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .tm-preset-row {
+      margin-top: 1.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .tm-preset {
+      appearance: none;
+      border: 1px solid var(--tm-line);
+      background: var(--tm-card);
+      border-radius: var(--tm-radius);
+      padding: 0.55rem 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.1rem;
+      min-width: 100px;
+      font: inherit;
+      color: var(--tm-ink);
+      transition: background-color 120ms ease, border-color 120ms ease;
+    }
+    .tm-preset:hover { background: color-mix(in oklab, var(--tm-accent) 8%, var(--tm-card)); }
+    .tm-preset[aria-selected="true"] {
+      border-color: var(--tm-accent);
+      background: var(--tm-accent-soft);
+    }
+    .tm-preset-name { font-size: 0.875rem; font-weight: 600; }
+    .tm-preset-meta { font-size: 0.75rem; color: var(--tm-ink-soft-2); font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+    .tm-stats {
+      position: relative;
+      z-index: 2;
+      max-width: 640px;
+      margin: 3rem auto 0;
+      padding: 0 1.25rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+    .tm-stat {
+      background: var(--tm-card);
+      border: 1px solid var(--tm-line);
+      border-radius: var(--tm-radius);
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      box-shadow: var(--tm-shadow);
+    }
+    .tm-stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tm-ink-soft-2);
+    }
+    .tm-stat-value {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-feature-settings: "tnum" 1;
+      font-size: 1.75rem;
+      line-height: 1;
+    }
+    .tm-stat-suffix { color: var(--tm-ink-soft-2); font-size: 0.75rem; }
+
+    .tm-why, .tm-faq {
+      position: relative;
+      z-index: 2;
+      max-width: 640px;
+      margin: 3rem auto 0;
+      padding: 0 1.25rem;
+    }
+    .tm-eyebrow {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tm-ink-soft-2);
+      margin: 0 0 0.35rem;
+      font-weight: 600;
+    }
+    .tm-h2 {
+      font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-style: italic;
+      font-weight: 500;
+      font-size: clamp(1.5rem, 3.6vw, 2rem);
+      margin: 0 0 0.85rem;
+    }
+    .tm-body { color: var(--tm-ink-soft); font-size: 1rem; line-height: 1.65; max-width: 60ch; }
+    .tm-body + .tm-body { margin-top: 0.6rem; }
+    .tm-faq-list { display: grid; gap: 0.5rem; margin-top: 1rem; }
+    .tm-faq-item {
+      border: 1px solid var(--tm-line);
+      border-radius: var(--tm-radius-sm);
+      background: var(--tm-card);
+      padding: 0.75rem 0.9rem;
+    }
+    .tm-faq-q {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      list-style: none;
+    }
+    .tm-faq-q::-webkit-details-marker { display: none; }
+    .tm-faq-q::after { content: "+"; float: right; color: var(--tm-ink-soft-2); font-weight: 400; }
+    details[open] .tm-faq-q::after { content: "–"; }
+    .tm-faq-a { color: var(--tm-ink-soft); margin: 0.5rem 0 0; font-size: 0.9375rem; line-height: 1.55; }
+
+    .tm-toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--tm-ink);
+      color: var(--tm-bg);
+      padding: 0.55rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      box-shadow: var(--tm-shadow-pop);
+      z-index: 50;
+    }
+
+    .tm-dialog { position: fixed; inset: 0; z-index: 40; }
+    .tm-dialog-backdrop { position: absolute; inset: 0; background: rgba(26, 22, 14, 0.4); backdrop-filter: blur(2px); }
+    .tm-dialog-panel {
+      position: relative;
+      max-width: 480px;
+      margin: 3rem auto 0;
+      background: var(--tm-card);
+      border: 1px solid var(--tm-line);
+      border-radius: var(--tm-radius-lg);
+      box-shadow: var(--tm-shadow-pop);
+      padding: 1.25rem 1.25rem 1.5rem;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .tm-dialog-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.85rem;
+      gap: 1rem;
+    }
+
+    .tm-form { display: grid; gap: 1rem; }
+    .tm-form-row-double { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .tm-field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .tm-label { font-size: 0.8125rem; color: var(--tm-ink-soft); font-weight: 500; }
+    .tm-input {
+      appearance: none;
+      border: 1px solid var(--tm-line);
+      background: var(--tm-bg);
+      color: var(--tm-ink);
+      padding: 0.55rem 0.7rem;
+      border-radius: var(--tm-radius-sm);
+      font: inherit;
+      font-size: 0.9375rem;
+    }
+    .tm-input:focus { outline: 2px solid var(--tm-accent); outline-offset: 2px; border-color: transparent; }
+    .tm-chip-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tm-chip {
+      appearance: none;
+      border: 1px solid var(--tm-line);
+      background: var(--tm-card);
+      color: var(--tm-ink);
+      padding: 0.4rem 0.7rem;
+      border-radius: 999px;
+      font: inherit;
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+    .tm-chip[aria-checked="true"] {
+      background: var(--tm-accent-soft);
+      border-color: var(--tm-accent);
+      color: var(--tm-ink);
+    }
+    .tm-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.875rem;
+      color: var(--tm-ink-soft);
+      cursor: pointer;
+    }
+    .tm-toggle input { width: 16px; height: 16px; accent-color: var(--tm-accent); }
+
+    @media (max-width: 600px) {
+      .tm-topbar-actions .tm-btn span { display: none; }
+      .tm-stats { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <script>
+    type Pack = "classic" | "soft" | "arcade" | "sparkle" | "silent";
+    type Scene = "none" | "paper" | "ink" | "ocean" | "sunset" | "noir";
+    type Preset = "pomodoro" | "deep" | "ultradian" | "custom";
+
+    type Settings = {
+      preset: Preset;
+      focus: number;
+      "break": number;
+      cycles: number;
+      pack: Pack;
+      scene: Scene;
+      autoStart: boolean;
+      wakeLock: boolean;
+      stats: Record<string, number>;
+    };
+
+    const STORAGE_KEY = "timer:v1";
+
+    const PRESETS: Record<Exclude<Preset, "custom">, { focus: number; "break": number; cycles: number }> = {
+      pomodoro: { focus: 25, "break": 5, cycles: 4 },
+      deep: { focus: 50, "break": 10, cycles: 3 },
+      ultradian: { focus: 90, "break": 15, cycles: 2 },
+    };
+
+    function todayKey(d = new Date()): string {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function weekKeys(): string[] {
+      const out: string[] = [];
+      const now = new Date();
+      for (let i = 0; i < 7; i++) {
+        out.push(todayKey(new Date(now.getTime() - i * 86400000)));
+      }
+      return out;
+    }
+
+    function loadSettings(): Settings {
+      const defaults: Settings = {
+        preset: "pomodoro",
+        focus: 25,
+        "break": 5,
+        cycles: 4,
+        pack: "classic",
+        scene: "none",
+        autoStart: false,
+        wakeLock: true,
+        stats: {},
+      };
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaults;
+        const p = JSON.parse(raw);
+        return {
+          preset: ["pomodoro", "deep", "ultradian", "custom"].includes(p.preset) ? p.preset : "pomodoro",
+          focus: Math.max(1, Math.min(180, Number(p.focus) || 25)),
+          "break": Math.max(1, Math.min(60, Number(p["break"]) || 5)),
+          cycles: Math.max(1, Math.min(12, Number(p.cycles) || 4)),
+          pack: ["classic", "soft", "arcade", "sparkle", "silent"].includes(p.pack) ? p.pack : "classic",
+          scene: ["none", "paper", "ink", "ocean", "sunset", "noir"].includes(p.scene) ? p.scene : "none",
+          autoStart: !!p.autoStart,
+          wakeLock: p.wakeLock !== false,
+          stats: p.stats && typeof p.stats === "object" ? p.stats : {},
+        };
+      } catch {
+        return defaults;
+      }
+    }
+
+    function saveSettings(s: Settings): void {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+    }
+
+    function $(id: string): HTMLElement {
+      const el = document.getElementById(id);
+      if (!el) throw new Error("Missing #" + id);
+      return el;
+    }
+
+    function toast(msg: string): void {
+      const t = $("toast");
+      t.textContent = msg;
+      t.hidden = false;
+      setTimeout(() => { t.hidden = true; }, 1600);
+    }
+
+    function fmt(secs: number): string {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    let audioCtx: AudioContext | undefined;
+    function ac(): AudioContext {
+      if (!audioCtx) {
+        const C = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext) as typeof AudioContext;
+        audioCtx = new C();
+      }
+      if (audioCtx.state === "suspended") void audioCtx.resume();
+      return audioCtx;
+    }
+
+    function tone(freq: number, dur: number, type: OscillatorType, gain = 0.18, delay = 0): void {
+      const ctx = ac();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      o.connect(g);
+      g.connect(ctx.destination);
+      const t0 = ctx.currentTime + delay;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(gain, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.start(t0);
+      o.stop(t0 + dur + 0.05);
+    }
+
+    function playEnd(pack: Pack): void {
+      if (pack === "silent") return;
+      if (pack === "classic") {
+        tone(880, 0.4, "sine", 0.2);
+        tone(660, 0.6, "sine", 0.15, 0.12);
+      } else if (pack === "soft") {
+        tone(523, 0.6, "sine", 0.16);
+        tone(659, 0.6, "sine", 0.14, 0.18);
+        tone(784, 0.8, "sine", 0.12, 0.36);
+      } else if (pack === "arcade") {
+        tone(660, 0.08, "square", 0.18);
+        tone(880, 0.08, "square", 0.18, 0.1);
+        tone(1320, 0.12, "square", 0.18, 0.2);
+      } else if (pack === "sparkle") {
+        tone(2093, 0.18, "triangle", 0.14);
+        tone(2637, 0.18, "triangle", 0.12, 0.08);
+        tone(3136, 0.3, "triangle", 0.1, 0.18);
+      }
+    }
+
+    function vibrate(): void {
+      try { if (navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch {}
+    }
+
+    const settings = loadSettings();
+
+    const phaseLine = $("phase-line");
+    const timeDisplay = $("time-display");
+    const cycleDisplay = $("cycle-display");
+    const progress = $("progress-ring") as unknown as SVGCircleElement;
+    const playBtn = $("play-btn") as HTMLButtonElement;
+    const playIcon = $("play-icon");
+    const pauseIcon = $("pause-icon");
+    const resetBtn = $("reset-btn") as HTMLButtonElement;
+    const skipBtn = $("skip-btn") as HTMLButtonElement;
+    const presetButtons = document.querySelectorAll<HTMLButtonElement>("[data-preset]");
+    const customMeta = $("custom-meta");
+    const settingsBtn = $("settings-btn") as HTMLButtonElement;
+    const shareBtn = $("share-btn") as HTMLButtonElement;
+    const settingsDialog = $("settings-dialog");
+    const page = document.querySelector(".tm-page") as HTMLElement;
+    const focusInput = $("focus-input") as HTMLInputElement;
+    const breakInput = $("break-input") as HTMLInputElement;
+    const cyclesInput = $("cycles-input") as HTMLInputElement;
+    const packChips = document.querySelectorAll<HTMLButtonElement>("[data-pack]");
+    const sceneChips = document.querySelectorAll<HTMLButtonElement>("[data-scene]");
+    const autostartInput = $("autostart-input") as HTMLInputElement;
+    const wakelockInput = $("wakelock-input") as HTMLInputElement;
+    const previewBtn = $("preview-pack") as HTMLButtonElement;
+    const resetStatsBtn = $("reset-stats") as HTMLButtonElement;
+    const statToday = $("stat-today");
+    const statWeek = $("stat-week");
+    const statTotal = $("stat-total");
+
+    const RING = 2 * Math.PI * 92;
+
+    let running = false;
+    let phase: "focus" | "break" = "focus";
+    let cycleIndex = 0;
+    let totalSecs = settings.focus * 60;
+    let remainingSecs = totalSecs;
+    let endAt = 0;
+    let tickHandle: number | undefined;
+    let wakeLockRef: WakeLockSentinel | null = null;
+
+    function syncToggleAttrs(): void {
+      packChips.forEach((c) => c.setAttribute("aria-checked", String(c.dataset.pack === settings.pack)));
+      sceneChips.forEach((c) => c.setAttribute("aria-checked", String(c.dataset.scene === settings.scene)));
+      presetButtons.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.preset === settings.preset)));
+      page.dataset.scene = settings.scene;
+      focusInput.value = String(settings.focus);
+      breakInput.value = String(settings.break);
+      cyclesInput.value = String(settings.cycles);
+      autostartInput.checked = settings.autoStart;
+      wakelockInput.checked = settings.wakeLock;
+      customMeta.textContent = `${settings.focus} / ${settings.break}`;
+    }
+
+    function renderStats(): void {
+      const todayCount = settings.stats[todayKey()] || 0;
+      const weekCount = weekKeys().reduce((sum, k) => sum + (settings.stats[k] || 0), 0);
+      const totalCount = Object.values(settings.stats).reduce((a, b) => a + b, 0);
+      statToday.textContent = String(todayCount);
+      statWeek.textContent = String(weekCount);
+      statTotal.textContent = String(totalCount);
+    }
+
+    function renderPhase(): void {
+      phaseLine.textContent = phase === "focus" ? "Focus" : "Break";
+      cycleDisplay.textContent = `Cycle ${cycleIndex + 1} / ${settings.cycles}`;
+      page.classList.toggle("is-focus", phase === "focus");
+      page.classList.toggle("is-break", phase === "break");
+      document.title = (running ? "▶ " : "") + fmt(remainingSecs) + " · " + (phase === "focus" ? "Focus" : "Break") + " · Timer";
+    }
+
+    function renderTime(): void {
+      timeDisplay.textContent = fmt(remainingSecs);
+      const pct = totalSecs === 0 ? 0 : remainingSecs / totalSecs;
+      progress.style.strokeDashoffset = String(RING * (1 - pct));
+      document.title = (running ? "▶ " : "") + fmt(remainingSecs) + " · " + (phase === "focus" ? "Focus" : "Break") + " · Timer";
+    }
+
+    function setPreset(p: Preset): void {
+      settings.preset = p;
+      if (p !== "custom") {
+        const def = PRESETS[p];
+        settings.focus = def.focus;
+        settings["break"] = def["break"];
+        settings.cycles = def.cycles;
+      }
+      saveSettings(settings);
+      resetTimer();
+      syncToggleAttrs();
+    }
+
+    function resetTimer(): void {
+      stop();
+      phase = "focus";
+      cycleIndex = 0;
+      totalSecs = settings.focus * 60;
+      remainingSecs = totalSecs;
+      renderPhase();
+      renderTime();
+    }
+
+    async function requestWake(): Promise<void> {
+      if (!settings.wakeLock) return;
+      try {
+        const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
+        if (nav.wakeLock && nav.wakeLock.request) {
+          wakeLockRef = await nav.wakeLock.request("screen");
+        }
+      } catch {}
+    }
+    function releaseWake(): void {
+      if (wakeLockRef) {
+        try { void wakeLockRef.release(); } catch {}
+        wakeLockRef = null;
+      }
+    }
+
+    function tick(): void {
+      const now = Date.now();
+      const s = Math.max(0, Math.round((endAt - now) / 1000));
+      remainingSecs = s;
+      renderTime();
+      if (s <= 0) {
+        completePhase();
+        return;
+      }
+      tickHandle = window.setTimeout(tick, 250);
+    }
+
+    function start(): void {
+      if (running) return;
+      ac();
+      running = true;
+      endAt = Date.now() + remainingSecs * 1000;
+      playIcon.hidden = true;
+      pauseIcon.hidden = false;
+      playBtn.setAttribute("aria-label", "Pause timer");
+      if (phase === "focus") void requestWake();
+      tick();
+    }
+
+    function pause(): void {
+      if (!running) return;
+      running = false;
+      if (tickHandle) window.clearTimeout(tickHandle);
+      playIcon.hidden = false;
+      pauseIcon.hidden = true;
+      playBtn.setAttribute("aria-label", "Resume timer");
+      releaseWake();
+    }
+
+    function stop(): void {
+      pause();
+      remainingSecs = totalSecs;
+      renderTime();
+    }
+
+    function completePhase(): void {
+      running = false;
+      if (tickHandle) window.clearTimeout(tickHandle);
+      playEnd(settings.pack);
+      vibrate();
+
+      if (phase === "focus") {
+        const key = todayKey();
+        settings.stats[key] = (settings.stats[key] || 0) + 1;
+        saveSettings(settings);
+        renderStats();
+
+        if (cycleIndex + 1 >= settings.cycles) {
+          toast("Session complete");
+          phase = "focus";
+          cycleIndex = 0;
+          totalSecs = settings.focus * 60;
+          remainingSecs = totalSecs;
+          renderPhase();
+          renderTime();
+          playIcon.hidden = false;
+          pauseIcon.hidden = true;
+          releaseWake();
+          return;
+        }
+        phase = "break";
+        totalSecs = settings["break"] * 60;
+        remainingSecs = totalSecs;
+        toast("Break time");
+      } else {
+        phase = "focus";
+        cycleIndex += 1;
+        totalSecs = settings.focus * 60;
+        remainingSecs = totalSecs;
+        toast("Focus time");
+      }
+
+      renderPhase();
+      renderTime();
+
+      if (settings.autoStart) {
+        setTimeout(() => start(), 600);
+      } else {
+        playIcon.hidden = false;
+        pauseIcon.hidden = true;
+        playBtn.setAttribute("aria-label", "Start timer");
+        releaseWake();
+      }
+    }
+
+    function skipPhase(): void {
+      const wasRunning = running;
+      if (running) pause();
+      remainingSecs = 0;
+      completePhase();
+      if (wasRunning && settings.autoStart) {
+        // already auto-started
+      }
+    }
+
+    playBtn.addEventListener("click", () => { if (running) pause(); else start(); });
+    resetBtn.addEventListener("click", () => resetTimer());
+    skipBtn.addEventListener("click", () => skipPhase());
+
+    presetButtons.forEach((b) => {
+      b.addEventListener("click", () => setPreset(b.dataset.preset as Preset));
+    });
+
+    function openDialog(): void { settingsDialog.hidden = false; settingsDialog.setAttribute("aria-hidden", "false"); }
+    function closeDialog(): void { settingsDialog.hidden = true; settingsDialog.setAttribute("aria-hidden", "true"); }
+
+    settingsBtn.addEventListener("click", () => openDialog());
+    document.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", () => closeDialog()));
+
+    function onCustomChange(): void {
+      const f = Math.max(1, Math.min(180, Number(focusInput.value) || settings.focus));
+      const br = Math.max(1, Math.min(60, Number(breakInput.value) || settings["break"]));
+      const cy = Math.max(1, Math.min(12, Number(cyclesInput.value) || settings.cycles));
+      const changed = f !== settings.focus || br !== settings["break"] || cy !== settings.cycles;
+      settings.focus = f;
+      settings["break"] = br;
+      settings.cycles = cy;
+      if (changed) settings.preset = "custom";
+      saveSettings(settings);
+      syncToggleAttrs();
+      if (!running) resetTimer();
+    }
+    focusInput.addEventListener("change", onCustomChange);
+    breakInput.addEventListener("change", onCustomChange);
+    cyclesInput.addEventListener("change", onCustomChange);
+
+    packChips.forEach((c) => {
+      c.addEventListener("click", () => {
+        settings.pack = c.dataset.pack as Pack;
+        saveSettings(settings);
+        syncToggleAttrs();
+      });
+    });
+    sceneChips.forEach((c) => {
+      c.addEventListener("click", () => {
+        settings.scene = c.dataset.scene as Scene;
+        saveSettings(settings);
+        syncToggleAttrs();
+      });
+    });
+
+    autostartInput.addEventListener("change", () => {
+      settings.autoStart = autostartInput.checked;
+      saveSettings(settings);
+    });
+    wakelockInput.addEventListener("change", () => {
+      settings.wakeLock = wakelockInput.checked;
+      saveSettings(settings);
+      if (!settings.wakeLock) releaseWake();
+      else if (running && phase === "focus") void requestWake();
+    });
+
+    previewBtn.addEventListener("click", () => playEnd(settings.pack));
+
+    resetStatsBtn.addEventListener("click", () => {
+      if (!confirm("Reset all session stats?")) return;
+      settings.stats = {};
+      saveSettings(settings);
+      renderStats();
+      toast("Stats reset");
+    });
+
+    shareBtn.addEventListener("click", async () => {
+      const params = new URLSearchParams({
+        f: String(settings.focus),
+        b: String(settings["break"]),
+        n: String(settings.cycles),
+        p: settings.pack,
+        s: settings.scene,
+      });
+      const url = `${window.location.origin}/timer/?${params.toString()}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast("Link copied");
+      } catch {
+        toast(url);
+      }
+    });
+
+    function applyUrlParams(): void {
+      const p = new URLSearchParams(window.location.search);
+      let dirty = false;
+      const f = Number(p.get("f"));
+      const b = Number(p.get("b"));
+      const n = Number(p.get("n"));
+      const pk = p.get("p");
+      const sc = p.get("s");
+      if (f >= 1 && f <= 180) { settings.focus = Math.round(f); dirty = true; }
+      if (b >= 1 && b <= 60) { settings["break"] = Math.round(b); dirty = true; }
+      if (n >= 1 && n <= 12) { settings.cycles = Math.round(n); dirty = true; }
+      if (pk && ["classic", "soft", "arcade", "sparkle", "silent"].includes(pk)) { settings.pack = pk as Pack; dirty = true; }
+      if (sc && ["none", "paper", "ink", "ocean", "sunset", "noir"].includes(sc)) { settings.scene = sc as Scene; dirty = true; }
+      if (dirty) {
+        if (Number(f) || Number(b) || Number(n)) settings.preset = "custom";
+        saveSettings(settings);
+        history.replaceState(null, "", window.location.pathname);
+      }
+    }
+
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState === "visible" && running && phase === "focus") {
+        await requestWake();
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      const tgt = e.target as HTMLElement;
+      if (tgt && (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA")) return;
+      if (e.key === " " || e.code === "Space") {
+        e.preventDefault();
+        if (running) pause(); else start();
+      } else if (e.key === "r" || e.key === "R") {
+        resetTimer();
+      } else if (e.key === "s" || e.key === "S") {
+        skipPhase();
+      }
+    });
+
+    applyUrlParams();
+    syncToggleAttrs();
+    resetTimer();
+    renderStats();
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/timer/sw.js").catch(() => {});
+      });
+    }
+  </script>
+</BaseLayout>
