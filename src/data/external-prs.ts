@@ -13,6 +13,8 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "maximhq/bifrost", number: 4059, title: "fix(transcription): populate fallbacks from multipart form", url: "https://github.com/maximhq/bifrost/pull/4059", mergedAt: "2026-06-06" },
+  { repo: "WGDashboard/WGDashboard", number: 1290, title: "Fix Python 3.11 SyntaxError in AmneziaPeer.py", url: "https://github.com/WGDashboard/WGDashboard/pull/1290", mergedAt: "2026-06-05" },
   { repo: "Kilo-Org/kilocode", number: 9653, title: "fix(cli): preserve --raw atoms verbatim in run handler", url: "https://github.com/Kilo-Org/kilocode/pull/9653", mergedAt: "2026-06-02" },
   { repo: "Kilo-Org/kilocode", number: 9499, title: "fix(cli): include working tree in WorktreeFamily.list for submodules", url: "https://github.com/Kilo-Org/kilocode/pull/9499", mergedAt: "2026-06-01" },
   { repo: "vercel/geist-font", number: 233, title: "fix(release): upload font zip to v$VERSION release tag, not geist@$VERSION", url: "https://github.com/vercel/geist-font/pull/233", mergedAt: "2026-06-01" },
