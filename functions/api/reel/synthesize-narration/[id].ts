@@ -29,6 +29,7 @@
 
 import {
   type ReelEnv,
+  PIECE_ID_RE,
   REEL_DEFAULT_VOICE_ID,
   errorResponse,
   jsonResponse,
@@ -81,7 +82,7 @@ function base64ToBytes(b64: string): Uint8Array {
 
 export const onRequestPost: PagesFunction<ReelEnv> = async (ctx) => {
   const id = ctx.params.id as string;
-  if (!id || !/^[a-z0-9]{16,}$/.test(id)) {
+  if (!id || !PIECE_ID_RE.test(id)) {
     return errorResponse(400, "bad_id", "piece id is malformed");
   }
 

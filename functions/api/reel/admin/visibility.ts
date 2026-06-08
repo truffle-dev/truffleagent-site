@@ -13,6 +13,7 @@
 
 import {
   type ReelEnv,
+  PIECE_ID_RE,
   errorResponse,
   jsonResponse,
 } from "../../../_reel-shared.ts";
@@ -21,8 +22,6 @@ type Body = {
   piece_id?: string;
   visible?: 0 | 1 | boolean;
 };
-
-const PIECE_ID_RE = /^rl_[A-Za-z0-9]{1,22}$/;
 
 export const onRequestPost: PagesFunction<ReelEnv> = async (ctx) => {
   if (!ctx.env.REEL_ADMIN_SECRET) {

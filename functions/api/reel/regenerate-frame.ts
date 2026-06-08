@@ -21,6 +21,7 @@
 
 import {
   type ReelEnv,
+  PIECE_ID_RE,
   errorResponse,
   jsonResponse,
   lumaSubmitImageEdit,
@@ -33,7 +34,6 @@ type Body = {
   hint?: string;
 };
 
-const PIECE_ID_RE = /^rl_[A-Za-z0-9]{1,22}$/;
 const MAX_HINT_CHARS = 240;
 
 type PieceRow = {

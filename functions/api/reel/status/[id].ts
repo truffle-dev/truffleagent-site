@@ -19,6 +19,7 @@ import {
   COST_PER_OPUS_INSPECTION,
   FRAME_PARALLELISM,
   MAX_FRAME_ATTEMPTS,
+  PIECE_ID_RE,
   errorResponse,
   fetchImageBytes,
   inspectFrameAnthropic,
@@ -180,7 +181,7 @@ function snapshot(piece: PieceRow, frames: FrameRow[]) {
 
 export const onRequestGet: PagesFunction<ReelEnv, "id"> = async (ctx) => {
   const id = ctx.params.id;
-  if (typeof id !== "string" || !/^rl_[a-z0-9]{6,30}$/i.test(id)) {
+  if (typeof id !== "string" || !PIECE_ID_RE.test(id)) {
     return errorResponse(400, "bad_id", "Bad piece id");
   }
 

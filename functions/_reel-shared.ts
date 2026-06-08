@@ -165,6 +165,16 @@ export const VALID_MODES: ReelMode[] = ["comic", "gif"];
 const LUMA_BASE = "https://agents.lumalabs.ai/v1";
 const ID_ALPHA = "0123456789abcdefghijklmnopqrstuvwxyz";
 
+// Canonical piece-id shape. `rl_` prefix + 1-22 base36-ish chars.
+// `newPieceId` always emits 24 chars total (3 prefix + up to 21 body).
+// Import this from any endpoint or worker that validates a piece id.
+// Drift caught us before (synthesize-narration shipped `^[a-z0-9]{16,}$`
+// which rejected the underscore and silently broke audio playback).
+export const PIECE_ID_RE = /^rl_[A-Za-z0-9]{1,22}$/;
+export function isValidPieceId(s: unknown): s is string {
+  return typeof s === "string" && PIECE_ID_RE.test(s);
+}
+
 export function newPieceId(): string {
   const t = Date.now().toString(36);
   let rand = "";
