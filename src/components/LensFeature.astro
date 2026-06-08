@@ -1,0 +1,272 @@
+---
+const tiles = [
+  {
+    title: "A golden retriever in Times Square at dusk",
+    style: "Cinematic",
+    accent: "rust",
+  },
+  {
+    title: "Tea steam curling into the shape of a fox",
+    style: "Whimsical",
+    accent: "moss",
+  },
+  {
+    title: "A linen sail at sea, viewed from below",
+    style: "Editorial",
+    accent: "indigo",
+  },
+  {
+    title: "Brass pocketwatch on volcanic glass",
+    style: "Still life",
+    accent: "rust",
+  },
+];
+---
+<section class="lens-feature">
+  <div class="container-page">
+    <div class="lens-grid">
+      <div class="lens-copy reveal">
+        <p class="eyebrow">New · public</p>
+        <h2 class="editorial text-balance">
+          A <em>type-a-thought</em> camera<br/>
+          for the open web.
+        </h2>
+        <p class="prose-truffle lens-lede">
+          <em>Lens</em> is a public image studio at <code>/lens/</code>. Type a prompt. The agent rewrites it into a frame, sends it to Luma, streams it back, and pins it to a shared gallery anyone can browse. Free while the bill is small.
+        </p>
+
+        <ul class="lens-points">
+          <li><span class="dot" aria-hidden="true"></span>Prompt enhancement by a Claude-Haiku subprocess. Compositional, not corporate.</li>
+          <li><span class="dot" aria-hidden="true"></span>Powered by Luma's <code>uni-1</code> and <code>uni-1-max</code>. Cached on Cloudflare R2.</li>
+          <li><span class="dot" aria-hidden="true"></span>Every generation is added to a public gallery. Yours, mine, theirs.</li>
+        </ul>
+
+        <div class="lens-actions">
+          <a class="btn btn-primary" href="/lens/">
+            Open <em>Lens</em><span aria-hidden="true" style="margin-left:0.3rem">→</span>
+          </a>
+          <a class="btn btn-ghost" href="/lens/#gallery">Browse the gallery</a>
+        </div>
+      </div>
+
+      <div class="lens-mosaic reveal" style="transition-delay:120ms" aria-hidden="true">
+        {tiles.map((t, i) => (
+          <figure class={`lens-tile lens-tile-${i + 1} lens-tile-${t.accent}`}>
+            <div class="lens-frame">
+              <div class="lens-frame-noise" />
+              <div class="lens-frame-glow" />
+            </div>
+            <figcaption>
+              <span class="lens-tile-style">{t.style}</span>
+              <span class="lens-tile-prompt">{t.title}</span>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .lens-feature {
+    padding-block: clamp(4rem, 8vw, 6.5rem);
+    border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    background:
+      radial-gradient(
+        1200px 480px at 80% -10%,
+        color-mix(in oklab, var(--accent) 8%, transparent),
+        transparent 70%
+      ),
+      var(--surface);
+  }
+
+  .lens-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: center;
+  }
+
+  .lens-copy .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--accent) 40%, var(--border) 60%);
+    color: var(--accent);
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .lens-copy h2 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    line-height: 1.05;
+  }
+  .lens-copy h2 em { color: var(--accent); }
+
+  .lens-lede {
+    max-width: 540px;
+    margin: 0 0 1.5rem;
+  }
+  .lens-lede code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.35em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .lens-points {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 540px;
+  }
+  .lens-points li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    color: var(--content-2);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .lens-points li code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+  .lens-points .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--accent);
+    flex-shrink: 0;
+    transform: translateY(-2px);
+  }
+
+  .lens-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .lens-actions .btn-primary em { font-style: italic; }
+
+  /* Mosaic — abstract painterly tiles, no real images required. */
+  .lens-mosaic {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    aspect-ratio: 1/1;
+    max-height: 560px;
+    margin-left: auto;
+    width: 100%;
+  }
+
+  .lens-tile {
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    transition: transform 280ms var(--ease-out), box-shadow 280ms var(--ease-out);
+    isolation: isolate;
+  }
+  .lens-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px -22px color-mix(in oklab, var(--content) 18%, transparent);
+  }
+
+  .lens-frame {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .lens-frame-noise {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 22% 28%, color-mix(in oklab, var(--accent) 65%, transparent), transparent 55%),
+      radial-gradient(circle at 78% 70%, color-mix(in oklab, var(--content) 22%, transparent), transparent 60%),
+      linear-gradient(160deg, color-mix(in oklab, var(--accent) 30%, transparent), transparent 70%);
+    filter: saturate(1.1) blur(2px);
+  }
+  .lens-frame-glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 50%, transparent 40%, color-mix(in oklab, var(--surface) 70%, transparent) 100%),
+      linear-gradient(to bottom, transparent 60%, color-mix(in oklab, var(--surface) 90%, transparent) 100%);
+  }
+
+  /* Per-tile accent variation. */
+  .lens-tile-rust .lens-frame-noise {
+    background-image:
+      radial-gradient(circle at 22% 28%, #c3613f, transparent 55%),
+      radial-gradient(circle at 78% 70%, #8f3a26, transparent 60%),
+      linear-gradient(160deg, #d4936a, transparent 70%);
+  }
+  .lens-tile-moss .lens-frame-noise {
+    background-image:
+      radial-gradient(circle at 22% 28%, #7e8d4a, transparent 55%),
+      radial-gradient(circle at 78% 70%, #495a36, transparent 60%),
+      linear-gradient(160deg, #aab27a, transparent 70%);
+  }
+  .lens-tile-indigo .lens-frame-noise {
+    background-image:
+      radial-gradient(circle at 22% 28%, #506584, transparent 55%),
+      radial-gradient(circle at 78% 70%, #2c3e5e, transparent 60%),
+      linear-gradient(160deg, #768aa6, transparent 70%);
+  }
+
+  .lens-tile-2 { transform: translateY(8%); }
+  .lens-tile-3 { transform: translateY(-8%); }
+  .lens-tile-2:hover { transform: translateY(8%) translateY(-2px); }
+  .lens-tile-3:hover { transform: translateY(-8%) translateY(-2px); }
+
+  .lens-tile figcaption {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 2;
+    padding: 0.65rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    background: linear-gradient(to top, color-mix(in oklab, var(--surface) 92%, transparent), transparent);
+  }
+  .lens-tile-style {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--content-3);
+  }
+  .lens-tile-prompt {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    color: var(--content);
+  }
+
+  @media (max-width: 880px) {
+    .lens-grid {
+      grid-template-columns: 1fr;
+      gap: 2.25rem;
+    }
+    .lens-mosaic {
+      max-height: 420px;
+      width: min(100%, 460px);
+      margin-inline: auto;
+    }
+    .lens-tile-2 { transform: translateY(4%); }
+    .lens-tile-3 { transform: translateY(-4%); }
+  }
+</style>

@@ -1,0 +1,278 @@
+---
+const frames = [
+  { label: "Frame 01", caption: "arrives at the corner", src: "01" },
+  { label: "Frame 02", caption: "morning on the stoop", src: "02" },
+  { label: "Frame 03", caption: "the long walk home", src: "03" },
+  { label: "Frame 04", caption: "city goes blue", src: "04" },
+  { label: "Frame 05", caption: "the train pulls in", src: "05" },
+  { label: "Frame 06", caption: "rides into the dark", src: "06" },
+];
+---
+<section class="reel-feature" id="reel-feature">
+  <div class="container-page">
+    <div class="reel-grid">
+      <div class="reel-copy reveal">
+        <p class="eyebrow">Premier · just launched</p>
+        <h2 class="editorial text-balance">
+          A <em>director's chair</em>,<br/>
+          run by an agent.
+        </h2>
+        <p class="prose-truffle reel-lede">
+          <em>Reel</em> is a multi-frame comic generator at <code>/reel/</code>. Describe a character. The agent enhances it, locks it to a Master Reference, then directs twelve consecutive frames anchored to the same face. Public gallery. Free while the bill is small.
+        </p>
+
+        <ul class="reel-points">
+          <li><span class="dot" aria-hidden="true"></span>Character consistency by <em>re-anchoring</em>, not chaining. Frame 12 looks like Frame 1.</li>
+          <li><span class="dot" aria-hidden="true"></span>Opus 4.7 inspects every frame for drift before it ships. Auto-retry on rejection.</li>
+          <li><span class="dot" aria-hidden="true"></span>You watch the director think out loud. Every move is in the open.</li>
+        </ul>
+
+        <div class="reel-actions">
+          <a class="btn btn-primary" href="/reel/">
+            Open <em>Reel</em><span aria-hidden="true" style="margin-left:0.3rem">→</span>
+          </a>
+          <a class="btn btn-ghost" href="/reel/#gallery">Browse the gallery</a>
+        </div>
+      </div>
+
+      <div class="reel-stage reveal" style="transition-delay:120ms" aria-hidden="true">
+        <div class="reel-stage-frame">
+          <div class="reel-stage-strip">
+            {frames.map((f, i) => (
+              <figure class={`reel-cell reel-cell-${i + 1}`}>
+                <picture class="reel-cell-art">
+                  <source
+                    type="image/avif"
+                    srcset={`/reel-hero/${f.src}-400.avif 400w, /reel-hero/${f.src}-800.avif 800w`}
+                    sizes="(max-width: 880px) 33vw, 18vw"
+                  />
+                  <source
+                    type="image/webp"
+                    srcset={`/reel-hero/${f.src}-400.webp 400w, /reel-hero/${f.src}-800.webp 800w`}
+                    sizes="(max-width: 880px) 33vw, 18vw"
+                  />
+                  <img
+                    src={`/reel-hero/${f.src}-400.webp`}
+                    alt=""
+                    width="800"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+                <figcaption>
+                  <span class="reel-cell-label">{f.label}</span>
+                  <span class="reel-cell-caption">{f.caption}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <div class="reel-stage-meta">
+            <span class="reel-stage-dot" aria-hidden="true"></span>
+            <span class="reel-stage-text">
+              <em>directing</em> &middot; 12 frames &middot; same character every cell
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .reel-feature {
+    padding-block: clamp(4rem, 8vw, 6.5rem);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    background:
+      radial-gradient(
+        1200px 480px at 20% -10%,
+        color-mix(in oklab, var(--accent) 9%, transparent),
+        transparent 70%
+      ),
+      var(--surface);
+  }
+
+  .reel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: center;
+  }
+
+  .reel-copy .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--accent) 40%, var(--border) 60%);
+    color: var(--accent);
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .reel-copy h2 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    line-height: 1.05;
+  }
+  .reel-copy h2 em { color: var(--accent); }
+
+  .reel-lede {
+    max-width: 540px;
+    margin: 0 0 1.5rem;
+  }
+  .reel-lede code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.35em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .reel-points {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 540px;
+  }
+  .reel-points li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    color: var(--content-2);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .reel-points .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--accent);
+    flex-shrink: 0;
+    transform: translateY(-2px);
+  }
+  .reel-points em { font-style: italic; color: var(--content); }
+
+  .reel-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .reel-actions .btn-primary em { font-style: italic; }
+
+  .reel-stage {
+    width: 100%;
+  }
+  .reel-stage-frame {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+    padding: 1.1rem 1.1rem 0.8rem;
+    box-shadow: 0 28px 60px -36px color-mix(in oklab, var(--content) 22%, transparent);
+  }
+
+  .reel-stage-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .reel-cell {
+    position: relative;
+    margin: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    aspect-ratio: 1/1;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    isolation: isolate;
+  }
+  .reel-cell-art {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+  }
+  .reel-cell-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .reel-cell figcaption {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 2;
+    padding: 0.55rem 0.6rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--surface) 98%, transparent) 0%,
+      color-mix(in oklab, var(--surface) 92%, transparent) 60%,
+      transparent 100%
+    );
+    backdrop-filter: blur(2px);
+  }
+  .reel-cell-label {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--content-3);
+  }
+  .reel-cell-caption {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    color: var(--content);
+  }
+
+  .reel-stage-meta {
+    margin-top: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.4rem 0.2rem;
+    border-top: 1px dashed color-mix(in oklab, var(--border) 80%, transparent);
+    color: var(--content-2);
+    font-size: 0.8125rem;
+    font-family: var(--font-mono);
+  }
+  .reel-stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 22%, transparent);
+    animation: reel-pulse 1.6s ease-in-out infinite;
+  }
+  .reel-stage-text em {
+    font-style: italic;
+    color: var(--accent);
+    font-family: var(--font-serif);
+  }
+
+  @keyframes reel-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.7; }
+  }
+
+  @media (max-width: 880px) {
+    .reel-grid {
+      grid-template-columns: 1fr;
+      gap: 2.25rem;
+    }
+    .reel-stage-frame {
+      max-width: 460px;
+      margin-inline: auto;
+    }
+  }
+</style>

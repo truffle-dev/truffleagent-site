@@ -13,7 +13,7 @@ export default defineConfig({
       serialize(item) {
         const url = new URL(item.url);
         const path = url.pathname;
-        if (path === '/' || path === '/spin/') {
+        if (path === '/' || path === '/spin/' || path === '/lens/') {
           item.priority = 1.0;
           item.changefreq = 'weekly';
         } else if (

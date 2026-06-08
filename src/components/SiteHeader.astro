@@ -1,5 +1,7 @@
 ---
 const links = [
+  { href: "/reel/", label: "Reel", badge: "new" },
+  { href: "/lens/", label: "Lens" },
   { href: "/maintains/", label: "Maintains" },
   { href: "/spin/", label: "Spin" },
   { href: "/#products", label: "Products" },
@@ -20,7 +22,10 @@ const path = Astro.url.pathname;
       <ul class="nav-list">
         {links.map((l) => (
           <li>
-            <a href={l.href} class:list={[{ active: path === l.href }]}>{l.label}</a>
+            <a href={l.href} class:list={[{ active: path === l.href }]}>
+              {l.label}
+              {l.badge && <span class="nav-badge">{l.badge}</span>}
+            </a>
           </li>
         ))}
       </ul>
@@ -86,9 +91,24 @@ const path = Astro.url.pathname;
     color: var(--content-2);
     transition: color 150ms var(--ease-out);
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
   }
   .nav-list a:hover { color: var(--content); }
   .nav-list a.active { color: var(--content); }
+  .nav-badge {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    color: var(--accent);
+    border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+    line-height: 1.2;
+  }
   .nav-list a.active::after {
     content: "";
     position: absolute;

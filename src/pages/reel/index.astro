@@ -1,0 +1,972 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Reel · type a character, see a comic, hear it told";
+const description =
+  "Reel is a multi-frame comic and animated-GIF studio. Describe a character, describe a story, and watch a twelve-frame sequence appear, anchored on your character across every panel. Public gallery underneath.";
+const canonical = "https://truffleagent.com/reel/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Reel",
+  alternateName: ["Truffle Reel", "Luma Comic Studio"],
+  url: canonical,
+  applicationCategory: "DesignApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Describe a character, then a story",
+    "AI rewrites both into a tight twelve-frame beat sheet",
+    "Each frame anchored on the same character via Luma image_edit",
+    "Every frame visually inspected by Opus 4.7 before publish",
+    "Comic strip or animated GIF, same pipeline, output toggle",
+    "Public gallery, no accounts",
+    "Daily quota per visitor",
+  ],
+  author: "Truffle",
+};
+---
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={canonical}
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(webAppJsonLd)}
+  />
+  <script
+    is:inline
+    src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+    async
+    defer
+  ></script>
+
+  <main class="reel-page">
+    <header class="reel-hero">
+      <p class="reel-eyebrow">New on Truffle</p>
+      <h1 class="reel-display">
+        Type a character.<br /><em>See a comic.</em><br /><em>Hear it told.</em>
+      </h1>
+      <p class="reel-lead">
+        Reel is a small multi-frame studio. Describe a character. Describe
+        what happens. An agent stitches the two into a comic or animated GIF,
+        anchored on the same character through every panel. Pick a narration
+        voice and a reader speaks the beats over the page.
+      </p>
+    </header>
+
+    <section class="reel-studio" aria-label="Studio">
+      <form id="reel-form" class="reel-form" novalidate>
+        <fieldset class="reel-fieldset" id="reel-character-field">
+          <label class="reel-label" for="reel-character">
+            <span class="reel-label-step">Step 1</span>
+            <span class="reel-label-title">Describe your character</span>
+            <span class="reel-label-hint">A sentence or two. Identity should be visualizable: who, look, vibe.</span>
+          </label>
+          <textarea
+            id="reel-character"
+            class="reel-textarea"
+            name="character"
+            rows="3"
+            maxlength="600"
+            placeholder="e.g. A retired postwoman with a mossy green satchel and a fox stole, weary eyes, warm grin"
+            autocomplete="off"
+            spellcheck="true"
+          ></textarea>
+          <div class="reel-row">
+            <button id="reel-enhance-character" type="button" class="reel-button">
+              Enhance character
+            </button>
+            <span class="reel-counter" id="reel-character-counter">0 / 600</span>
+          </div>
+          <div id="reel-character-preview" class="reel-preview" hidden>
+            <div class="reel-preview-title">Character brief</div>
+            <p class="reel-preview-body" id="reel-character-enhanced"></p>
+            <div class="reel-preview-actions">
+              <button type="button" class="reel-button reel-button-ghost" id="reel-character-rewrite">
+                Rewrite
+              </button>
+              <button type="button" class="reel-button" id="reel-character-accept">
+                Use this brief
+              </button>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="reel-fieldset" id="reel-story-field" hidden>
+          <label class="reel-label" for="reel-story">
+            <span class="reel-label-step">Step 2</span>
+            <span class="reel-label-title">Describe what happens</span>
+            <span class="reel-label-hint">One arc. Setup → escalation → resolution. An agent expands this into a beat sheet.</span>
+          </label>
+          <textarea
+            id="reel-story"
+            class="reel-textarea"
+            name="story"
+            rows="3"
+            maxlength="900"
+            placeholder="e.g. The postwoman discovers a misaddressed letter that leads her into a hidden tea ceremony beneath the city"
+            autocomplete="off"
+            spellcheck="true"
+          ></textarea>
+          <div class="reel-controls">
+            <label class="reel-control">
+              <span class="reel-control-title">Output mode</span>
+              <div class="reel-toggle" role="radiogroup" aria-label="Output mode">
+                <button type="button" role="radio" aria-checked="true" data-mode="comic" class="reel-toggle-option is-on">Comic strip</button>
+                <button type="button" role="radio" aria-checked="false" data-mode="gif" class="reel-toggle-option">Animated GIF</button>
+              </div>
+            </label>
+            <label class="reel-control">
+              <span class="reel-control-title">Frames</span>
+              <input
+                id="reel-frames"
+                type="range"
+                min="8"
+                max="20"
+                value="12"
+                step="1"
+                class="reel-range"
+              />
+              <span class="reel-frames-value" id="reel-frames-value">12</span>
+            </label>
+          </div>
+          <div class="reel-narration">
+            <label class="reel-control reel-control-voice">
+              <span class="reel-control-title">Narration voice</span>
+              <select id="reel-voice" class="reel-select" aria-label="Narration voice">
+                <option value="">No voice</option>
+                <option value="jessica">Jessica — playful, bright</option>
+                <option value="callum">Callum — husky trickster</option>
+                <option value="charlie">Charlie — hyped Australian</option>
+                <option value="laura">Laura — quirky, sassy</option>
+              </select>
+            </label>
+            <p class="reel-narration-hint">
+              Off by default. When on, the chosen voice reads the beats aloud
+              over the reader view and snaps panels to the narration timeline.
+            </p>
+          </div>
+          <div class="reel-row reel-row-end">
+            <span class="reel-counter" id="reel-story-counter">0 / 900</span>
+            <div
+              id="reel-turnstile"
+              class="cf-turnstile reel-turnstile"
+              data-sitekey="1x00000000000000000000AA"
+              data-callback="onReelTurnstileToken"
+              data-error-callback="onReelTurnstileError"
+              data-expired-callback="onReelTurnstileExpired"
+              data-theme="light"
+              data-size="flexible"
+            ></div>
+            <button id="reel-generate" type="submit" class="reel-button reel-button-primary">
+              Generate
+            </button>
+          </div>
+        </fieldset>
+
+        <div class="reel-alert" id="reel-alert" hidden role="alert"></div>
+      </form>
+    </section>
+
+    <section class="reel-gallery-wrap" aria-label="Gallery">
+      <h2 class="reel-gallery-title">Gallery</h2>
+      <div id="reel-gallery" class="reel-gallery"></div>
+      <p id="reel-gallery-empty" class="reel-gallery-empty" hidden>
+        Nothing here yet. First showcase pieces arrive soon.
+      </p>
+    </section>
+  </main>
+
+  <style>
+    .reel-page {
+      --paper-1: var(--surface);
+      --paper-2: var(--surface-2);
+      --paper-3: var(--surface-3);
+      --line: var(--border);
+      --content-main: var(--content);
+      --content-soft: var(--content-2);
+      --content-muted: var(--content-3);
+      --accent-main: var(--accent);
+
+      max-width: 920px;
+      margin: 0 auto;
+      padding: clamp(48px, 7vw, 96px) clamp(20px, 5vw, 48px) 96px;
+    }
+    .reel-hero {
+      margin-bottom: 56px;
+    }
+    .reel-eyebrow {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+      margin: 0 0 18px;
+    }
+    .reel-display {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(40px, 7vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin: 0 0 24px;
+      color: var(--content-main);
+    }
+    .reel-display em {
+      font-style: italic;
+    }
+    .reel-lead {
+      font-family: var(--font-sans);
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--content-soft);
+      margin: 0 0 24px;
+      max-width: 60ch;
+    }
+    .reel-status {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--content-muted);
+      background: var(--paper-3);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: 0;
+      max-width: 60ch;
+    }
+
+    .reel-studio {
+      margin: 24px 0 64px;
+    }
+    .reel-form {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .reel-fieldset {
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      border-radius: 14px;
+      padding: 22px 22px 18px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .reel-label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .reel-label-step {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+    }
+    .reel-label-title {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--content-main);
+      line-height: 1.2;
+    }
+    .reel-label-hint {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--content-soft);
+    }
+    .reel-textarea {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid color-mix(in oklab, var(--content-main) 18%, var(--line));
+      border-radius: 12px;
+      padding: 14px 16px;
+      resize: vertical;
+      min-height: 96px;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow:
+        inset 0 1px 0 color-mix(in oklab, var(--content-main) 4%, transparent),
+        0 1px 0 color-mix(in oklab, var(--content-main) 3%, transparent);
+      transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+    }
+    .reel-textarea::placeholder {
+      color: var(--content-muted);
+      font-style: italic;
+    }
+    .reel-textarea:hover {
+      border-color: color-mix(in oklab, var(--content-main) 30%, var(--line));
+    }
+    .reel-textarea:focus {
+      outline: none;
+      border-color: var(--accent-main);
+      box-shadow:
+        inset 0 1px 0 color-mix(in oklab, var(--content-main) 4%, transparent),
+        0 0 0 3px color-mix(in oklab, var(--accent-main) 22%, transparent);
+    }
+    .reel-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .reel-row-end {
+      justify-content: flex-end;
+    }
+    .reel-turnstile {
+      min-height: 65px;
+      display: flex;
+      align-items: center;
+    }
+    .reel-counter {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--content-muted);
+    }
+    .reel-button {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
+    }
+    .reel-button:hover {
+      background: var(--paper-3);
+    }
+    .reel-button:active {
+      transform: translateY(1px);
+    }
+    .reel-button:disabled {
+      opacity: 0.55;
+      cursor: progress;
+    }
+    .reel-button-primary {
+      color: var(--paper-1);
+      background: var(--content-main);
+      border-color: var(--content-main);
+    }
+    .reel-button-primary:hover {
+      background: var(--content-main);
+      opacity: 0.92;
+    }
+    .reel-button-ghost {
+      background: transparent;
+    }
+    .reel-preview {
+      border: 1px solid var(--line);
+      background: var(--paper-1);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .reel-preview-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+    }
+    .reel-preview-body {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 16px;
+      line-height: 1.55;
+      color: var(--content-main);
+      margin: 0;
+      white-space: pre-wrap;
+    }
+    .reel-preview-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .reel-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 640px) {
+      .reel-controls { grid-template-columns: 1fr; }
+    }
+    .reel-control {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .reel-control-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+    }
+    .reel-toggle {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--paper-1);
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      width: fit-content;
+    }
+    .reel-toggle-option {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--content-soft);
+      background: transparent;
+      border: none;
+      border-radius: 9999px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
+    }
+    .reel-toggle-option.is-on {
+      color: var(--paper-1);
+      background: var(--content-main);
+    }
+    .reel-range {
+      width: 100%;
+    }
+    .reel-frames-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--content-main);
+    }
+    .reel-narration {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) 1fr;
+      gap: 18px;
+      align-items: start;
+      padding-top: 14px;
+      border-top: 1px dashed color-mix(in oklab, var(--content-main) 10%, var(--line));
+    }
+    @media (max-width: 640px) {
+      .reel-narration { grid-template-columns: 1fr; }
+    }
+    .reel-select {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid color-mix(in oklab, var(--content-main) 18%, var(--line));
+      border-radius: 10px;
+      padding: 10px 14px;
+      width: 100%;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+    }
+    .reel-select:hover {
+      border-color: color-mix(in oklab, var(--content-main) 30%, var(--line));
+    }
+    .reel-select:focus {
+      outline: none;
+      border-color: var(--accent-main);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-main) 22%, transparent);
+    }
+    .reel-narration-hint {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--content-muted);
+      margin: 0;
+      max-width: 48ch;
+      padding-top: 22px;
+    }
+    @media (max-width: 640px) {
+      .reel-narration-hint { padding-top: 0; }
+    }
+    .reel-alert {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: #7a1f1f;
+      background: #fde8e8;
+      border: 1px solid #f3c0c0;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    [data-theme="dark"] .reel-alert,
+    body.dark .reel-alert {
+      color: #ffb4b4;
+      background: #3a1414;
+      border-color: #5a1f1f;
+    }
+
+    .reel-gallery-wrap {
+      margin-top: 64px;
+    }
+    .reel-gallery-title {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 500;
+      margin: 0 0 24px;
+      color: var(--content-main);
+    }
+    .reel-gallery-empty {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--content-muted);
+      text-align: center;
+      padding: 48px 0;
+    }
+  </style>
+
+  <!-- The gallery is rendered into #reel-gallery via JS at runtime; Astro's
+       scoped <style> blocks attach a data-astro-cid attribute to compiled
+       elements that JS-created DOM never gets, so any selector for the JS
+       tiles must be global. Keeping these here, inline, so the file is one
+       source of truth. -->
+  <style is:global>
+    .reel-gallery {
+      column-width: 280px;
+      column-gap: 14px;
+    }
+    @media (min-width: 1080px) {
+      .reel-gallery { column-width: 300px; }
+    }
+    .reel-tile {
+      display: block;
+      width: 100%;
+      margin: 0 0 14px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      aspect-ratio: 1 / 1;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out);
+      break-inside: avoid;
+    }
+    .reel-tile:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 38px -20px color-mix(in oklab, var(--content-main) 40%, transparent);
+    }
+    .reel-tile > img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 480ms var(--ease-out);
+    }
+    .reel-tile:hover > img { transform: scale(1.04); }
+
+    .reel-tile-loop {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 200ms var(--ease-out);
+    }
+    .reel-tile-loop img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      display: block;
+    }
+    .reel-tile.playing .reel-tile-loop { opacity: 1; }
+    .reel-tile.playing .reel-tile-loop img {
+      animation: reel-tile-loop-cycle var(--reel-loop-dur, 1.8s) steps(1, end) infinite;
+    }
+    @keyframes reel-tile-loop-cycle {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reel-tile.playing .reel-tile-loop { opacity: 0; }
+      .reel-tile.playing .reel-tile-loop img { animation: none; }
+    }
+    .reel-tile-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 4px 8px;
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+      z-index: 2;
+    }
+    .reel-tile-overlay {
+      position: absolute;
+      inset: auto 0 0 0;
+      padding: 22px 14px 14px;
+      color: #fff;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 14px;
+      line-height: 1.4;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.82) 0%,
+        rgba(0, 0, 0, 0.55) 40%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 240ms var(--ease-out), transform 240ms var(--ease-out);
+      z-index: 2;
+    }
+    .reel-tile:hover .reel-tile-overlay,
+    .reel-tile:focus-visible .reel-tile-overlay {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+
+  <script is:inline>
+    (function bootStudio() {
+      const $ = (id) => document.getElementById(id);
+      const charField = $("reel-character-field");
+      const storyField = $("reel-story-field");
+      const charInput = $("reel-character");
+      const storyInput = $("reel-story");
+      const charCounter = $("reel-character-counter");
+      const storyCounter = $("reel-story-counter");
+      const enhanceBtn = $("reel-enhance-character");
+      const preview = $("reel-character-preview");
+      const previewBody = $("reel-character-enhanced");
+      const rewriteBtn = $("reel-character-rewrite");
+      const acceptBtn = $("reel-character-accept");
+      const framesRange = $("reel-frames");
+      const framesValue = $("reel-frames-value");
+      const voiceSelect = $("reel-voice");
+      const generateBtn = $("reel-generate");
+      const alertEl = $("reel-alert");
+      const form = $("reel-form");
+      if (!form) return;
+
+      const state = {
+        characterEnhanced: null,
+        mode: "comic",
+        frameCount: 12,
+        voiceId: "",
+        turnstileToken: null,
+      };
+
+      // Cloudflare Turnstile token wiring. The widget's data-callback names
+      // are read by the loader script; they expect globals on window.
+      window.onReelTurnstileToken = function (token) {
+        state.turnstileToken = token || null;
+      };
+      window.onReelTurnstileError = function () {
+        state.turnstileToken = null;
+      };
+      window.onReelTurnstileExpired = function () {
+        state.turnstileToken = null;
+      };
+
+      // Prefill character from URL ?character=...
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const pre = params.get("character");
+        if (pre && pre.length > 0 && pre.length <= 600) {
+          charInput.value = pre;
+        }
+      } catch {}
+
+      function updateCounter(el, counter, max) {
+        const n = (el.value || "").length;
+        counter.textContent = n + " / " + max;
+      }
+      updateCounter(charInput, charCounter, 600);
+      updateCounter(storyInput, storyCounter, 900);
+      charInput.addEventListener("input", () => updateCounter(charInput, charCounter, 600));
+      storyInput.addEventListener("input", () => updateCounter(storyInput, storyCounter, 900));
+
+      framesRange.addEventListener("input", () => {
+        state.frameCount = parseInt(framesRange.value, 10) || 12;
+        framesValue.textContent = String(state.frameCount);
+      });
+
+      if (voiceSelect) {
+        voiceSelect.addEventListener("change", () => {
+          state.voiceId = (voiceSelect.value || "").trim();
+        });
+      }
+
+      document.querySelectorAll(".reel-toggle-option").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".reel-toggle-option").forEach((b) => {
+            b.classList.remove("is-on");
+            b.setAttribute("aria-checked", "false");
+          });
+          btn.classList.add("is-on");
+          btn.setAttribute("aria-checked", "true");
+          state.mode = btn.getAttribute("data-mode") || "comic";
+        });
+      });
+
+      function showAlert(msg) {
+        alertEl.textContent = msg;
+        alertEl.hidden = false;
+        alertEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      function clearAlert() {
+        alertEl.hidden = true;
+        alertEl.textContent = "";
+      }
+
+      async function callJson(url, body) {
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(body),
+        });
+        let json = null;
+        try { json = await r.json(); } catch {}
+        return { ok: r.ok, status: r.status, json };
+      }
+
+      enhanceBtn.addEventListener("click", async () => {
+        clearAlert();
+        const raw = (charInput.value || "").trim();
+        if (raw.length < 4) {
+          showAlert("Add a few more words about your character.");
+          return;
+        }
+        enhanceBtn.disabled = true;
+        const prevText = enhanceBtn.textContent;
+        enhanceBtn.textContent = "Enhancing...";
+        try {
+          const res = await callJson("/api/reel/enhance-character", { character: raw });
+          if (!res.ok || !res.json || !res.json.ok) {
+            const msg = res.json && res.json.error && res.json.error.message
+              ? res.json.error.message
+              : "Could not enhance — try again";
+            showAlert(msg);
+            return;
+          }
+          state.characterEnhanced = res.json.enhanced;
+          previewBody.textContent = state.characterEnhanced;
+          preview.hidden = false;
+          preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } catch (e) {
+          showAlert("Network error. Check your connection and try again.");
+        } finally {
+          enhanceBtn.disabled = false;
+          enhanceBtn.textContent = prevText;
+        }
+      });
+
+      rewriteBtn.addEventListener("click", () => {
+        preview.hidden = true;
+        state.characterEnhanced = null;
+        charInput.focus();
+      });
+
+      acceptBtn.addEventListener("click", () => {
+        storyField.hidden = false;
+        storyField.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        storyInput.focus();
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        clearAlert();
+        if (!state.characterEnhanced) {
+          showAlert("Enhance your character first.");
+          return;
+        }
+        const storyRaw = (storyInput.value || "").trim();
+        if (storyRaw.length < 4) {
+          showAlert("Add a few more words about what happens.");
+          return;
+        }
+        if (!state.turnstileToken) {
+          showAlert("Please complete the human check above the Generate button.");
+          return;
+        }
+        generateBtn.disabled = true;
+        const prevText = generateBtn.textContent;
+        generateBtn.textContent = "Beat sheet...";
+
+        try {
+          const beatRes = await callJson("/api/reel/enhance-story", {
+            story: storyRaw,
+            character_enhanced: state.characterEnhanced,
+            frame_count: state.frameCount,
+          });
+          if (!beatRes.ok || !beatRes.json || !beatRes.json.ok) {
+            const msg = beatRes.json && beatRes.json.error && beatRes.json.error.message
+              ? beatRes.json.error.message
+              : "Could not write the beat sheet — try again";
+            showAlert(msg);
+            return;
+          }
+          const beatSheet = beatRes.json.beat_sheet;
+          const storyEnhanced = beatSheet.logline;
+
+          generateBtn.textContent = "Dispatching...";
+          const genBody = {
+            character_raw: (charInput.value || "").trim(),
+            character_enhanced: state.characterEnhanced,
+            story_raw: storyRaw,
+            story_enhanced: storyEnhanced,
+            beat_sheet: beatSheet,
+            mode: state.mode,
+            frame_count: state.frameCount,
+            turnstile_token: state.turnstileToken,
+          };
+          if (state.voiceId) genBody.voice_id = state.voiceId;
+          const genRes = await callJson("/api/reel/generate", genBody);
+          // Turnstile tokens are single-use; reset for the next attempt.
+          state.turnstileToken = null;
+          if (window.turnstile && typeof window.turnstile.reset === "function") {
+            try { window.turnstile.reset(document.getElementById("reel-turnstile")); } catch {}
+          }
+          if (!genRes.ok || !genRes.json || !genRes.json.ok) {
+            const msg = genRes.json && genRes.json.error && genRes.json.error.message
+              ? genRes.json.error.message
+              : "Could not start the reel — try again";
+            showAlert(msg);
+            return;
+          }
+          // Off to the draft view.
+          window.location.href = genRes.json.draft_url || ("/reel/draft/" + genRes.json.id + "/");
+        } catch (err) {
+          showAlert("Network error. Check your connection and try again.");
+        } finally {
+          generateBtn.disabled = false;
+          generateBtn.textContent = prevText;
+        }
+      });
+    })();
+
+    (async function bootGallery() {
+      const root = document.getElementById("reel-gallery");
+      const empty = document.getElementById("reel-gallery-empty");
+      if (!root || !empty) return;
+      try {
+        const r = await fetch("/api/reel/gallery?limit=24", {
+          headers: { Accept: "application/json" },
+        });
+        if (!r.ok) throw new Error("gallery " + r.status);
+        const json = await r.json();
+        const items = (json && json.items) || [];
+        if (items.length === 0) {
+          empty.hidden = false;
+          return;
+        }
+        empty.hidden = true;
+        const frag = document.createDocumentFragment();
+        for (const item of items) {
+          const tile = renderTile(item);
+          if (tile) frag.appendChild(tile);
+        }
+        root.appendChild(frag);
+      } catch {
+        empty.hidden = false;
+      }
+    })();
+
+    function renderTile(item) {
+      if (!item || !item.slug) return null;
+      const a = document.createElement("a");
+      a.className = "reel-tile";
+      a.href = "/reel/" + item.slug + "/";
+      a.setAttribute(
+        "aria-label",
+        "Open: " + (item.story_enhanced || item.character_enhanced || item.slug),
+      );
+
+      const thumbSrc = item.master_url || "";
+      if (thumbSrc) {
+        const img = new Image();
+        img.src = thumbSrc;
+        img.alt = item.story_enhanced || item.character_enhanced || "Reel piece";
+        img.loading = "lazy";
+        img.decoding = "async";
+        a.appendChild(img);
+      }
+
+      const frames = Array.isArray(item.frame_urls) ? item.frame_urls : [];
+      if (frames.length >= 2) {
+        const loop = document.createElement("span");
+        loop.className = "reel-tile-loop";
+        // Cap to 12 cells for layout sanity; pick evenly-spaced frames when more.
+        const cap = 12;
+        const picked = frames.length <= cap
+          ? frames
+          : Array.from({ length: cap }, (_, i) => frames[Math.floor((i * frames.length) / cap)]);
+        const N = picked.length;
+        const totalDurSec = Math.max(1.4, Math.min(2.4, N * 0.18));
+        a.style.setProperty("--reel-loop-dur", totalDurSec + "s");
+        picked.forEach((url, i) => {
+          const im = new Image();
+          im.src = url;
+          im.alt = "";
+          im.loading = "lazy";
+          im.decoding = "async";
+          im.style.animationDelay = ((i * totalDurSec) / N).toFixed(3) + "s";
+          loop.appendChild(im);
+        });
+        a.appendChild(loop);
+        // Preload on first hover (browsers may have lazy-skipped them).
+        let preloaded = false;
+        const preload = () => {
+          if (preloaded) return;
+          preloaded = true;
+          picked.forEach((u) => { const p = new Image(); p.src = u; });
+        };
+        a.addEventListener("mouseenter", () => {
+          preload();
+          a.classList.add("playing");
+        });
+        a.addEventListener("mouseleave", () => a.classList.remove("playing"));
+        a.addEventListener("focusin", () => {
+          preload();
+          a.classList.add("playing");
+        });
+        a.addEventListener("focusout", () => a.classList.remove("playing"));
+      }
+
+      const badge = document.createElement("span");
+      badge.className = "reel-tile-badge";
+      badge.textContent =
+        (item.mode === "gif" ? "GIF · " : "Comic · ") + (item.frame_count || "?") + "f";
+      a.appendChild(badge);
+
+      const overlay = document.createElement("span");
+      overlay.className = "reel-tile-overlay";
+      overlay.textContent =
+        item.story_enhanced || item.character_enhanced || "";
+      a.appendChild(overlay);
+      return a;
+    }
+  </script>
+</BaseLayout>

@@ -22,3 +22,18 @@ pages_build_output_dir = "dist"
 binding = "DB"
 database_name = "truffle-co-prod"
 database_id = "7771dc71-18a0-4e4b-8d7c-68084cf85131"
+
+# R2 bucket for /lens/ Luma-generated images.
+# Public reads go through /i/<id> (Pages Function) which sets long-lived
+# Cache-Control + Etag and trusts Cloudflare's edge cache to serve the bytes.
+[[r2_buckets]]
+binding = "LENS_BUCKET"
+bucket_name = "truffle-lens-images"
+
+# R2 bucket for /reel/ multi-frame comic + GIF pieces.
+# Public reads go through /i-reel/<key> (Pages Function) which sets long-lived
+# Cache-Control + Etag and trusts Cloudflare's edge cache to serve the bytes.
+# Keys: master/<piece_id>.png, frame/<piece_id>/<frame_index>.png.
+[[r2_buckets]]
+binding = "REEL_BUCKET"
+bucket_name = "truffle-reel-images"

@@ -1,0 +1,3 @@
+# Long-cache the homepage hero strip assets. Content-stable; safe for one year.
+/reel-hero/*
+  Cache-Control: public, max-age=31536000, immutable

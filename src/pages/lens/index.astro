@@ -1,0 +1,1135 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Lens · type a thought, see an image";
+const description =
+  "Lens is a small image studio on Truffle. Type a short prompt — a golden retriever in Times Square, a polar bear on a Tokyo subway — and watch a Claude-polished, Luma-rendered image appear. Every image lives in a public gallery underneath.";
+const canonical = "https://truffleagent.com/lens/";
+const ogImage = "/lens/og.jpg";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Lens",
+  alternateName: ["Truffle Lens", "Luma Image Studio"],
+  url: canonical,
+  applicationCategory: "DesignApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Type a short prompt, get a polished Luma image",
+    "AI rewrites your prompt for better composition",
+    "Public gallery of every recent generation",
+    "16:9, 9:16, 1:1, 3:2, 2:3 aspect ratios",
+    "Cinematic, whimsical, portrait, landscape, abstract style hints",
+    "Long-cached on the Cloudflare edge",
+    "No accounts. Daily quota per visitor.",
+  ],
+  author: "Truffle",
+};
+
+// Server-side seeds for the prompt placeholder rotation. The cron job
+// edits lens_prompts over time, but these guarantee a non-empty first
+// paint even before D1 is populated.
+const seedPrompts = [
+  "a golden retriever in oversized aviator sunglasses on a yellow taxi in Times Square at night",
+  "a tiny astronaut on a kitchen counter inspecting a single ripe strawberry",
+  "a polar bear in noise-cancelling headphones on a Tokyo subway at 2am",
+  "a flamingo in a tuxedo conducting an empty orchestra in fog",
+  "a lone runner crossing a frozen lake at dawn",
+  "macro shot of indigo ink unfurling in still water",
+];
+---
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={canonical}
+  ogImage={ogImage}
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(webAppJsonLd)}
+  />
+
+  <main class="lens-page">
+    <header class="lens-hero">
+      <p class="lens-eyebrow">New on Truffle</p>
+      <h1 class="lens-display">
+        Type a thought.<br /><em>See an image.</em>
+      </h1>
+      <p class="lens-lead">
+        Lens is a small image studio. You type a short prompt. A Claude-tuned
+        rewrite layer turns it into a Luma-ready scene. Luma's uni-1 model
+        renders the frame. Every result lands in the gallery below, public by
+        default, alongside everyone else's.
+      </p>
+    </header>
+
+    <section class="lens-studio" aria-label="Generate an image">
+      <form id="lens-form" class="lens-form">
+        <label class="lens-field">
+          <span class="lens-field-label">Your prompt</span>
+          <textarea
+            id="lens-prompt"
+            name="prompt"
+            rows="3"
+            maxlength="600"
+            placeholder={seedPrompts[0]}
+            autocomplete="off"
+            spellcheck="true"
+            required></textarea>
+          <span class="lens-field-meta">
+            <span id="lens-charcount">0</span> / 600
+            <button type="button" id="lens-surprise" class="lens-link" aria-label="Surprise me with a prompt">
+              Surprise me
+            </button>
+          </span>
+        </label>
+
+        <div class="lens-controls">
+          <label class="lens-field lens-field-tight">
+            <span class="lens-field-label">Style</span>
+            <select id="lens-style" name="style">
+              <option value="auto">Auto</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="whimsical">Whimsical</option>
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+              <option value="abstract">Abstract</option>
+            </select>
+          </label>
+          <label class="lens-field lens-field-tight">
+            <span class="lens-field-label">Aspect</span>
+            <select id="lens-aspect" name="aspect">
+              <option value="16:9">16:9 wide</option>
+              <option value="9:16">9:16 tall</option>
+              <option value="1:1">1:1 square</option>
+              <option value="3:2">3:2 photo</option>
+              <option value="2:3">2:3 portrait</option>
+            </select>
+          </label>
+          <label class="lens-field lens-field-tight">
+            <span class="lens-field-label">Model</span>
+            <select id="lens-model" name="model">
+              <option value="uni-1">uni-1 — fast</option>
+              <option value="uni-1-max">uni-1-max — sharper</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="lens-submit-row">
+          <button id="lens-go" class="lens-btn lens-btn-primary" type="submit">
+            <span class="lens-btn-label">Generate</span>
+            <svg class="lens-btn-icon" viewBox="0 0 24 24" width="14" height="14"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6"/>
+            </svg>
+          </button>
+          <p class="lens-submit-hint" id="lens-submit-hint">
+            20 free generations per visitor per day. About 30 seconds each.
+          </p>
+        </div>
+      </form>
+
+      <div id="lens-result" class="lens-result" hidden>
+        <div class="lens-result-stage" id="lens-stage">
+          <div class="lens-status-card" id="lens-status">
+            <p class="lens-status-step" id="lens-status-step">Enhancing your prompt</p>
+            <div class="lens-status-bar"><div id="lens-status-fill"></div></div>
+            <p class="lens-status-detail" id="lens-status-detail">A version of Truffle is rewriting your scene for Luma.</p>
+          </div>
+        </div>
+        <div class="lens-result-meta" id="lens-result-meta" hidden>
+          <p class="lens-result-eyebrow">Latest</p>
+          <p class="lens-result-prompt" id="lens-result-prompt"></p>
+          <div class="lens-result-actions">
+            <button id="lens-download" type="button" class="lens-btn lens-btn-ghost">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v12M5 12l7 7 7-7"/>
+              </svg>
+              Download
+            </button>
+            <button id="lens-copy-prompt" type="button" class="lens-btn lens-btn-ghost">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="11" height="11" rx="2"/>
+                <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+              </svg>
+              Copy enhanced prompt
+            </button>
+            <button id="lens-again" type="button" class="lens-btn lens-btn-ghost">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/>
+              </svg>
+              Try another
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lens-gallery-wrap" aria-label="Public gallery">
+      <div class="lens-gallery-head">
+        <h2 class="lens-h2">The gallery</h2>
+        <p class="lens-gallery-sub">
+          Every successful generation lands here. Click any tile to see the prompt that produced it.
+        </p>
+      </div>
+      <div id="lens-gallery" class="lens-gallery" aria-live="polite"></div>
+      <div class="lens-gallery-more">
+        <button id="lens-load-more" type="button" class="lens-btn lens-btn-ghost" hidden>
+          Load more
+        </button>
+        <p id="lens-gallery-empty" class="lens-gallery-empty" hidden>
+          The gallery is empty for now. Be the first to try a prompt.
+        </p>
+      </div>
+    </section>
+
+    <section class="lens-footnote" aria-label="How Lens works">
+      <h3 class="lens-h3">How Lens works</h3>
+      <ol class="lens-steps">
+        <li><strong>Type.</strong> A short prompt — even just a few words.</li>
+        <li><strong>Polish.</strong> Truffle rewrites it as a single dense scene description (subject, action, lighting, framing, mood) — same anatomy good cinematographers use.</li>
+        <li><strong>Render.</strong> Luma Labs' uni-1 image model paints a 2048-pixel frame.</li>
+        <li><strong>Share.</strong> The image lands on the Cloudflare edge, in the public gallery, free to download.</li>
+      </ol>
+      <p class="lens-fine">
+        Limit: 20 generations per visitor per day. Prompts requesting NSFW,
+        violence, or named real people are rejected by the safety pass. Images
+        are public by default; do not upload anything you do not want others to see.
+      </p>
+    </section>
+  </main>
+
+  <div id="lens-lightbox" class="lens-lightbox" hidden role="dialog" aria-modal="true" aria-label="Image preview">
+    <div class="lens-lightbox-frame">
+      <button type="button" id="lens-lightbox-close" class="lens-lightbox-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+      <img id="lens-lightbox-img" alt="" />
+      <div class="lens-lightbox-meta">
+        <p class="lens-lightbox-prompt" id="lens-lightbox-prompt"></p>
+        <div class="lens-lightbox-actions">
+          <a id="lens-lightbox-download" class="lens-btn lens-btn-ghost" download>Download</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline define:vars={{ seeds: seedPrompts }}>
+  // ===== State =====
+  const $ = (id) => document.getElementById(id);
+  const promptEl = $("lens-prompt");
+  const charcount = $("lens-charcount");
+  const surpriseBtn = $("lens-surprise");
+  const styleEl = $("lens-style");
+  const aspectEl = $("lens-aspect");
+  const modelEl = $("lens-model");
+  const form = $("lens-form");
+  const goBtn = $("lens-go");
+  const submitHint = $("lens-submit-hint");
+  const resultEl = $("lens-result");
+  const stage = $("lens-stage");
+  const statusCard = $("lens-status");
+  const statusStep = $("lens-status-step");
+  const statusFill = $("lens-status-fill");
+  const statusDetail = $("lens-status-detail");
+  const resultMeta = $("lens-result-meta");
+  const resultPrompt = $("lens-result-prompt");
+  const downloadBtn = $("lens-download");
+  const copyBtn = $("lens-copy-prompt");
+  const againBtn = $("lens-again");
+  const galleryEl = $("lens-gallery");
+  const loadMoreBtn = $("lens-load-more");
+  const galleryEmpty = $("lens-gallery-empty");
+  const lightbox = $("lens-lightbox");
+  const lightboxImg = $("lens-lightbox-img");
+  const lightboxPrompt = $("lens-lightbox-prompt");
+  const lightboxDownload = $("lens-lightbox-download");
+  const lightboxClose = $("lens-lightbox-close");
+
+  promptEl.addEventListener("input", () => {
+    charcount.textContent = String(promptEl.value.length);
+  });
+
+  let seedIndex = 0;
+  surpriseBtn.addEventListener("click", () => {
+    seedIndex = (seedIndex + 1) % seeds.length;
+    promptEl.value = seeds[seedIndex];
+    promptEl.dispatchEvent(new Event("input"));
+    promptEl.focus();
+  });
+
+  const STEPS = [
+    { name: "polishing", label: "Polishing your prompt", detail: "Truffle is rewriting the scene for Luma.", pct: 18 },
+    { name: "submitting", label: "Submitting to Luma", detail: "Sending the request to uni-1.", pct: 30 },
+    { name: "rendering", label: "Rendering", detail: "Luma is painting the frame at 2048 pixels.", pct: 80 },
+    { name: "saving", label: "Saving to gallery", detail: "Almost done.", pct: 95 },
+  ];
+
+  function setStep(idx) {
+    const s = STEPS[idx];
+    statusStep.textContent = s.label;
+    statusDetail.textContent = s.detail;
+    statusFill.style.width = s.pct + "%";
+    statusCard.dataset.state = s.name;
+  }
+
+  function setError(message) {
+    statusCard.dataset.state = "error";
+    statusStep.textContent = "Something went wrong";
+    statusDetail.textContent = message;
+    statusFill.style.width = "100%";
+  }
+
+  function placeResult(url, raw, enhanced) {
+    stage.innerHTML = "";
+    const wrap = document.createElement("div");
+    wrap.className = "lens-result-image-wrap";
+    const skel = document.createElement("div");
+    skel.className = "lens-result-skel";
+    skel.setAttribute("aria-hidden", "true");
+    wrap.appendChild(skel);
+    const img = new Image();
+    img.alt = raw;
+    img.loading = "eager";
+    img.decoding = "async";
+    img.className = "lens-result-image";
+    img.style.opacity = "0";
+    const reveal = () => {
+      skel.remove();
+      img.style.transition = "opacity 240ms ease";
+      img.style.opacity = "1";
+    };
+    img.onload = reveal;
+    img.onerror = () => {
+      skel.classList.add("lens-result-skel-error");
+      skel.textContent = "Image didn't load. Try refreshing.";
+    };
+    wrap.appendChild(img);
+    stage.appendChild(wrap);
+    img.src = url;
+    if (img.decode) {
+      img.decode().then(reveal).catch(() => {/* onload still fires */});
+    }
+    resultPrompt.textContent = enhanced || raw;
+    resultMeta.hidden = false;
+    downloadBtn.onclick = () => downloadImage(url, `lens-${Date.now()}.png`);
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(enhanced || raw);
+        copyBtn.classList.add("ok");
+        copyBtn.textContent = "Copied";
+        setTimeout(() => {
+          copyBtn.classList.remove("ok");
+          // restore the original innerHTML
+          copyBtn.innerHTML = copyIconSvg() + "Copy enhanced prompt";
+        }, 1500);
+      } catch (e) {
+        // no-op
+      }
+    };
+    againBtn.onclick = () => {
+      resetForm(true);
+    };
+  }
+
+  function copyIconSvg() {
+    return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+  }
+
+  async function downloadImage(url, filename) {
+    try {
+      const r = await fetch(url, { credentials: "omit" });
+      const blob = await r.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+    } catch (e) {
+      window.open(url, "_blank");
+    }
+  }
+
+  function resetForm(keepPrompt) {
+    if (!keepPrompt) promptEl.value = "";
+    promptEl.dispatchEvent(new Event("input"));
+    resultEl.hidden = true;
+    resultMeta.hidden = true;
+    stage.innerHTML = `
+      <div class="lens-status-card" id="lens-status">
+        <p class="lens-status-step" id="lens-status-step">Enhancing your prompt</p>
+        <div class="lens-status-bar"><div id="lens-status-fill"></div></div>
+        <p class="lens-status-detail" id="lens-status-detail">A version of Truffle is rewriting your scene for Luma.</p>
+      </div>`;
+    goBtn.disabled = false;
+    promptEl.disabled = false;
+    promptEl.focus();
+  }
+
+  // ===== Generate flow =====
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const raw = promptEl.value.trim();
+    if (!raw) return;
+
+    goBtn.disabled = true;
+    promptEl.disabled = true;
+    resultEl.hidden = false;
+    resultMeta.hidden = true;
+    setStep(0);
+
+    let id;
+    try {
+      const r = await fetch("/api/lens/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: raw,
+          style: styleEl.value,
+          aspect: aspectEl.value,
+          model: modelEl.value,
+        }),
+      });
+      const json = await r.json();
+      if (!json.ok) {
+        const code = json.error?.code ?? "error";
+        const msg = json.error?.message ?? "Generation failed.";
+        if (code === "daily_quota_exceeded") {
+          setError("You have hit today's free quota. Come back tomorrow.");
+        } else {
+          setError(msg);
+        }
+        goBtn.disabled = false;
+        promptEl.disabled = false;
+        return;
+      }
+      id = json.id;
+      if (typeof json.quota_remaining === "number") {
+        submitHint.textContent = `${json.quota_remaining} generations left today.`;
+      }
+      setStep(1);
+    } catch (err) {
+      setError("Network error. Try again.");
+      goBtn.disabled = false;
+      promptEl.disabled = false;
+      return;
+    }
+
+    // Poll status
+    const deadline = Date.now() + 180_000;
+    let phase = 2;
+    setStep(2);
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 4_000));
+      let json;
+      try {
+        const r = await fetch("/api/lens/status/" + encodeURIComponent(id));
+        json = await r.json();
+      } catch (e) {
+        continue;
+      }
+      if (!json.ok) {
+        setError(json.error?.message ?? "Polling failed.");
+        goBtn.disabled = false;
+        promptEl.disabled = false;
+        return;
+      }
+      if (json.status === "completed" && json.url) {
+        setStep(3);
+        await new Promise((r) => setTimeout(r, 300));
+        placeResult(json.url, json.prompt_raw, json.prompt_enhanced);
+        prependToGallery({
+          id: json.id,
+          prompt_raw: json.prompt_raw,
+          prompt_enhanced: json.prompt_enhanced,
+          model: json.model,
+          aspect_ratio: json.aspect_ratio,
+          url: json.url,
+        });
+        goBtn.disabled = false;
+        promptEl.disabled = false;
+        return;
+      }
+      if (json.status === "failed" || json.status === "rejected") {
+        setError(json.failure_reason || "Image generation failed.");
+        goBtn.disabled = false;
+        promptEl.disabled = false;
+        return;
+      }
+      // queued or processing — keep going
+      if (phase === 2 && Date.now() > deadline - 150_000) {
+        phase = 2; // stay
+      }
+    }
+    setError("The image took too long. Try a simpler prompt.");
+    goBtn.disabled = false;
+    promptEl.disabled = false;
+  });
+
+  // ===== Gallery =====
+  let galleryCursor = null;
+  let galleryInitialLoaded = false;
+  const galleryIds = new Set();
+
+  function prependToGallery(item) {
+    if (!item || !item.id || galleryIds.has(item.id)) return;
+    galleryIds.add(item.id);
+    galleryEmpty.hidden = true;
+    const tile = makeTile(item);
+    tile.classList.add("lens-tile-fresh");
+    if (galleryEl.firstChild) {
+      galleryEl.insertBefore(tile, galleryEl.firstChild);
+    } else {
+      galleryEl.appendChild(tile);
+    }
+    requestAnimationFrame(() => {
+      tile.classList.remove("lens-tile-fresh");
+    });
+  }
+
+  async function loadGallery({ reset } = {}) {
+    if (reset) {
+      galleryCursor = null;
+      galleryEl.innerHTML = "";
+      galleryIds.clear();
+    }
+    const u = new URL("/api/lens/gallery", location.origin);
+    const limit = galleryInitialLoaded ? 24 : 12;
+    u.searchParams.set("limit", String(limit));
+    if (galleryCursor) u.searchParams.set("cursor", galleryCursor);
+    let json;
+    try {
+      const r = await fetch(u.toString(), { credentials: "omit" });
+      json = await r.json();
+    } catch (e) {
+      return;
+    }
+    if (!json.ok) return;
+    for (const item of json.items) {
+      if (galleryIds.has(item.id)) continue;
+      galleryIds.add(item.id);
+      galleryEl.appendChild(makeTile(item));
+    }
+    galleryInitialLoaded = true;
+    if (galleryEl.children.length === 0) {
+      galleryEmpty.hidden = false;
+      loadMoreBtn.hidden = true;
+      return;
+    }
+    galleryEmpty.hidden = true;
+    galleryCursor = json.next_cursor;
+    loadMoreBtn.hidden = !json.next_cursor;
+  }
+
+  function makeTile(item) {
+    const a = document.createElement("button");
+    a.type = "button";
+    a.className = "lens-tile";
+    a.dataset.aspect = item.aspect_ratio;
+    a.setAttribute("aria-label", "Open image: " + item.prompt_raw);
+
+    const img = new Image();
+    img.src = item.url;
+    img.alt = item.prompt_raw;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.className = "lens-tile-img";
+    a.appendChild(img);
+
+    const overlay = document.createElement("span");
+    overlay.className = "lens-tile-overlay";
+    overlay.textContent = item.prompt_raw;
+    a.appendChild(overlay);
+
+    a.addEventListener("click", () => openLightbox(item));
+    return a;
+  }
+
+  loadMoreBtn.addEventListener("click", () => loadGallery());
+
+  // ===== Lightbox =====
+  function openLightbox(item) {
+    lightboxImg.src = item.url;
+    lightboxImg.alt = item.prompt_raw;
+    lightboxPrompt.textContent = item.prompt_enhanced || item.prompt_raw;
+    lightboxDownload.href = item.url;
+    lightboxDownload.download = "lens-" + item.id + ".png";
+    lightbox.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeLightbox() {
+    lightbox.hidden = true;
+    lightboxImg.src = "";
+    document.body.style.overflow = "";
+  }
+  lightboxClose.addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+  window.addEventListener("keydown", (e) => {
+    if (!lightbox.hidden && e.key === "Escape") closeLightbox();
+  });
+
+  // ===== Boot =====
+  promptEl.dispatchEvent(new Event("input"));
+  loadGallery({ reset: true });
+</script>
+
+<style is:global>
+  .lens-page {
+    --paper: var(--surface);
+    --paper-2: var(--surface-2);
+    --paper-3: var(--surface-3);
+    --line: var(--border);
+    --content-main: var(--content);
+    --content-soft: var(--content-2);
+    --content-mute: var(--content-3);
+    --accent-main: var(--accent);
+
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  /* ---------- Hero ---------- */
+  .lens-hero {
+    max-width: 760px;
+    margin: 0 auto 56px;
+    text-align: center;
+  }
+  .lens-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--content-mute);
+    margin: 0 0 16px;
+  }
+  .lens-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(40px, 6vw, 64px);
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    color: var(--content-main);
+    margin: 0 0 24px;
+  }
+  .lens-display em {
+    font-style: italic;
+    color: var(--accent-main);
+  }
+  .lens-lead {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--content-soft);
+    margin: 0;
+  }
+
+  /* ---------- Studio ---------- */
+  .lens-studio {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 96px;
+  }
+  @media (min-width: 960px) {
+    .lens-studio {
+      grid-template-columns: 380px minmax(0, 1fr);
+      gap: 32px;
+      align-items: start;
+    }
+  }
+  .lens-form {
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .lens-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .lens-field-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--content-mute);
+  }
+  .lens-form textarea,
+  .lens-form select {
+    appearance: none;
+    background: var(--paper);
+    color: var(--content-main);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    width: 100%;
+    transition: border-color 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+  }
+  .lens-form textarea {
+    min-height: 88px;
+    resize: vertical;
+  }
+  .lens-form textarea:focus,
+  .lens-form select:focus {
+    border-color: var(--accent-main);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-main) 18%, transparent);
+    outline: none;
+  }
+  .lens-form select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23736a52' stroke-width='2' viewBox='0 0 24 24'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+    padding-right: 32px;
+  }
+  .lens-field-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--content-mute);
+  }
+  .lens-link {
+    background: none;
+    border: 0;
+    color: var(--accent-main);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .lens-link:hover { text-decoration: underline; }
+  .lens-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .lens-field-tight .lens-field-label {
+    font-size: 10px;
+  }
+  .lens-submit-row {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .lens-submit-hint {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--content-mute);
+  }
+
+  /* ---------- Buttons ---------- */
+  .lens-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1;
+    padding: 12px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--content-main);
+    cursor: pointer;
+    transition: border-color 150ms var(--ease-out), background 150ms var(--ease-out), transform 100ms var(--ease-out);
+    text-decoration: none;
+  }
+  .lens-btn:hover { border-color: var(--accent-main); }
+  .lens-btn:active { transform: translateY(1px); }
+  .lens-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .lens-btn-primary {
+    background: var(--accent-main);
+    color: #fff;
+    border-color: transparent;
+  }
+  .lens-btn-primary:hover {
+    background: var(--accent-2);
+    border-color: transparent;
+  }
+  .lens-btn-primary:disabled {
+    background: var(--paper-3);
+    color: var(--content-mute);
+  }
+  .lens-btn-ghost {
+    background: transparent;
+  }
+  .lens-btn.ok { color: var(--accent-main); border-color: var(--accent-main); }
+
+  /* ---------- Result Stage ---------- */
+  .lens-result {
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: 380px;
+  }
+  .lens-result-stage {
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper);
+    position: relative;
+  }
+  .lens-result-image-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--paper-3);
+  }
+  .lens-result-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 8px;
+  }
+  .lens-result-skel {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background:
+      linear-gradient(
+        90deg,
+        var(--paper-3) 0%,
+        var(--paper-2) 40%,
+        var(--paper-3) 80%
+      );
+    background-size: 200% 100%;
+    animation: lens-skel-shimmer 1.4s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--content-soft);
+    font-size: 13px;
+    font-family: var(--font-mono);
+  }
+  .lens-result-skel-error {
+    animation: none;
+    background: var(--paper-2);
+    color: var(--color-rust-500);
+    padding: 0 16px;
+    text-align: center;
+  }
+  @keyframes lens-skel-shimmer {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  .lens-status-card {
+    text-align: center;
+    padding: 24px;
+    max-width: 360px;
+  }
+  .lens-status-step {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    line-height: 1.2;
+    color: var(--content-main);
+    margin: 0 0 14px;
+  }
+  .lens-status-bar {
+    height: 4px;
+    background: var(--paper-3);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .lens-status-bar > div {
+    height: 100%;
+    width: 0%;
+    background: var(--accent-main);
+    transition: width 400ms var(--ease-out);
+    animation: lens-shimmer 1.8s ease-in-out infinite alternate;
+  }
+  @keyframes lens-shimmer {
+    from { opacity: 0.7; }
+    to   { opacity: 1; }
+  }
+  .lens-status-detail {
+    margin: 0;
+    font-size: 13px;
+    color: var(--content-soft);
+  }
+  .lens-status-card[data-state="error"] .lens-status-step { color: var(--color-rust-500); }
+  .lens-status-card[data-state="error"] .lens-status-bar > div { background: var(--color-rust-500); animation: none; }
+
+  .lens-result-meta { display: flex; flex-direction: column; gap: 12px; }
+  .lens-result-eyebrow {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--content-mute);
+  }
+  .lens-result-prompt {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--content-main);
+  }
+  .lens-result-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* ---------- Gallery ---------- */
+  .lens-gallery-wrap { margin-bottom: 88px; }
+  .lens-gallery-head {
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto 36px;
+  }
+  .lens-h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.1;
+    margin: 0 0 8px;
+    color: var(--content-main);
+  }
+  .lens-gallery-sub {
+    margin: 0;
+    color: var(--content-soft);
+    font-size: 15px;
+  }
+  .lens-gallery {
+    column-width: 280px;
+    column-gap: 14px;
+  }
+  @media (min-width: 1080px) {
+    .lens-gallery { column-width: 300px; }
+  }
+  .lens-tile {
+    position: relative;
+    display: block;
+    width: 100%;
+    margin: 0 0 14px;
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--paper-2);
+    aspect-ratio: 16 / 9;
+    cursor: pointer;
+    padding: 0;
+    appearance: none;
+    transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out);
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .lens-tile[data-aspect="9:16"] { aspect-ratio: 9 / 16; }
+  .lens-tile[data-aspect="2:3"]  { aspect-ratio: 2 / 3; }
+  .lens-tile[data-aspect="3:2"]  { aspect-ratio: 3 / 2; }
+  .lens-tile[data-aspect="1:1"]  { aspect-ratio: 1 / 1; }
+  .lens-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 38px -20px color-mix(in oklab, var(--content-main) 40%, transparent);
+  }
+  .lens-tile-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 480ms var(--ease-out);
+  }
+  .lens-tile:hover .lens-tile-img,
+  .lens-tile:focus-visible .lens-tile-img { transform: scale(1.07); }
+  .lens-tile-fresh {
+    animation: lens-tile-pop 560ms var(--ease-out) both;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent-main) 60%, transparent);
+  }
+  @keyframes lens-tile-pop {
+    0%   { transform: scale(0.94); opacity: 0; }
+    60%  { transform: scale(1.02); opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
+  }
+  .lens-tile-overlay {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 26px 16px 16px;
+    color: #fff;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.45;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.86) 0%,
+      rgba(0, 0, 0, 0.62) 35%,
+      rgba(0, 0, 0, 0.22) 75%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-align: left;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 260ms var(--ease-out), transform 260ms var(--ease-out);
+    pointer-events: none;
+  }
+  .lens-tile:hover .lens-tile-overlay,
+  .lens-tile:focus .lens-tile-overlay {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .lens-gallery-more {
+    margin-top: 28px;
+    text-align: center;
+  }
+  .lens-gallery-empty {
+    margin: 0;
+    color: var(--content-soft);
+    font-size: 14px;
+  }
+
+  /* ---------- Footnote ---------- */
+  .lens-footnote {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+  }
+  .lens-h3 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 22px;
+    margin: 0 0 16px;
+  }
+  .lens-steps {
+    margin: 0 0 18px;
+    padding-left: 20px;
+    color: var(--content-soft);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .lens-steps strong {
+    color: var(--content-main);
+    font-weight: 600;
+    font-family: var(--font-serif);
+    font-style: italic;
+  }
+  .lens-fine {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--content-mute);
+    line-height: 1.5;
+  }
+
+  /* ---------- Lightbox ---------- */
+  .lens-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: color-mix(in oklab, var(--content-main) 88%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  .lens-lightbox-frame {
+    background: var(--paper);
+    border-radius: 18px;
+    max-width: min(1080px, 100%);
+    width: 100%;
+    max-height: calc(100vh - 64px);
+    overflow: auto;
+    position: relative;
+    padding: 24px;
+  }
+  .lens-lightbox-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--content-main);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lens-lightbox-close:hover { border-color: var(--accent-main); }
+  .lens-lightbox-frame img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 10px;
+    margin-bottom: 24px;
+  }
+  .lens-lightbox-meta {
+    position: sticky;
+    bottom: -24px;
+    margin: 0 -24px -24px;
+    padding: 20px 24px 24px;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    border-radius: 0 0 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 2;
+    box-shadow: 0 -10px 28px -18px color-mix(in oklab, var(--content-main) 35%, transparent);
+  }
+  .lens-lightbox-prompt {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--content-main);
+    margin: 0;
+  }
+  .lens-lightbox-actions {
+    display: flex;
+    gap: 10px;
+  }
+</style>
