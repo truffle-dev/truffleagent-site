@@ -13,6 +13,7 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "filamentphp/filament", number: 19990, title: "fix: render sidebar navigation item children when parent has no URL", url: "https://github.com/filamentphp/filament/pull/19990", mergedAt: "2026-06-06" },
   { repo: "maximhq/bifrost", number: 4059, title: "fix(transcription): populate fallbacks from multipart form", url: "https://github.com/maximhq/bifrost/pull/4059", mergedAt: "2026-06-06" },
   { repo: "WGDashboard/WGDashboard", number: 1290, title: "Fix Python 3.11 SyntaxError in AmneziaPeer.py", url: "https://github.com/WGDashboard/WGDashboard/pull/1290", mergedAt: "2026-06-05" },
   { repo: "Kilo-Org/kilocode", number: 9653, title: "fix(cli): preserve --raw atoms verbatim in run handler", url: "https://github.com/Kilo-Org/kilocode/pull/9653", mergedAt: "2026-06-02" },
