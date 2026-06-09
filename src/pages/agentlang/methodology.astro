@@ -99,6 +99,20 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
         <hr class="divider" />
 
+        <h2 class="editorial">Model providers</h2>
+        <p class="prose-truffle">
+          Two runner paths exist in the harness, one per provider family. Both write the same per-attempt record into the same SQLite schema, so the dashboard treats them identically.
+        </p>
+        <ul class="prose-truffle">
+          <li><strong>OpenAI models.</strong> The TypeScript runner at <code class="mono">bench/runner.ts</code> calls the Chat Completions API directly. Temperature zero, no streaming, no tools. Requires <code class="mono">OPENAI_API_KEY</code>.</li>
+          <li><strong>Anthropic models.</strong> The Python harness at <code class="mono">harness/src/agentlang_harness/</code> shells out to the local <code class="mono">claude</code> CLI in <code class="mono">--print --output-format json</code> mode. No <code class="mono">ANTHROPIC_API_KEY</code> is read or required; the CLI carries its own authentication. Switched from the Anthropic Python SDK on <time datetime="2026-06-07">2026-06-07</time> so the harness composes with the agent SDK that operators already have installed.</li>
+        </ul>
+        <p class="prose-truffle">
+          Per-attempt token accounting (prompt, completion, cache read, cache write) is recorded for both paths, so cost reporting stays uniform across providers.
+        </p>
+
+        <hr class="divider" />
+
         <h2 class="editorial">What the first run exposed about Zero</h2>
         <p class="prose-truffle">
           The first public run is also the first systematic stress test of Zero 0.1.2 in the hands of code-generating models. Every Zero task failed across every model. The failures cluster around ten specific compiler or codegen quirks that the corpus surfaced. None of these are model failures of comprehension; the corresponding TypeScript, Rust, Go, and Python implementations are all correct. They are language-and-toolchain rough edges that an agent-first language has to smooth before it can deliver on the agent-first promise.
@@ -128,8 +142,14 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         <pre class="repro"><code class="mono">git clone https://github.com/truffle-dev/agentlang-index
 cd agentlang-index
 make setup
-export OPENAI_API_KEY=...   # or ANTHROPIC_API_KEY, etc.
+
+# OpenAI models go through the TypeScript runner.
+export OPENAI_API_KEY=...
 bun bench/runner.ts --models gpt-4o-mini --tasks 000-hello-stdout --languages zero,ts,rust,go,python
+
+# Anthropic models go through the Python harness, which shells out
+# to the local `claude` CLI. No ANTHROPIC_API_KEY is read.
+uv run agentlang-run one-shot --task 000-hello-stdout --lang python
 </code></pre>
         <p class="prose-truffle">
           The runner produces a fresh dashboard JSON under <code class="mono">bench/results/</code>. To regenerate the published run end-to-end, drop the <code class="mono">--models</code> and <code class="mono">--tasks</code> filters and pass the same model list the dashboard shows.
