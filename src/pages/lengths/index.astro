@@ -1,0 +1,835 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Lengths · find lines over a threshold";
+const description =
+  "Paste text, set a maximum line length, see every line that crosses it with its line number and length. Total characters, UTF-8 bytes, line count, and longest-line length update live. Runs entirely in your browser. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/lengths/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Lengths",
+  alternateName: ["Line Length Scanner", "Long Line Finder", "Max Line Width Checker"],
+  url: canonical,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Live line count, character count, UTF-8 byte size",
+    "Longest line length highlighted",
+    "Lists every line above your threshold with its line number and length",
+    "Sort matches by line number or by length",
+    "Threshold and view mode persist in the URL hash so links share state",
+    "Click a line to scroll the textarea to it",
+    "Pure browser, no network",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is Lengths for?",
+    a: "When a file has a hard length budget. README columns wider than 80, manifest index lines that overflow a load window, log records over a logger's truncation point, code lines blowing past a linter rule. Paste it, set the threshold, see which lines need a cut.",
+  },
+  {
+    q: "Why does the byte count differ from the character count?",
+    a: "UTF-8 encodes most ASCII as one byte per character but multibyte for accented letters, em dashes, emoji, and so on. The character count is what you read; the byte count is what storage and transport limits care about.",
+  },
+  {
+    q: "Does the line count include a trailing newline?",
+    a: "If the text ends with a newline, the last empty line after it is not counted. If you want to count the trailing newline as a line, append a single non-newline character.",
+  },
+  {
+    q: "How big a paste does it handle?",
+    a: "It works on files up to a few megabytes in a normal browser. Past that you may see the textarea slow down on input but the analysis itself stays fast.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. There are no ads, no analytics, no third-party scripts. Your text never leaves the page; the threshold and sort are stored in the URL hash so a link preserves them.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="ln-page">
+    <header class="ln-topbar">
+      <div class="ln-topbar-inner">
+        <div class="ln-brand">
+          <span class="ln-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18" />
+              <path d="M3 12h10" />
+              <path d="M3 18h14" />
+            </svg>
+          </span>
+          <span class="ln-brand-name">Lengths</span>
+        </div>
+        <div class="ln-topbar-actions">
+          <button id="example-btn" type="button" class="ln-btn ln-btn-ghost">Try example</button>
+          <button id="clear-btn" type="button" class="ln-btn ln-btn-ghost">Clear</button>
+          <button id="copy-btn" type="button" class="ln-btn ln-btn-ghost">Copy report</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="ln-controls">
+      <label class="ln-field ln-field-text">
+        <span class="ln-field-label">Paste or type your text</span>
+        <textarea id="text" rows="12" placeholder="Paste a file, an index, a config, a README..." spellcheck="false" autocomplete="off"></textarea>
+      </label>
+      <div class="ln-field-row">
+        <label class="ln-field ln-field-num">
+          <span class="ln-field-label">Max line length</span>
+          <input id="threshold" type="number" min="1" max="100000" value="80" inputmode="numeric" />
+        </label>
+        <fieldset class="ln-field ln-field-sort">
+          <legend class="ln-field-label">Sort matches by</legend>
+          <div class="ln-segment" role="radiogroup" aria-label="Sort matches by">
+            <label class="ln-seg-opt">
+              <input type="radio" name="sort" value="line" checked />
+              <span>Line number</span>
+            </label>
+            <label class="ln-seg-opt">
+              <input type="radio" name="sort" value="length" />
+              <span>Length</span>
+            </label>
+          </div>
+        </fieldset>
+      </div>
+    </section>
+
+    <section class="ln-cards" aria-label="Text statistics">
+      <div class="ln-card">
+        <div class="ln-card-label">Lines</div>
+        <div class="ln-card-value" id="stat-lines">0</div>
+        <div class="ln-card-sub" id="stat-over">0 over limit</div>
+      </div>
+      <div class="ln-card">
+        <div class="ln-card-label">Characters</div>
+        <div class="ln-card-value" id="stat-chars">0</div>
+        <div class="ln-card-sub" id="stat-chars-sub">no newlines</div>
+      </div>
+      <div class="ln-card">
+        <div class="ln-card-label">UTF-8 bytes</div>
+        <div class="ln-card-value" id="stat-bytes">0</div>
+        <div class="ln-card-sub" id="stat-bytes-sub">same as chars</div>
+      </div>
+      <div class="ln-card">
+        <div class="ln-card-label">Longest line</div>
+        <div class="ln-card-value" id="stat-longest">0</div>
+        <div class="ln-card-sub" id="stat-longest-sub">line -</div>
+      </div>
+    </section>
+
+    <section class="ln-results" aria-label="Lines over the threshold">
+      <div class="ln-results-head">
+        <h2 class="ln-h2">Lines over <span id="threshold-echo" class="ln-mono">80</span> characters</h2>
+        <span id="match-count" class="ln-mono ln-muted">0 matches</span>
+      </div>
+      <ol id="matches" class="ln-match-list" aria-live="polite"></ol>
+      <p id="empty-state" class="ln-empty">Paste text above to see lines that cross the limit.</p>
+    </section>
+
+    <section class="ln-prose" aria-label="About this tool">
+      <h2 class="ln-h2">About</h2>
+      <p>
+        <strong>Lengths</strong> scans pasted text for lines that exceed a maximum length you choose.
+        It answers one question: which lines do I have to cut? Useful when a manifest, a markdown
+        index, a config, a log format, or a README has a hard column or load budget and you need to
+        find the offenders without piping through <code>awk</code>.
+      </p>
+      <p>
+        The character count is the visible measure. The UTF-8 byte count is what disk, network, and
+        most APIs actually measure. The two diverge as soon as the text includes accented letters,
+        em dashes, smart quotes, CJK characters, or emoji.
+      </p>
+      <p>
+        The threshold and sort mode are encoded in the URL hash so a link preserves them. The text
+        itself stays in your browser and is never sent anywhere.
+      </p>
+    </section>
+
+    <section class="ln-faq" aria-label="Frequently asked questions">
+      <h2 class="ln-h2">Questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <>
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </>
+        ))}
+      </dl>
+    </section>
+
+    <footer class="ln-footer">
+      <p>
+        Built by <a href="https://truffleagent.com/" rel="author">Truffle</a>. Source on
+        <a href="https://github.com/truffle-dev/tool-lengths" rel="noopener">GitHub</a>.
+        MIT licensed.
+      </p>
+    </footer>
+  </main>
+
+  <style is:global>
+    :root {
+      color-scheme: light;
+    }
+    .ln-page {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+        Cantarell, "Helvetica Neue", sans-serif;
+      color: #1f1d1a;
+      background: #fbf7f0;
+      min-height: 100vh;
+    }
+    .ln-topbar {
+      margin-bottom: 20px;
+    }
+    .ln-topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .ln-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+    .ln-brand-mark {
+      display: inline-flex;
+      align-items: center;
+      color: #6b5848;
+    }
+    .ln-brand-name {
+      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      font-size: 22px;
+    }
+    .ln-topbar-actions {
+      display: inline-flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .ln-btn {
+      border: 1px solid rgba(31, 29, 26, 0.18);
+      background: #fff;
+      color: #1f1d1a;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background-color 120ms ease, border-color 120ms ease;
+    }
+    .ln-btn:hover {
+      background: #f4eee2;
+    }
+    .ln-btn:focus-visible {
+      outline: 2px solid #b46b2a;
+      outline-offset: 2px;
+    }
+    .ln-btn-ghost {
+      background: transparent;
+    }
+    .ln-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .ln-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    .ln-field-label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #6b5848;
+      font-weight: 600;
+    }
+    .ln-field textarea,
+    .ln-field input[type="number"] {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+        monospace;
+      font-size: 14px;
+      color: #1f1d1a;
+      background: #fff;
+      border: 1px solid rgba(31, 29, 26, 0.18);
+      border-radius: 6px;
+      padding: 10px 12px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .ln-field textarea {
+      resize: vertical;
+      min-height: 220px;
+      line-height: 1.5;
+    }
+    .ln-field input[type="number"] {
+      max-width: 160px;
+    }
+    .ln-field textarea:focus,
+    .ln-field input[type="number"]:focus {
+      outline: 2px solid #b46b2a;
+      outline-offset: 1px;
+      border-color: #b46b2a;
+    }
+    .ln-field-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .ln-field-sort {
+      min-width: 0;
+    }
+    .ln-segment {
+      display: inline-flex;
+      border: 1px solid rgba(31, 29, 26, 0.18);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .ln-seg-opt {
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .ln-seg-opt input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .ln-seg-opt span {
+      padding: 8px 14px;
+      font-size: 14px;
+      color: #6b5848;
+      border-right: 1px solid rgba(31, 29, 26, 0.12);
+    }
+    .ln-seg-opt:last-child span {
+      border-right: 0;
+    }
+    .ln-seg-opt input:checked + span {
+      background: #1f1d1a;
+      color: #fbf7f0;
+    }
+    .ln-seg-opt input:focus-visible + span {
+      outline: 2px solid #b46b2a;
+      outline-offset: 1px;
+    }
+    .ln-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .ln-card {
+      background: #fff;
+      border: 1px solid rgba(31, 29, 26, 0.12);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .ln-card-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #6b5848;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .ln-card-value {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #1f1d1a;
+    }
+    .ln-card-sub {
+      font-size: 12px;
+      color: #6b5848;
+      margin-top: 4px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+    .ln-card.is-over .ln-card-value {
+      color: #b46b2a;
+    }
+    .ln-results-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .ln-h2 {
+      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .ln-mono {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 14px;
+    }
+    .ln-muted {
+      color: #6b5848;
+    }
+    .ln-match-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .ln-match {
+      display: grid;
+      grid-template-columns: 56px 64px 1fr;
+      gap: 12px;
+      padding: 8px 12px;
+      background: #fff;
+      border: 1px solid rgba(31, 29, 26, 0.1);
+      border-radius: 6px;
+      align-items: center;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      color: #1f1d1a;
+    }
+    .ln-match:hover {
+      background: #f4eee2;
+    }
+    .ln-match:focus-visible {
+      outline: 2px solid #b46b2a;
+      outline-offset: 1px;
+    }
+    .ln-match-num {
+      color: #6b5848;
+      text-align: right;
+    }
+    .ln-match-len {
+      color: #b46b2a;
+      font-weight: 600;
+      text-align: right;
+    }
+    .ln-match-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ln-empty {
+      color: #6b5848;
+      font-style: italic;
+      margin: 12px 0 0;
+      padding: 12px;
+      border: 1px dashed rgba(31, 29, 26, 0.18);
+      border-radius: 6px;
+      background: #fff;
+    }
+    .ln-prose,
+    .ln-faq {
+      margin-top: 32px;
+    }
+    .ln-prose p {
+      line-height: 1.6;
+      margin: 0 0 12px;
+    }
+    .ln-prose code {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      background: #f4eee2;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    .ln-faq dl {
+      margin: 12px 0 0;
+    }
+    .ln-faq dt {
+      font-weight: 600;
+      margin-top: 14px;
+    }
+    .ln-faq dd {
+      margin: 4px 0 0;
+      color: #4a4338;
+      line-height: 1.55;
+    }
+    .ln-footer {
+      margin-top: 36px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(31, 29, 26, 0.12);
+      font-size: 13px;
+      color: #6b5848;
+    }
+    .ln-footer a {
+      color: #b46b2a;
+    }
+    @media (max-width: 520px) {
+      .ln-page {
+        padding: 16px 14px 36px;
+      }
+      .ln-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .ln-card-value {
+        font-size: 20px;
+      }
+      .ln-match {
+        grid-template-columns: 44px 52px 1fr;
+        font-size: 12px;
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+      }
+      .ln-page {
+        background: #18171a;
+        color: #ece7df;
+      }
+      .ln-brand-mark,
+      .ln-field-label,
+      .ln-card-label,
+      .ln-card-sub,
+      .ln-muted,
+      .ln-footer,
+      .ln-empty,
+      .ln-seg-opt span {
+        color: #b4ab9b;
+      }
+      .ln-btn,
+      .ln-field textarea,
+      .ln-field input[type="number"],
+      .ln-card,
+      .ln-match,
+      .ln-segment,
+      .ln-empty {
+        background: #221f23;
+        border-color: rgba(236, 231, 223, 0.15);
+        color: #ece7df;
+      }
+      .ln-btn:hover,
+      .ln-match:hover {
+        background: #2c282d;
+      }
+      .ln-prose code {
+        background: #2c282d;
+      }
+      .ln-card-value,
+      .ln-h2,
+      .ln-brand {
+        color: #ece7df;
+      }
+      .ln-seg-opt input:checked + span {
+        background: #ece7df;
+        color: #18171a;
+      }
+      .ln-card.is-over .ln-card-value,
+      .ln-match-len,
+      .ln-footer a {
+        color: #e0a062;
+      }
+    }
+  </style>
+
+  <script is:inline>
+    (function () {
+      var EXAMPLE = [
+        "# Lengths example",
+        "",
+        "This is a short line.",
+        "",
+        "This line is also short.",
+        "This one here is a bit longer than the previous ones but probably still fits an 80-char budget.",
+        "And now we have a line that has clearly gone past the 80-character soft limit and would trigger a flag in most linters and review tools.",
+        "Short again.",
+        "Even an emoji line counts characters and bytes differently because emoji are multi-byte under UTF-8 and the column width may also be off in some terminals.",
+        "Final short line.",
+      ].join("\n");
+
+      var els = {
+        text: document.getElementById("text"),
+        threshold: document.getElementById("threshold"),
+        thresholdEcho: document.getElementById("threshold-echo"),
+        sortRadios: document.querySelectorAll('input[name="sort"]'),
+        statLines: document.getElementById("stat-lines"),
+        statOver: document.getElementById("stat-over"),
+        statChars: document.getElementById("stat-chars"),
+        statCharsSub: document.getElementById("stat-chars-sub"),
+        statBytes: document.getElementById("stat-bytes"),
+        statBytesSub: document.getElementById("stat-bytes-sub"),
+        statLongest: document.getElementById("stat-longest"),
+        statLongestSub: document.getElementById("stat-longest-sub"),
+        longestCard: document.getElementById("stat-longest").parentElement,
+        matches: document.getElementById("matches"),
+        matchCount: document.getElementById("match-count"),
+        emptyState: document.getElementById("empty-state"),
+        copyBtn: document.getElementById("copy-btn"),
+        clearBtn: document.getElementById("clear-btn"),
+        exampleBtn: document.getElementById("example-btn"),
+      };
+
+      function fmt(n) {
+        return n.toLocaleString();
+      }
+
+      function utf8Bytes(s) {
+        var b = 0;
+        for (var i = 0; i < s.length; i++) {
+          var c = s.charCodeAt(i);
+          if (c < 0x80) b += 1;
+          else if (c < 0x800) b += 2;
+          else if (c >= 0xd800 && c <= 0xdbff) {
+            b += 4;
+            i++;
+          } else b += 3;
+        }
+        return b;
+      }
+
+      function getSortMode() {
+        var checked = document.querySelector('input[name="sort"]:checked');
+        return checked ? checked.value : "line";
+      }
+
+      function setSortMode(mode) {
+        for (var i = 0; i < els.sortRadios.length; i++) {
+          els.sortRadios[i].checked = els.sortRadios[i].value === mode;
+        }
+      }
+
+      function writeHash() {
+        var t = parseInt(els.threshold.value, 10) || 80;
+        var s = getSortMode();
+        var hash = "t=" + t + "&s=" + s;
+        if (location.hash.replace(/^#/, "") !== hash) {
+          history.replaceState(null, "", "#" + hash);
+        }
+      }
+
+      function readHash() {
+        var raw = location.hash.replace(/^#/, "");
+        if (!raw) return;
+        var parts = raw.split("&");
+        for (var i = 0; i < parts.length; i++) {
+          var kv = parts[i].split("=");
+          if (kv[0] === "t") {
+            var t = parseInt(kv[1], 10);
+            if (!isNaN(t) && t > 0) els.threshold.value = String(t);
+          } else if (kv[0] === "s") {
+            if (kv[1] === "line" || kv[1] === "length") setSortMode(kv[1]);
+          }
+        }
+      }
+
+      function render() {
+        var text = els.text.value;
+        var threshold = parseInt(els.threshold.value, 10);
+        if (isNaN(threshold) || threshold < 1) threshold = 80;
+        els.thresholdEcho.textContent = String(threshold);
+
+        var lines = text.length === 0 ? [] : text.split("\n");
+        var lineCount = lines.length;
+        var chars = text.length;
+        var bytes = utf8Bytes(text);
+
+        var longest = 0;
+        var longestLineNum = 0;
+        var overLines = [];
+        for (var i = 0; i < lines.length; i++) {
+          var L = lines[i].length;
+          if (L > longest) {
+            longest = L;
+            longestLineNum = i + 1;
+          }
+          if (L > threshold) {
+            overLines.push({ n: i + 1, len: L, text: lines[i] });
+          }
+        }
+
+        els.statLines.textContent = fmt(lineCount);
+        els.statOver.textContent = fmt(overLines.length) + " over limit";
+        els.statChars.textContent = fmt(chars);
+        var nlCount = Math.max(0, lineCount - 1);
+        els.statCharsSub.textContent =
+          nlCount === 0 ? "no newlines" : fmt(nlCount) + " newline" + (nlCount === 1 ? "" : "s");
+        els.statBytes.textContent = fmt(bytes);
+        els.statBytesSub.textContent =
+          bytes === chars ? "same as chars" : "+" + fmt(bytes - chars) + " over chars";
+        els.statLongest.textContent = fmt(longest);
+        els.statLongestSub.textContent =
+          longestLineNum === 0 ? "line -" : "line " + fmt(longestLineNum);
+        if (longest > threshold) {
+          els.longestCard.classList.add("is-over");
+        } else {
+          els.longestCard.classList.remove("is-over");
+        }
+
+        var sort = getSortMode();
+        if (sort === "length") {
+          overLines.sort(function (a, b) {
+            if (b.len !== a.len) return b.len - a.len;
+            return a.n - b.n;
+          });
+        }
+
+        els.matches.innerHTML = "";
+        els.matchCount.textContent =
+          fmt(overLines.length) + " match" + (overLines.length === 1 ? "" : "es");
+        if (overLines.length === 0) {
+          els.emptyState.hidden = false;
+          els.emptyState.textContent =
+            text.length === 0
+              ? "Paste text above to see lines that cross the limit."
+              : "No line in this text crosses the threshold.";
+        } else {
+          els.emptyState.hidden = true;
+          var frag = document.createDocumentFragment();
+          for (var j = 0; j < overLines.length; j++) {
+            var item = overLines[j];
+            var li = document.createElement("li");
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "ln-match";
+            btn.setAttribute("data-line", String(item.n));
+            btn.setAttribute(
+              "aria-label",
+              "Line " + item.n + ", " + item.len + " characters. Click to scroll to it."
+            );
+            var num = document.createElement("span");
+            num.className = "ln-match-num";
+            num.textContent = String(item.n);
+            var len = document.createElement("span");
+            len.className = "ln-match-len";
+            len.textContent = String(item.len);
+            var tx = document.createElement("span");
+            tx.className = "ln-match-text";
+            tx.textContent = item.text;
+            btn.appendChild(num);
+            btn.appendChild(len);
+            btn.appendChild(tx);
+            li.appendChild(btn);
+            frag.appendChild(li);
+          }
+          els.matches.appendChild(frag);
+        }
+
+        writeHash();
+      }
+
+      function scrollToLine(lineNum) {
+        var text = els.text.value;
+        var lines = text.split("\n");
+        var offset = 0;
+        for (var i = 0; i < lineNum - 1 && i < lines.length; i++) {
+          offset += lines[i].length + 1;
+        }
+        var endOffset = offset + (lines[lineNum - 1] ? lines[lineNum - 1].length : 0);
+        els.text.focus();
+        els.text.setSelectionRange(offset, endOffset);
+        var lineHeight = 21;
+        els.text.scrollTop = Math.max(0, (lineNum - 3) * lineHeight);
+      }
+
+      function copyReport() {
+        var threshold = parseInt(els.threshold.value, 10) || 80;
+        var lines = els.text.value.length === 0 ? [] : els.text.value.split("\n");
+        var over = [];
+        for (var i = 0; i < lines.length; i++) {
+          if (lines[i].length > threshold) over.push({ n: i + 1, len: lines[i].length });
+        }
+        var head = "Lengths report (threshold " + threshold + ")";
+        var body = over
+          .map(function (o) {
+            return o.n + "\t" + o.len;
+          })
+          .join("\n");
+        var summary =
+          lines.length +
+          " lines, " +
+          els.text.value.length +
+          " chars, " +
+          utf8Bytes(els.text.value) +
+          " bytes, " +
+          over.length +
+          " over limit.";
+        var report = head + "\n" + summary + "\n\nline\tlength\n" + body + "\n";
+        try {
+          navigator.clipboard.writeText(report);
+          els.copyBtn.textContent = "Copied";
+          setTimeout(function () {
+            els.copyBtn.textContent = "Copy report";
+          }, 1200);
+        } catch (e) {
+          els.copyBtn.textContent = "Press Ctrl+C";
+          setTimeout(function () {
+            els.copyBtn.textContent = "Copy report";
+          }, 1500);
+        }
+      }
+
+      els.text.addEventListener("input", render);
+      els.threshold.addEventListener("input", render);
+      for (var i = 0; i < els.sortRadios.length; i++) {
+        els.sortRadios[i].addEventListener("change", render);
+      }
+      els.matches.addEventListener("click", function (e) {
+        var t = e.target;
+        while (t && t !== els.matches && !t.hasAttribute("data-line")) t = t.parentNode;
+        if (t && t.hasAttribute && t.hasAttribute("data-line")) {
+          scrollToLine(parseInt(t.getAttribute("data-line"), 10));
+        }
+      });
+      els.clearBtn.addEventListener("click", function () {
+        els.text.value = "";
+        render();
+        els.text.focus();
+      });
+      els.exampleBtn.addEventListener("click", function () {
+        els.text.value = EXAMPLE;
+        render();
+      });
+      els.copyBtn.addEventListener("click", copyReport);
+      window.addEventListener("hashchange", function () {
+        readHash();
+        render();
+      });
+
+      readHash();
+      render();
+    })();
+  </script>
+</BaseLayout>
