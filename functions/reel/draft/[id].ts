@@ -179,6 +179,14 @@ function renderDraft(piece: PieceRow): string {
           </ol>
         </section>
 
+        <section class="draft-agent-wrap" aria-label="Live agent feed">
+          <h2 class="reader-h2">Watch the agent <span class="draft-agent-dot" id="draft-agent-dot" title="stream status" aria-hidden="true"></span></h2>
+          <p class="draft-errors-hint">Live feed from the inspection agent. When a frame comes back from Luma, Claude Opus reads the character sheet and the candidate side by side and rules on identity drift, in real time.</p>
+          <ol class="draft-log" id="draft-agent-log">
+            <li><span class="draft-log-when">waiting</span> connecting to the agent stream</li>
+          </ol>
+        </section>
+
         <section class="draft-errors-wrap" id="draft-errors-wrap" aria-label="Pipeline issues"${piece.error_log ? "" : " hidden"}>
           <h2 class="reader-h2">Pipeline issues</h2>
           <p class="draft-errors-hint">Non-fatal failures the pipeline retried or skipped. Frames usually still recover on the next pass.</p>
@@ -554,7 +562,7 @@ function renderDraft(piece: PieceRow): string {
             }
             if (s.status === 'failed') {
               done = true;
-              var tail = (s.error_log || '').split('\n').pop() || 'unknown';
+              var tail = (s.error_log || '').split('\\n').pop() || 'unknown';
               logLine('piece failed: ' + tail);
             }
           }
@@ -569,6 +577,80 @@ function renderDraft(piece: PieceRow): string {
               default: return s || 'Working';
             }
           }
+
+          // ---- Phase B: live agent feed over SSE ----
+          // /api/reel/stream/<id> proxies the bridge's per-piece channel.
+          // EventSource auto-reconnects (bridge sends retry: 3000), which
+          // also covers the Pages Function isolate wall-clock cap.
+          var agentLog = document.getElementById('draft-agent-log');
+          var agentDot = document.getElementById('draft-agent-dot');
+          var es = null;
+
+          function agentLine(text) {
+            if (!agentLog) return;
+            var li = document.createElement('li');
+            var when = document.createElement('span');
+            when.className = 'draft-log-when';
+            when.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            li.appendChild(when);
+            li.appendChild(document.createTextNode(' ' + text));
+            agentLog.insertBefore(li, agentLog.firstChild);
+            while (agentLog.children.length > 60) agentLog.removeChild(agentLog.lastChild);
+          }
+
+          function setDot(state) {
+            if (agentDot) agentDot.setAttribute('data-state', state);
+          }
+
+          function parseData(e) {
+            try { return JSON.parse(e.data); } catch (err) { return {}; }
+          }
+
+          function startAgentStream() {
+            if (done || typeof EventSource === 'undefined' || !agentLog) return;
+            es = new EventSource('/api/reel/stream/' + encodeURIComponent(id));
+            es.addEventListener('hello', function () {
+              setDot('live');
+              if (agentLog.children.length === 1 && agentLog.firstChild && agentLog.firstChild.textContent.indexOf('connecting') !== -1) {
+                agentLog.removeChild(agentLog.firstChild);
+              }
+              agentLine('connected to the agent stream');
+            });
+            es.addEventListener('inspect_start', function (e) {
+              var d = parseData(e);
+              var name = '';
+              if (typeof d.frame_url === 'string') {
+                var parts = d.frame_url.split('/');
+                name = parts[parts.length - 1] || '';
+              }
+              agentLine('Opus is reading the character sheet and a candidate frame' + (name ? ' (' + name + ')' : ''));
+            });
+            es.addEventListener('inspect_verdict', function (e) {
+              var d = parseData(e);
+              var v = {};
+              if (typeof d.raw === 'string') {
+                try { v = JSON.parse(d.raw.replace(/^[\\s\\S]*?\\{/, '{')); } catch (err) { v = {}; }
+              }
+              var bits = [];
+              if (typeof v.drift === 'number') bits.push('drift ' + v.drift + '/5');
+              if (typeof v.accept === 'boolean') bits.push(v.accept ? 'accepted' : 'rejected');
+              if (typeof v.reason === 'string' && v.reason) bits.push(v.reason);
+              var tailBits = [];
+              if (typeof d.cost_usd === 'number') tailBits.push('$' + d.cost_usd.toFixed(3));
+              if (typeof d.duration_ms === 'number') tailBits.push(Math.round(d.duration_ms / 1000) + 's');
+              agentLine('verdict: ' + (bits.length ? bits.join(', ') : 'returned') + (tailBits.length ? ' [' + tailBits.join(', ') + ']' : ''));
+            });
+            es.addEventListener('inspect_error', function (e) {
+              var d = parseData(e);
+              agentLine('inspection error: ' + (typeof d.message === 'string' ? d.message : 'unknown'));
+            });
+            es.onerror = function () {
+              setDot('reconnecting');
+            };
+          }
+
+          startAgentStream();
+          window.addEventListener('beforeunload', function () { if (es) es.close(); });
 
           poll();
         })();
@@ -1074,6 +1156,23 @@ const DRAFT_CSS = `
     color: var(--ink-3);
     margin-right: 8px;
   }
+
+  /* Live agent feed */
+  .draft-agent-wrap { margin-bottom: 48px; }
+  .draft-agent-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-left: 8px;
+    vertical-align: 2px;
+    background: var(--ink-3);
+  }
+  .draft-agent-dot[data-state="live"] {
+    background: #3a9d5d;
+    box-shadow: 0 0 0 3px color-mix(in oklab, #3a9d5d 25%, transparent);
+  }
+  .draft-agent-dot[data-state="reconnecting"] { background: #c79a3b; }
 
   /* Reused detail block */
   .reader-detail {

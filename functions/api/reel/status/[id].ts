@@ -441,6 +441,7 @@ export const onRequestGet: PagesFunction<ReelEnv, "id"> = async (ctx) => {
         masterUrl: masterAbsoluteUrl,
         frameUrl: frameAbsolute,
         env: ctx.env,
+        pieceId: id,
       });
       const log = appendError(
         frame.inspection_log,

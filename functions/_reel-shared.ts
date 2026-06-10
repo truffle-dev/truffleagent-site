@@ -463,10 +463,16 @@ export async function inspectFrameAnthropic(args: {
   masterUrl: string;
   frameUrl: string;
   env: ReelEnv;
+  // Optional piece id: when present, the bridge publishes inspect lifecycle
+  // events (inspect_start / inspect_verdict / inspect_error) on its SSE
+  // channel GET /stream/<piece_id>, which /api/reel/stream/[id] proxies to
+  // the draft page ("Watch the agent" panel).
+  pieceId?: string;
 }): Promise<{ accept: boolean; reason: string; drift: number }> {
   const result = await callBridge(args.env, "/inspect-frame", {
     master_url: args.masterUrl,
     frame_url: args.frameUrl,
+    ...(args.pieceId ? { piece_id: args.pieceId } : {}),
   });
   const text = result.text.trim();
   const stripped = text
