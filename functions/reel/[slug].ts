@@ -169,7 +169,7 @@ function renderReader(piece: PieceRow, frames: FrameRow[]): string {
           <p class="reader-meta">
             ${piece.mode === "gif" ? "Animated loop" : "Comic strip"}
             <span class="reader-dot">·</span>
-            ${safeFrames.length} of ${piece.frame_count} frames
+            ${safeFrames.length} panels
             ${piece.completed_at ? `<span class="reader-dot">·</span><time datetime="${escapeHtml(piece.completed_at)}">${formatDate(piece.completed_at)}</time>` : ""}
           </p>
         </header>
