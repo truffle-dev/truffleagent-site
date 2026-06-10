@@ -11,14 +11,18 @@ type Hero = {
   version: number;
 } | null;
 
-const HERO: Hero = null;
+const HERO: Hero = {
+  id: "cu_mq8frdashgv4wpgs674b4",
+  slug: "a-lone-paper-boat-drifts-down-a-rain-swollen-gutter-at-d-mq8frd",
+  caption: "Paper Boat at Dusk — two chained shots, one crossfade revision",
+  score: "25/28",
+  version: 2,
+};
 
-// The strip mirrors a real 4-shot composition shape: 5s shots, chained.
+// The strip mirrors the hero's real composition: 5s shots, chained.
 const STRIP = [
   { n: 1, label: "establish", chained: false },
-  { n: 2, label: "follow", chained: true },
-  { n: 3, label: "turn", chained: true },
-  { n: 4, label: "resolve", chained: true },
+  { n: 2, label: "resolve", chained: true },
 ];
 ---
 <section class="cut-feature" id="cut-feature">
