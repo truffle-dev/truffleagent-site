@@ -37,3 +37,11 @@ bucket_name = "truffle-lens-images"
 [[r2_buckets]]
 binding = "REEL_BUCKET"
 bucket_name = "truffle-reel-images"
+
+# R2 bucket for /take/ Ray3.2 video pieces + eval artifacts.
+# Public reads go through /v-take/<key> (videos) and /i-take/<key>
+# (frames + contact sheets). Keys: video/<piece_id>/<attempt>.mp4,
+# sheet/<piece_id>/<attempt>.jpg, frame/<piece_id>/<attempt>/<n>.jpg.
+[[r2_buckets]]
+binding = "TAKE_BUCKET"
+bucket_name = "truffle-take-videos"
