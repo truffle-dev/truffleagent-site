@@ -1,0 +1,747 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  COST_RAY32,
+  MAX_PROMPT_CHARS,
+  MAX_ATTEMPTS,
+  DAILY_QUOTA_PIECES,
+  VALID_RESOLUTIONS,
+  VALID_DURATIONS,
+  DEFAULT_RESOLUTION,
+  DEFAULT_DURATION,
+} from "../../../functions/_take-shared.ts";
+
+const title = "Take · type a scene, watch the agent grade the take";
+const description =
+  "Take is a text-to-video studio with a research-grade evaluation loop. Describe a scene, an agent directs Luma Ray3.2, then a four-level eval cascade decides whether the take is good enough to publish. Every gate, metric, and judgment is shown live.";
+const canonical = "https://truffleagent.com/take/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Take",
+  alternateName: ["Truffle Take"],
+  url: canonical,
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Text-to-video on Luma Ray3.2",
+    "Agent composes the shot from your prompt",
+    "L0 deterministic gates: decode, duration, black-frame, frozen-frame",
+    "L1 computer-vision lanes: flicker, optical flow, CLIPScore, DINOv2 identity drift",
+    "L2 vision-language judge rules on six axes from a timestamped contact sheet",
+    "L3 bounded decision: accept or retake, up to three attempts",
+    "Live DAG view of the whole cascade while it runs",
+    "Public gallery with full eval receipts, no accounts",
+  ],
+  author: "Truffle",
+};
+
+const costTable = COST_RAY32;
+const maxAttempts = MAX_ATTEMPTS;
+const maxPrompt = MAX_PROMPT_CHARS;
+const dailyQuota = DAILY_QUOTA_PIECES;
+const resolutions = VALID_RESOLUTIONS;
+const durations = VALID_DURATIONS;
+const defaultResolution = DEFAULT_RESOLUTION;
+const defaultDuration = DEFAULT_DURATION;
+---
+<BaseLayout title={title} description={description} canonical={canonical}>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(webAppJsonLd)}
+  />
+
+  <main class="take-page">
+    <header class="take-hero">
+      <p class="take-eyebrow">New on Truffle</p>
+      <h1 class="take-display">
+        Type a scene.<br /><em>The agent shoots it.</em><br /><em>The eval grades it.</em>
+      </h1>
+      <p class="take-lead">
+        Take is a small text-to-video studio where the evaluation loop is the
+        product. Describe a shot. An agent writes the direction, Luma Ray3.2
+        renders it, and a four-level cascade decides whether the take survives:
+        deterministic gates, computer-vision lanes, a vision-language judge,
+        and a bounded retake policy. You watch every step happen live.
+      </p>
+    </header>
+
+    <section class="take-studio" aria-label="Studio">
+      <form id="take-form" class="take-form" novalidate>
+        <fieldset class="take-fieldset">
+          <label class="take-label" for="take-prompt">
+            <span class="take-label-step">The shot</span>
+            <span class="take-label-title">Describe the video you want</span>
+            <span class="take-label-hint">
+              One scene, one subject, one camera idea. The agent rewrites it
+              into proper shot direction before anything renders.
+            </span>
+          </label>
+          <textarea
+            id="take-prompt"
+            class="take-textarea"
+            name="prompt"
+            rows="3"
+            maxlength={maxPrompt}
+            placeholder="e.g. A lighthouse keeper climbs a spiral staircase at dusk, lantern light sweeping across stone walls"
+            autocomplete="off"
+            spellcheck="true"
+          ></textarea>
+
+          <div class="take-controls">
+            <label class="take-control">
+              <span class="take-control-title">Resolution</span>
+              <select id="take-resolution" class="take-select" aria-label="Resolution">
+                {resolutions.map((r) => (
+                  <option value={r} selected={r === defaultResolution}>{r}</option>
+                ))}
+              </select>
+            </label>
+            <label class="take-control">
+              <span class="take-control-title">Duration</span>
+              <select id="take-duration" class="take-select" aria-label="Duration">
+                {durations.map((d) => (
+                  <option value={d} selected={d === defaultDuration}>{d}</option>
+                ))}
+              </select>
+            </label>
+            <div class="take-cost" id="take-cost" aria-live="polite"></div>
+          </div>
+
+          <div class="take-row take-row-end">
+            <span class="take-counter" id="take-counter">0 / {maxPrompt}</span>
+            <button id="take-generate" type="submit" class="take-button take-button-primary">
+              Roll the take
+            </button>
+          </div>
+          <p class="take-quota-note">
+            {dailyQuota} takes per visitor per day. Every piece ships with its
+            full eval receipt.
+          </p>
+        </fieldset>
+
+        <div class="take-alert" id="take-alert" hidden role="alert"></div>
+      </form>
+    </section>
+
+    <section class="take-cascade" aria-label="How the eval works">
+      <h2 class="take-section-title">The cascade</h2>
+      <p class="take-section-lead">
+        Generation is the easy half. Take's pipeline treats every render as a
+        claim that has to survive four levels of scrutiny before it gets
+        published.
+      </p>
+      <ol class="take-levels">
+        <li class="take-level">
+          <span class="take-level-tag">L0</span>
+          <h3>Deterministic gates</h3>
+          <p>
+            ffprobe decode, duration, resolution, framerate. Then pixel gates:
+            not black, not frozen. A clip that fails here never wastes a
+            judge call.
+          </p>
+        </li>
+        <li class="take-level">
+          <span class="take-level-tag">L1</span>
+          <h3>Computer-vision lanes</h3>
+          <p>
+            Frame-difference flicker, Farneback optical flow, CLIPScore
+            prompt alignment, DINOv2 identity drift against frame zero. The
+            temporal questions a vision-language model answers at chance level
+            are owned by code.
+          </p>
+        </li>
+        <li class="take-level">
+          <span class="take-level-tag">L2</span>
+          <h3>Vision-language judge</h3>
+          <p>
+            A timestamped contact sheet goes to a frontier judge that writes
+            its rationale before its rating, on six axes: fidelity,
+            aesthetics, consistency, motion, semantics, physics. Discrete
+            levels, not fake-precision decimals.
+          </p>
+        </li>
+        <li class="take-level">
+          <span class="take-level-tag">L3</span>
+          <h3>Bounded decision</h3>
+          <p>
+            Deterministic accept-or-retake. Any axis at poor or below triggers
+            a retake with the judge's advice folded into the next composition.
+            Three attempts, then the best surviving take stands.
+          </p>
+        </li>
+      </ol>
+      <p class="take-learn-link">
+        <a href="/take/learn/">Why it's built this way: the research behind the eval &rarr;</a>
+      </p>
+    </section>
+
+    <section class="take-gallery-wrap" aria-label="Gallery">
+      <h2 class="take-section-title">Gallery</h2>
+      <p class="take-section-lead">
+        Every tile is a take that survived the cascade. Hover to play; open
+        for the full eval receipt.
+      </p>
+      <div id="take-gallery" class="take-gallery"></div>
+      <p id="take-gallery-empty" class="take-gallery-empty" hidden>
+        Nothing here yet. The first graded takes arrive soon.
+      </p>
+    </section>
+  </main>
+
+  <style>
+    .take-page {
+      --paper-1: var(--surface);
+      --paper-2: var(--surface-2);
+      --paper-3: var(--surface-3);
+      --line: var(--border);
+      --content-main: var(--content);
+      --content-soft: var(--content-2);
+      --content-muted: var(--content-3);
+      --take-accent: #2d5fb8;
+
+      max-width: 920px;
+      margin: 0 auto;
+      padding: clamp(48px, 7vw, 96px) clamp(20px, 5vw, 48px) 96px;
+    }
+    :global([data-theme="dark"]) .take-page {
+      --take-accent: #6e96e0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :global(html:not([data-theme="light"])) .take-page {
+        --take-accent: #6e96e0;
+      }
+    }
+
+    .take-hero { margin-bottom: 56px; }
+    .take-eyebrow {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+      margin: 0 0 18px;
+    }
+    .take-display {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(40px, 7vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin: 0 0 24px;
+      color: var(--content-main);
+    }
+    .take-display em { font-style: italic; }
+    .take-lead {
+      font-family: var(--font-sans);
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--content-soft);
+      margin: 0;
+      max-width: 64ch;
+    }
+
+    .take-studio { margin: 24px 0 72px; }
+    .take-form { display: flex; flex-direction: column; gap: 20px; }
+    .take-fieldset {
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      border-radius: 14px;
+      padding: 22px 22px 18px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .take-label { display: flex; flex-direction: column; gap: 4px; }
+    .take-label-step {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--take-accent);
+    }
+    .take-label-title {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--content-main);
+      line-height: 1.2;
+    }
+    .take-label-hint {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--content-soft);
+      max-width: 56ch;
+    }
+    .take-textarea {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid color-mix(in oklab, var(--content-main) 18%, var(--line));
+      border-radius: 12px;
+      padding: 14px 16px;
+      resize: vertical;
+      min-height: 96px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .take-textarea:focus-visible {
+      outline: none;
+      border-color: var(--take-accent);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--take-accent) 22%, transparent);
+    }
+
+    .take-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: flex-end;
+    }
+    .take-control { display: flex; flex-direction: column; gap: 6px; }
+    .take-control-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+    }
+    .take-select {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid color-mix(in oklab, var(--content-main) 18%, var(--line));
+      border-radius: 10px;
+      padding: 9px 12px;
+      min-width: 110px;
+    }
+    .take-select:focus-visible {
+      outline: none;
+      border-color: var(--take-accent);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--take-accent) 22%, transparent);
+    }
+    .take-cost {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--content-soft);
+      padding: 8px 12px;
+      background: var(--paper-3);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-left: auto;
+    }
+    @media (max-width: 640px) {
+      .take-cost { margin-left: 0; width: 100%; box-sizing: border-box; }
+    }
+
+    .take-row { display: flex; align-items: center; gap: 14px; }
+    .take-row-end { justify-content: space-between; }
+    .take-counter {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--content-muted);
+    }
+    .take-button {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid color-mix(in oklab, var(--content-main) 22%, var(--line));
+      border-radius: 999px;
+      padding: 11px 22px;
+      cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+    }
+    .take-button-primary {
+      color: #fff;
+      background: var(--take-accent);
+      border-color: var(--take-accent);
+    }
+    .take-button-primary:hover:not(:disabled) {
+      background: color-mix(in oklab, var(--take-accent) 88%, #000);
+    }
+    .take-button:disabled { opacity: 0.55; cursor: wait; }
+    .take-quota-note {
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      color: var(--content-muted);
+      margin: 0;
+    }
+    .take-alert {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      color: #8a2a1d;
+      background: color-mix(in oklab, #c0392b 9%, var(--paper-2));
+      border: 1px solid color-mix(in oklab, #c0392b 35%, var(--line));
+      border-radius: 12px;
+      padding: 13px 16px;
+    }
+    :global([data-theme="dark"]) .take-alert { color: #e8a79c; }
+
+    .take-section-title {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(26px, 4vw, 34px);
+      color: var(--content-main);
+      margin: 0 0 12px;
+    }
+    .take-section-lead {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--content-soft);
+      margin: 0 0 28px;
+      max-width: 62ch;
+    }
+
+    .take-cascade { margin: 0 0 80px; }
+    .take-levels {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+    }
+    .take-level {
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      border-radius: 14px;
+      padding: 18px 18px 16px;
+      position: relative;
+    }
+    .take-level-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--take-accent);
+      border: 1px solid color-mix(in oklab, var(--take-accent) 40%, var(--line));
+      background: color-mix(in oklab, var(--take-accent) 8%, var(--paper-2));
+      border-radius: 999px;
+      padding: 3px 9px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .take-level h3 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--content-main);
+      margin: 0 0 8px;
+    }
+    .take-level p {
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--content-soft);
+      margin: 0;
+    }
+    .take-learn-link {
+      margin: 22px 0 0;
+      font-family: var(--font-sans);
+      font-size: 14px;
+    }
+    .take-learn-link a {
+      color: var(--take-accent);
+      text-decoration: none;
+      border-bottom: 1px solid color-mix(in oklab, var(--take-accent) 40%, transparent);
+    }
+    .take-learn-link a:hover { border-bottom-color: var(--take-accent); }
+
+    .take-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .take-gallery-empty {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--content-muted);
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      padding: 36px 20px;
+      text-align: center;
+    }
+  </style>
+
+  <style is:global>
+    /* Gallery tiles are created via document.createElement; scoped styles
+       (data-astro-cid-*) never match JS-built DOM, so these live globally. */
+    .take-tile {
+      position: relative;
+      display: block;
+      aspect-ratio: 16 / 9;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface-3);
+      text-decoration: none;
+    }
+    .take-tile > img,
+    .take-tile > video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .take-tile > video {
+      opacity: 0;
+      transition: opacity 220ms ease;
+      z-index: 1;
+    }
+    .take-tile.playing > video { opacity: 1; }
+    .take-tile-score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #fff;
+      background: rgba(20, 40, 90, 0.62);
+      padding: 4px 9px;
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+    }
+    .take-tile-spec {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 8px;
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+    }
+    .take-tile-overlay {
+      position: absolute;
+      inset: auto 0 0 0;
+      z-index: 2;
+      padding: 24px 14px 12px;
+      color: #fff;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 14px;
+      line-height: 1.4;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.82) 0%,
+        rgba(0, 0, 0, 0.55) 45%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+    .take-tile:hover .take-tile-overlay,
+    .take-tile:focus-visible .take-tile-overlay {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .take-tile.playing > video { opacity: 0; }
+    }
+  </style>
+
+  <script is:inline define:vars={{ costTable, maxAttempts, maxPrompt }}>
+    (function bootStudio() {
+      const $ = (id) => document.getElementById(id);
+      const form = $("take-form");
+      const promptEl = $("take-prompt");
+      const counter = $("take-counter");
+      const resSel = $("take-resolution");
+      const durSel = $("take-duration");
+      const costEl = $("take-cost");
+      const generateBtn = $("take-generate");
+      const alertEl = $("take-alert");
+      if (!form) return;
+
+      function updateCounter() {
+        counter.textContent = (promptEl.value || "").length + " / " + maxPrompt;
+      }
+      updateCounter();
+      promptEl.addEventListener("input", updateCounter);
+
+      function updateCost() {
+        const key = resSel.value + "/" + durSel.value;
+        const per = costTable[key];
+        if (typeof per !== "number") {
+          costEl.textContent = "";
+          return;
+        }
+        const max = per * maxAttempts;
+        costEl.textContent =
+          "$" + per.toFixed(2) + " per take · up to " + maxAttempts +
+          " takes = $" + max.toFixed(2) + " worst case. On us.";
+      }
+      updateCost();
+      resSel.addEventListener("change", updateCost);
+      durSel.addEventListener("change", updateCost);
+
+      function showAlert(msg) {
+        alertEl.textContent = msg;
+        alertEl.hidden = false;
+        alertEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      function clearAlert() {
+        alertEl.hidden = true;
+        alertEl.textContent = "";
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const prompt = (promptEl.value || "").trim();
+        if (prompt.length < 8) {
+          showAlert("Add a few more words. One scene, one subject, one camera idea.");
+          return;
+        }
+        generateBtn.disabled = true;
+        const prevText = generateBtn.textContent;
+        generateBtn.textContent = "Rolling...";
+        try {
+          const r = await fetch("/api/take/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({
+              prompt,
+              resolution: resSel.value,
+              duration: durSel.value,
+            }),
+          });
+          let json = null;
+          try { json = await r.json(); } catch {}
+          if (!r.ok || !json || !json.ok) {
+            const msg = json && json.error && json.error.message
+              ? json.error.message
+              : "Could not start the take. Try again in a moment.";
+            showAlert(msg);
+            return;
+          }
+          window.location.href = "/take/draft/" + json.id + "/";
+        } catch {
+          showAlert("Network error. Check your connection and try again.");
+        } finally {
+          generateBtn.disabled = false;
+          generateBtn.textContent = prevText;
+        }
+      });
+    })();
+
+    (async function bootGallery() {
+      const root = document.getElementById("take-gallery");
+      const empty = document.getElementById("take-gallery-empty");
+      if (!root || !empty) return;
+      try {
+        const r = await fetch("/api/take/gallery?limit=24", {
+          headers: { Accept: "application/json" },
+        });
+        if (!r.ok) throw new Error("gallery " + r.status);
+        const json = await r.json();
+        const items = (json && json.items) || [];
+        if (items.length === 0) {
+          empty.hidden = false;
+          return;
+        }
+        empty.hidden = true;
+        const frag = document.createDocumentFragment();
+        for (const item of items) {
+          const tile = renderTile(item);
+          if (tile) frag.appendChild(tile);
+        }
+        root.appendChild(frag);
+      } catch {
+        empty.hidden = false;
+      }
+
+      function renderTile(item) {
+        if (!item || !item.slug || !item.video_url) return null;
+        const a = document.createElement("a");
+        a.className = "take-tile";
+        a.href = "/take/" + item.slug + "/";
+        a.setAttribute("aria-label", "Open take: " + (item.prompt || item.slug));
+
+        if (item.sheet_url) {
+          const img = new Image();
+          img.src = item.sheet_url;
+          img.alt = item.prompt || "Take contact sheet";
+          img.loading = "lazy";
+          img.decoding = "async";
+          a.appendChild(img);
+        }
+
+        const video = document.createElement("video");
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        video.preload = "none";
+        video.setAttribute("aria-hidden", "true");
+        video.tabIndex = -1;
+        a.appendChild(video);
+
+        let armed = false;
+        const startPlay = () => {
+          if (!armed) {
+            armed = true;
+            video.src = item.video_url;
+          }
+          a.classList.add("playing");
+          const p = video.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        };
+        const stopPlay = () => {
+          a.classList.remove("playing");
+          try { video.pause(); } catch {}
+        };
+        a.addEventListener("mouseenter", startPlay);
+        a.addEventListener("mouseleave", stopPlay);
+        a.addEventListener("focusin", startPlay);
+        a.addEventListener("focusout", stopPlay);
+
+        if (typeof item.score === "number") {
+          const badge = document.createElement("span");
+          badge.className = "take-tile-score";
+          badge.textContent = "eval " + item.score + "/24";
+          a.appendChild(badge);
+        }
+
+        const spec = document.createElement("span");
+        spec.className = "take-tile-spec";
+        spec.textContent =
+          (item.resolution || "") +
+          (item.duration ? " · " + item.duration : "") +
+          (item.attempts > 1 ? " · take " + item.attempts : "");
+        a.appendChild(spec);
+
+        const overlay = document.createElement("span");
+        overlay.className = "take-tile-overlay";
+        overlay.textContent = item.prompt || "";
+        a.appendChild(overlay);
+        return a;
+      }
+    })();
+  </script>
+</BaseLayout>
