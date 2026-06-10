@@ -1,0 +1,362 @@
+---
+// Homepage premier feature for Take. Every tile is a real clip generated and
+// graded by the production pipeline; the badge is the judge's actual score.
+// Videos play on hover (pointer devices) and autoplay in view on touch.
+const HERO = {
+  id: "tk_mq7icgwkltmz9ni2z4dyz",
+  slug: "a-golden-retriever-sprinting-through-shallow-surf-on-a-b-mq7icg",
+  caption: "golden retriever, golden hour",
+  score: "19/24",
+};
+const TILES = [
+  {
+    id: "tk_mq7ich2gkpwoqobqjfhfw",
+    slug: "square-11-format-overhead-close-up-of-a-barista-pouring--mq7ich",
+    caption: "latte art, retake 2",
+    score: "17/24",
+    attempt: 2,
+  },
+  {
+    id: "tk_mq7gc519dhw12zhvwgdjv",
+    slug: "a-red-fox-trotting-through-fresh-snow-at-the-edge-of-a-p-mq7gc5",
+    caption: "red fox in fresh snow",
+    score: "19/24",
+    attempt: 1,
+  },
+  {
+    id: "tk_mq7h2qzev2tnl7npeh5ep",
+    slug: "an-old-wooden-rowboat-tied-to-a-misty-lake-dock-at-dawn--mq7h2q",
+    caption: "rowboat on a misty lake",
+    score: "19/24",
+    attempt: 1,
+  },
+];
+const vid = (id: string, attempt = 1) => `/v-take/video/${id}/${attempt}.mp4`;
+const poster = (id: string, attempt = 1) => `/i-take/frame/${id}/${attempt}/0.jpg`;
+---
+<section class="take-feature" id="take-feature">
+  <div class="container-page">
+    <div class="take-grid">
+      <div class="take-copy reveal">
+        <p class="eyebrow">Premier · just shipped</p>
+        <h2 class="editorial text-balance">
+          Text to video,<br/>
+          with a <em>critic</em> in the loop.
+        </h2>
+        <p class="prose-truffle take-lede">
+          <em>Take</em> is a text-to-video studio at <code>/take/</code>. Type
+          a thought and a frontier video model renders it. Then, before you
+          ever see it, four layers of grading run: deterministic gates,
+          computer-vision lanes on every frame, and a judge that reads a
+          timestamped contact sheet and writes a six-axis review. Free.
+        </p>
+
+        <ul class="take-points">
+          <li><span class="dot" aria-hidden="true"></span>Every clip ships with a public <em>eval receipt</em>: the gates, the lane traces, and exactly what the judge saw.</li>
+          <li><span class="dot" aria-hidden="true"></span>Bad takes never reach you. The judge can demand a retake, up to three attempts per roll.</li>
+          <li><span class="dot" aria-hidden="true"></span>The thresholds are calibrated on a real 14-clip reference set, and <a href="/take/learn/">the whole method is published</a>.</li>
+        </ul>
+
+        <div class="take-actions">
+          <a class="btn btn-primary" href="/take/">
+            Roll a <em>take</em><span aria-hidden="true" style="margin-left:0.3rem">→</span>
+          </a>
+          <a class="btn btn-ghost" href="/take/learn/">How it grades</a>
+        </div>
+      </div>
+
+      <div class="take-stage reveal" style="transition-delay:120ms">
+        <div class="take-stage-frame">
+          <div class="take-wall">
+            <a class="take-tile take-tile-hero" href={`/take/${HERO.slug}/`} aria-label={`Watch: ${HERO.caption}`}>
+              <video
+                src={vid(HERO.id)}
+                poster={poster(HERO.id)}
+                muted
+                loop
+                playsinline
+                preload="metadata"
+              ></video>
+              <span class="take-tile-meta">
+                <span class="take-tile-caption">{HERO.caption}</span>
+                <span class="take-tile-score">graded {HERO.score}</span>
+              </span>
+            </a>
+            <div class="take-wall-row">
+              {TILES.map((t) => (
+                <a
+                  class="take-tile"
+                  href={`/take/${t.slug}/`}
+                  aria-label={`Watch: ${t.caption}`}
+                >
+                  <video
+                    src={vid(t.id, t.attempt)}
+                    poster={poster(t.id, t.attempt)}
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                  ></video>
+                  <span class="take-tile-meta">
+                    <span class="take-tile-caption">{t.caption}</span>
+                    <span class="take-tile-score">graded {t.score}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+          <div class="take-stage-meta">
+            <span class="take-stage-dot" aria-hidden="true"></span>
+            <span class="take-stage-text">
+              <em>grading</em> &middot; 4 lanes &middot; 6 axes &middot; every frame checked
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .take-feature {
+    padding-block: clamp(4rem, 8vw, 6.5rem);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    background:
+      radial-gradient(
+        1200px 480px at 80% -10%,
+        color-mix(in oklab, var(--accent) 10%, transparent),
+        transparent 70%
+      ),
+      var(--surface);
+  }
+
+  .take-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: center;
+  }
+
+  .take-copy .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--accent) 40%, var(--border) 60%);
+    color: var(--accent);
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .take-copy h2 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    line-height: 1.05;
+  }
+  .take-copy h2 em { color: var(--accent); }
+
+  .take-lede { max-width: 540px; margin: 0 0 1.5rem; }
+  .take-lede code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.35em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .take-points {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 540px;
+  }
+  .take-points li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    color: var(--content-2);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .take-points .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--accent);
+    flex-shrink: 0;
+    transform: translateY(-2px);
+  }
+  .take-points em { font-style: italic; color: var(--content); }
+  .take-points a {
+    color: var(--accent);
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 38%, transparent);
+  }
+
+  .take-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .take-actions .btn-primary em { font-style: italic; }
+
+  .take-stage { width: 100%; }
+  .take-stage-frame {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+    padding: 1.1rem 1.1rem 0.8rem;
+    box-shadow: 0 28px 60px -36px color-mix(in oklab, var(--content) 22%, transparent);
+  }
+
+  .take-wall { display: flex; flex-direction: column; gap: 0.55rem; }
+  .take-wall-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .take-tile {
+    position: relative;
+    display: block;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    isolation: isolate;
+    aspect-ratio: 16 / 9;
+    transition: border-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+  }
+  .take-tile:hover {
+    border-color: color-mix(in oklab, var(--accent) 50%, var(--border));
+    transform: translateY(-2px);
+  }
+  .take-tile-hero { aspect-ratio: 21 / 9; }
+  .take-wall-row .take-tile { aspect-ratio: 1 / 1; }
+  .take-tile video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .take-tile-meta {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.85rem 0.65rem 0.5rem;
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--surface) 96%, transparent) 0%,
+      color-mix(in oklab, var(--surface) 80%, transparent) 60%,
+      transparent 100%
+    );
+  }
+  .take-tile-caption {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--content);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .take-tile-score {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .take-stage-meta {
+    margin-top: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.4rem 0.2rem;
+    border-top: 1px dashed color-mix(in oklab, var(--border) 80%, transparent);
+    color: var(--content-2);
+    font-size: 0.8125rem;
+    font-family: var(--font-mono);
+  }
+  .take-stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 22%, transparent);
+    animation: take-pulse 1.6s ease-in-out infinite;
+  }
+  .take-stage-text em {
+    font-style: italic;
+    color: var(--accent);
+    font-family: var(--font-serif);
+  }
+
+  @keyframes take-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.7; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .take-stage-dot { animation: none; }
+    .take-tile, .take-tile:hover { transform: none; }
+  }
+
+  @media (max-width: 880px) {
+    .take-grid { grid-template-columns: 1fr; gap: 2.25rem; }
+    .take-stage-frame { max-width: 460px; margin-inline: auto; }
+    .take-wall-row { grid-template-columns: 1fr 1fr; }
+    .take-wall-row .take-tile:last-child { display: none; }
+  }
+</style>
+
+<script>
+  const tiles = document.querySelectorAll<HTMLAnchorElement>("#take-feature .take-tile");
+  const coarse = window.matchMedia("(pointer: coarse)").matches;
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const play = (v: HTMLVideoElement) => {
+    const p = v.play();
+    if (p) p.catch(() => {});
+  };
+  const stop = (v: HTMLVideoElement) => {
+    v.pause();
+    try { v.currentTime = 0; } catch (e) {}
+  };
+
+  if (!reduced) {
+    if (coarse) {
+      // Touch devices: play whichever tiles are mostly in view.
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            const v = (e.target as HTMLElement).querySelector("video");
+            if (!v) continue;
+            if (e.isIntersecting) play(v);
+            else stop(v);
+          }
+        },
+        { threshold: 0.6 },
+      );
+      tiles.forEach((t) => io.observe(t));
+    } else {
+      tiles.forEach((t) => {
+        const v = t.querySelector("video");
+        if (!v) return;
+        t.addEventListener("mouseenter", () => play(v));
+        t.addEventListener("mouseleave", () => stop(v));
+        t.addEventListener("focus", () => play(v));
+        t.addEventListener("blur", () => stop(v));
+      });
+    }
+  }
+</script>

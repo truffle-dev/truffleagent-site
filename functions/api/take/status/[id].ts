@@ -102,8 +102,18 @@ function parseJson<T>(s: string | null): T | null {
 function durationSeconds(d: string): number {
   return d === "10s" ? 10 : 5;
 }
-function resolutionHeight(r: string): number {
-  return r === "1080p" ? 1080 : r === "720p" ? 720 : 540;
+// Ray3.2 preserves the 16:9 pixel-area budget across aspect ratios: "720p"
+// at 1:1 renders 960x960 (= 1280*720 px exactly). Compute the expected
+// height for the piece's actual aspect so the resolution gate is honest.
+function expectedHeightFor(r: string, aspectRatio: string): number {
+  const [tierW, tierH] =
+    r === "1080p" ? [1920, 1080] : r === "720p" ? [1280, 720] : [960, 540];
+  const m = /^(\d+):(\d+)$/.exec(aspectRatio || "");
+  if (!m) return tierH;
+  const aw = Number(m[1]);
+  const ah = Number(m[2]);
+  if (!aw || !ah) return tierH;
+  return Math.round(Math.sqrt((tierW * tierH * ah) / aw));
 }
 
 // ---------- soft error accounting ----------
@@ -345,7 +355,7 @@ async function doIngest(ctx: Ctx, piece: PieceRow, attempt: AttemptRow): Promise
     video_url: `${origin}/v-take/${vKey}`,
     prompt,
     expected_duration_s: durationSeconds(piece.duration),
-    expected_height: resolutionHeight(piece.resolution),
+    expected_height: expectedHeightFor(piece.resolution, piece.aspect_ratio),
   });
 
   const priorEval = parseJson<Record<string, unknown>>(attempt.eval_json) ?? {};
@@ -482,7 +492,7 @@ async function redispatchEval(ctx: Ctx, piece: PieceRow, attempt: AttemptRow): P
     video_url: `${origin}/v-take/${attempt.video_key}`,
     prompt: composed?.prompt ?? piece.prompt_raw,
     expected_duration_s: durationSeconds(piece.duration),
-    expected_height: resolutionHeight(piece.resolution),
+    expected_height: expectedHeightFor(piece.resolution, piece.aspect_ratio),
   });
   await env.DB.prepare(
     `UPDATE take_attempts SET eval_json = ?1 WHERE piece_id = ?2 AND attempt_index = ?3`,
