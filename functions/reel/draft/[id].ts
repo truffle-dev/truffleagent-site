@@ -183,7 +183,7 @@ function renderDraft(piece: PieceRow): string {
           <h2 class="reader-h2">Watch the agent <span class="draft-agent-dot" id="draft-agent-dot" title="stream status" aria-hidden="true"></span></h2>
           <p class="draft-errors-hint">Live feed from the inspection agent. When a frame comes back from Luma, Claude Opus reads the character sheet and the candidate side by side and rules on identity drift, in real time.</p>
           <ol class="draft-log" id="draft-agent-log">
-            <li><span class="draft-log-when">waiting</span> connecting to the agent stream</li>
+            <li id="draft-agent-placeholder"><span class="draft-log-when">waiting</span> connecting to the agent stream</li>
           </ol>
         </section>
 
@@ -610,11 +610,11 @@ function renderDraft(piece: PieceRow): string {
             if (done || typeof EventSource === 'undefined' || !agentLog) return;
             es = new EventSource('/api/reel/stream/' + encodeURIComponent(id));
             es.addEventListener('hello', function () {
+              var wasLive = agentDot && agentDot.getAttribute('data-state') === 'live';
               setDot('live');
-              if (agentLog.children.length === 1 && agentLog.firstChild && agentLog.firstChild.textContent.indexOf('connecting') !== -1) {
-                agentLog.removeChild(agentLog.firstChild);
-              }
-              agentLine('connected to the agent stream');
+              var ph = document.getElementById('draft-agent-placeholder');
+              if (ph && ph.parentNode) ph.parentNode.removeChild(ph);
+              if (!wasLive) agentLine('connected to the agent stream');
             });
             es.addEventListener('inspect_start', function (e) {
               var d = parseData(e);
