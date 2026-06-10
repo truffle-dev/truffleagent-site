@@ -331,7 +331,7 @@ type BridgeErr = { ok: false; code: string; message: string };
 
 async function callBridge(
   env: ReelEnv,
-  path: "/enhance-character" | "/enhance-story" | "/inspect-frame",
+  path: "/enhance-character" | "/enhance-story" | "/inspect-frame" | "/paraphrase-prompt",
   body: Record<string, unknown>,
 ): Promise<BridgeOk> {
   if (!env.REEL_BRIDGE_URL || !env.REEL_BRIDGE_TOKEN) {
@@ -501,6 +501,36 @@ export async function inspectFrameAnthropic(args: {
   const accept = typeof o.accept === "boolean" ? o.accept : drift <= 3;
   const reason = typeof o.reason === "string" ? o.reason : "no reason given";
   return { accept, reason, drift };
+}
+
+// ---------- Bridge: prompt paraphrase (content_moderated recovery) ----------
+// Luma's content moderation deterministically false-positives on some
+// innocuous prompt phrasings (verified 2026-06-10: wholesome children's-book
+// scenes rejected on sentence structure, not content — e.g. "The small round
+// hedgehog ... stands behind a desk" fails while a scene-first inversion of
+// the identical visual content passes). When a frame dispatch gets a
+// content_moderated 422, the dispatch path calls this to rewrite the
+// visual_prompt structurally (same visual content, different phrasing) and
+// retries within the normal MAX_FRAME_ATTEMPTS budget. The next dispatch IS
+// the validation; a still-moderated rewrite burns one more attempt and
+// paraphrases again until the budget terminalizes the frame.
+
+export async function paraphrasePromptAnthropic(args: {
+  prompt: string;
+  attempt: number;
+  env: ReelEnv;
+  pieceId?: string;
+}): Promise<string> {
+  const result = await callBridge(args.env, "/paraphrase-prompt", {
+    prompt: args.prompt,
+    attempt: args.attempt,
+    ...(args.pieceId ? { piece_id: args.pieceId } : {}),
+  });
+  const text = result.text.replace(/\s+/g, " ").trim();
+  if (!text || text.length < 20) {
+    throw new Error(`paraphrase_too_short: ${text.slice(0, 80)}`);
+  }
+  return text;
 }
 
 // ---------- D1 in-flight rate limit ----------

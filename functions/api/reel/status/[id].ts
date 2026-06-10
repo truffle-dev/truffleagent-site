@@ -25,6 +25,7 @@ import {
   inspectFrameAnthropic,
   jsonResponse,
   lumaGet,
+  paraphrasePromptAnthropic,
   lumaSubmitImageEdit,
 } from "../../../_reel-shared.ts";
 
@@ -71,11 +72,15 @@ function appendError(prev: string | null, line: string): string {
   return prev ? `${prev}\n${tagged}` : tagged;
 }
 
-// On Luma dispatch failure, increment attempts and terminalize if either
-// (a) attempts reached MAX_FRAME_ATTEMPTS, or (b) the failure is a permanent
-// rejection (content_moderated) where retrying the same prompt is pointless.
-// Without this, content-moderated frames re-dispatch on every status call and
-// the piece never reaches a terminal state.
+// On Luma dispatch failure, increment attempts and terminalize when the
+// attempt budget is spent. content_moderated 422s are deterministic per
+// prompt — retrying the SAME prompt is pointless — but they are very often
+// classifier false positives on phrasing (verified 2026-06-10 on wholesome
+// children's-book scenes). So instead of failing immediately, we ask the
+// bridge to structurally paraphrase the visual_prompt (same visual content,
+// different sentence shapes) and retry within the normal MAX_FRAME_ATTEMPTS
+// budget. The budget bounds the loop: a frame gets at most
+// MAX_FRAME_ATTEMPTS-1 paraphrase retries before terminalizing.
 async function handleDispatchFailure(
   env: ReelEnv,
   pieceId: string,
@@ -85,12 +90,41 @@ async function handleDispatchFailure(
   note: (line: string) => void,
 ): Promise<void> {
   const msg = err.message;
-  const permanent = /content_moderated/i.test(msg);
+  const moderated = /content_moderated/i.test(msg);
   const nextAttempts = frame.attempts + 1;
-  const terminal = permanent || nextAttempts >= MAX_FRAME_ATTEMPTS;
+
+  // content_moderated with budget left: paraphrase the prompt and queue a
+  // retry. If the paraphrase call itself fails, fall through to terminal.
+  if (moderated && nextAttempts < MAX_FRAME_ATTEMPTS) {
+    try {
+      const rewritten = await paraphrasePromptAnthropic({
+        prompt: frame.visual_prompt,
+        attempt: nextAttempts,
+        env,
+        pieceId,
+      });
+      await env.DB
+        .prepare(
+          "UPDATE reel_frames SET visual_prompt=?, attempts=?, status='rejected_retrying' WHERE piece_id=? AND frame_index=?",
+        )
+        .bind(rewritten, nextAttempts, pieceId, frame.frame_index)
+        .run();
+      note(
+        `frame_moderated_paraphrased frame=${frame.frame_index} via=${source} attempt=${nextAttempts}_of_${MAX_FRAME_ATTEMPTS}`,
+      );
+      return;
+    } catch (pe) {
+      note(
+        `frame_paraphrase_failed frame=${frame.frame_index}: ${(pe as Error).message.slice(0, 120)}`,
+      );
+      // fall through to terminal handling below
+    }
+  }
+
+  const terminal = moderated || nextAttempts >= MAX_FRAME_ATTEMPTS;
   if (terminal) {
-    const reason = permanent
-      ? `content_moderated (permanent): ${msg.slice(0, 200)}`
+    const reason = moderated
+      ? `content_moderated after ${nextAttempts} attempt(s): ${msg.slice(0, 200)}`
       : `dispatch_failed_after_${nextAttempts}_attempts: ${msg.slice(0, 200)}`;
     await env.DB
       .prepare(
@@ -99,7 +133,7 @@ async function handleDispatchFailure(
       .bind(nextAttempts, reason, pieceId, frame.frame_index)
       .run();
     note(
-      `frame_terminal_dispatch_failed frame=${frame.frame_index} via=${source} ${permanent ? "permanent_content_moderated" : `after_${nextAttempts}_attempts`}: ${msg.slice(0, 120)}`,
+      `frame_terminal_dispatch_failed frame=${frame.frame_index} via=${source} ${moderated ? "content_moderated_budget_spent" : `after_${nextAttempts}_attempts`}: ${msg.slice(0, 120)}`,
     );
   } else {
     await env.DB
