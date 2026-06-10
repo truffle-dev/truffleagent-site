@@ -137,11 +137,35 @@ function parseJson<T>(s: string | null): T | null {
   }
 }
 
-const LANE_META: Record<string, { label: string; what: string; fmt: number }> = {
-  flicker: { label: "Flicker", what: "mean abs luma diff between consecutive frames", fmt: 2 },
-  flow: { label: "Optical flow", what: "Farneback flow magnitude, motion energy per frame pair", fmt: 2 },
-  clipscore: { label: "CLIPScore", what: "cosine of CLIP ViT-B/32 prompt and frame embeddings", fmt: 3 },
-  dino_drift: { label: "DINO drift", what: "DINOv2 cosine of each sampled frame against frame 0", fmt: 3 },
+const LANE_META: Record<string, { label: string; what: string; plain: string; fmt: number }> = {
+  flicker: {
+    label: "Flicker",
+    what: "mean abs luma diff between consecutive frames",
+    plain:
+      "How much each frame differs from the next, checked on every frame. A high average usually just means a busy scene; sudden spikes far above the average mean strobing.",
+    fmt: 2,
+  },
+  flow: {
+    label: "Optical flow",
+    what: "Farneback flow magnitude, motion energy per frame pair",
+    plain:
+      "How far pixels move between frames: one number for how much is actually happening. Under 0.3 is basically a still image; 2 to 8 is normal motion.",
+    fmt: 2,
+  },
+  clipscore: {
+    label: "CLIPScore",
+    what: "cosine of CLIP ViT-B/32 prompt and frame embeddings",
+    plain:
+      "How well the frames match what you typed, scored by CLIP. 0.30 and up is well on-prompt; below 0.24 the model probably wandered off.",
+    fmt: 3,
+  },
+  dino_drift: {
+    label: "DINO drift",
+    what: "DINOv2 cosine of each sampled frame against frame 0",
+    plain:
+      "Whether the subject stays the same subject, with every frame compared against the first. Watch the min: a single frame below 0.5 means identity broke.",
+    fmt: 3,
+  },
 };
 
 function sparkline(values: number[], w = 220, h = 36): string {
@@ -197,10 +221,12 @@ function renderLanes(ev: EvalResults | null): string {
             ${m.values ? sparkline(m.values) : ""}
             <div class="lane-card-range mono">min ${s.min.toFixed(meta.fmt)} · max ${s.max.toFixed(meta.fmt)} · σ ${s.std.toFixed(meta.fmt)}</div>
             <p class="lane-card-what">${meta.what}</p>
+            <p class="lane-card-plain">${meta.plain}</p>
           </div>`;
         })
         .join("")}
-    </div>`;
+    </div>
+    <p class="take-hint lane-grid-hint">These bands come from a 14-clip calibration set we ran before launch. <a href="/take/learn/#calibration">See the full thresholds and the clips that set them.</a></p>`;
 }
 
 function renderVerdict(judge: JudgeVerdict | null): string {
@@ -280,7 +306,7 @@ function renderPiece(piece: PieceRow, attempts: AttemptRow[]): string {
           ${aScore !== null ? `<span class="attempt-card-score mono">score ${aScore}/24</span>` : ""}
         </div>
         <div class="attempt-card-meta mono">
-          gen ${fmtMs(a.gen_latency_ms)} · cost $${a.cost_usd.toFixed(3)}${aEv?.elapsed_s ? ` · eval ${aEv.elapsed_s.toFixed(1)}s` : ""}
+          gen ${fmtMs(a.gen_latency_ms)}${aEv?.elapsed_s ? ` · eval ${aEv.elapsed_s.toFixed(1)}s` : ""}
         </div>
         ${gateFails.length ? `<p class="attempt-card-why">Failed gates: ${gateFails.map(escapeHtml).join(", ")} (judge skipped, retake issued)</p>` : ""}
         ${!isAccepted && verdictBits.length ? `<p class="attempt-card-why">Judge flagged ${verdictBits.map(escapeHtml).join(", ")}</p>` : ""}
@@ -305,8 +331,6 @@ function renderPiece(piece: PieceRow, attempts: AttemptRow[]): string {
             <span class="mono">${escapeHtml(piece.resolution)} / ${escapeHtml(piece.duration)} / ${escapeHtml(piece.aspect_ratio)}</span>
             <span class="reader-dot">·</span>
             <span class="mono">${attempts.length} attempt${attempts.length === 1 ? "" : "s"}</span>
-            <span class="reader-dot">·</span>
-            <span class="mono">$${piece.cost_usd.toFixed(3)}</span>
             ${wallSeconds !== null ? `<span class="reader-dot">·</span><span class="mono">${Math.round(wallSeconds)}s wall</span>` : ""}
           </p>
         </header>
@@ -356,7 +380,7 @@ function renderPiece(piece: PieceRow, attempts: AttemptRow[]): string {
           ${
             sheetUrl
               ? `<h3 class="receipt-h">What the judge saw</h3>
-                 <p class="take-hint">The timestamped contact sheet, exactly as handed to the judge.</p>
+                 <p class="take-hint">The timestamped contact sheet, exactly as handed to the judge. ffmpeg pulled eight evenly spaced frames from the clip, stamped each with its timestamp, and tiled them into this one grid; it is the only image the judge reads. <a href="/take/learn/#judge">Why a grid beats a video.</a></p>
                  <a href="${escapeHtml(sheetUrl)}" target="_blank" rel="noopener">
                    <img class="take-sheet" src="${escapeHtml(sheetUrl)}" alt="Timestamped contact sheet" loading="lazy" decoding="async" />
                  </a>`
@@ -551,6 +575,12 @@ const PIECE_CSS = `
   .lane-spark { width: 100%; height: 36px; color: var(--accent); margin-bottom: 6px; }
   .lane-card-range { font-size: 11px; color: var(--ink-3); margin-bottom: 6px; }
   .lane-card-what { margin: 0; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+  .lane-card-plain {
+    margin: 8px 0 0; padding-top: 8px; font-size: 12.5px; color: var(--ink-2); line-height: 1.55;
+    border-top: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+  }
+  .lane-grid-hint { margin-top: 12px; }
+  .lane-grid-hint a { color: var(--accent); }
 
   .axis-grid { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .axis-row {

@@ -154,8 +154,6 @@ function renderDraft(piece: PieceRow): string {
             <span id="attempt-counter">attempt ${piece.current_attempt} of ${piece.max_attempts}</span>
             <span class="reader-dot">·</span>
             <span class="mono">${escapeHtml(piece.resolution)} / ${escapeHtml(piece.duration)} / ${escapeHtml(piece.aspect_ratio)}</span>
-            <span class="reader-dot">·</span>
-            <span class="mono" id="cost-counter">$0.000</span>
           </p>
         </header>
 
@@ -245,7 +243,6 @@ function renderDraft(piece: PieceRow): string {
           var $ = function(s){ return document.getElementById(s); };
           var statusLabel = $('status-label');
           var attemptCounter = $('attempt-counter');
-          var costCounter = $('cost-counter');
           var narrationHeadline = $('narration-headline');
           var narrationBody = $('narration-body');
           var dagRail = $('dag-rail');
@@ -468,7 +465,6 @@ function renderDraft(piece: PieceRow): string {
               resetForNewAttempt(s.current_attempt);
             }
             paintDag(s.status);
-            if (typeof s.cost_usd === 'number') costCounter.textContent = '$' + s.cost_usd.toFixed(3);
 
             var cur = null;
             if (Array.isArray(s.attempts)) {

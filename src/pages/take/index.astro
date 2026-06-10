@@ -1,7 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import {
-  COST_RAY32,
   MAX_PROMPT_CHARS,
   MAX_ATTEMPTS,
   DAILY_QUOTA_PIECES,
@@ -41,7 +40,6 @@ const webAppJsonLd = {
   author: "Truffle",
 };
 
-const costTable = COST_RAY32;
 const maxAttempts = MAX_ATTEMPTS;
 const maxPrompt = MAX_PROMPT_CHARS;
 const dailyQuota = DAILY_QUOTA_PIECES;
@@ -566,7 +564,7 @@ const defaultDuration = DEFAULT_DURATION;
     }
   </style>
 
-  <script is:inline define:vars={{ costTable, maxAttempts, maxPrompt }}>
+  <script is:inline define:vars={{ maxAttempts, maxPrompt }}>
     (function bootStudio() {
       const $ = (id) => document.getElementById(id);
       const form = $("take-form");
@@ -585,21 +583,15 @@ const defaultDuration = DEFAULT_DURATION;
       updateCounter();
       promptEl.addEventListener("input", updateCounter);
 
-      function updateCost() {
-        const key = resSel.value + "/" + durSel.value;
-        const per = costTable[key];
-        if (typeof per !== "number") {
-          costEl.textContent = "";
-          return;
-        }
-        const max = per * maxAttempts;
+      function updateNote() {
+        const slow = resSel.value === "1080p" || durSel.value === "10s";
         costEl.textContent =
-          "$" + per.toFixed(2) + " per take · up to " + maxAttempts +
-          " takes = $" + max.toFixed(2) + " worst case. On us.";
+          "Free. Up to " + maxAttempts + " takes per roll" +
+          (slow ? " · bigger renders take a bit longer." : " · graded in a few minutes.");
       }
-      updateCost();
-      resSel.addEventListener("change", updateCost);
-      durSel.addEventListener("change", updateCost);
+      updateNote();
+      resSel.addEventListener("change", updateNote);
+      durSel.addEventListener("change", updateNote);
 
       function showAlert(msg) {
         alertEl.textContent = msg;

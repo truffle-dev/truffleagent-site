@@ -68,8 +68,8 @@ export const DEFAULT_DURATION = "5s";
 export const DEFAULT_ASPECT = "16:9";
 
 export const MAX_ATTEMPTS = 3;
-export const DAILY_QUOTA_PIECES = 3;       // per visitor
-export const GLOBAL_DAILY_CAP = 20;        // all visitors combined
+export const DAILY_QUOTA_PIECES = 5;       // per visitor
+export const GLOBAL_DAILY_CAP = 40;        // all visitors combined
 export const MAX_PROMPT_CHARS = 800;
 
 // Ray3.2 T2V pricing (USD) per docs.agents.lumalabs.ai (verified 2026-06-10).

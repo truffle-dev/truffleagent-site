@@ -75,9 +75,25 @@ const refs = [
         source. Where something is synthesis or practitioner lore rather than
         a citable result, it says so.
       </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words</p>
+        <p>
+          When you press the button, a video model renders your clip. Then,
+          before you ever see it, four layers of checking run. First, cheap
+          sanity checks: does the file actually play, is it the right length,
+          is it black or frozen. Second, three small vision models and some
+          pixel math measure things a human would eyeball: how much is
+          moving, whether the picture matches what you typed, whether the
+          subject stays the same subject. Third, a large AI model looks at a
+          grid of frames pulled from the clip and writes a graded review,
+          like a film critic with a rubric. Fourth, a simple rule decides:
+          good enough to show you, or roll again (at most three tries). The
+          rest of this page explains why each layer exists.
+        </p>
+      </div>
     </header>
 
-    <section class="learn-section">
+    <section class="learn-section" id="questions">
       <h2>1. Two different questions, two different toolboxes</h2>
       <p>
         Video evaluation research answers two questions that look similar and
@@ -113,7 +129,7 @@ const refs = [
       </p>
     </section>
 
-    <section class="learn-section">
+    <section class="learn-section" id="taxonomy">
       <h2>2. What &ldquo;good video&rdquo; decomposes into</h2>
       <p>
         Nobody serious scores video with one number. VBench
@@ -167,7 +183,7 @@ const refs = [
       </p>
     </section>
 
-    <section class="learn-section">
+    <section class="learn-section" id="blindspot">
       <h2>3. The judge's blind spot: time</h2>
       <p>
         The tempting architecture is one big multimodal model: hand it the
@@ -207,7 +223,7 @@ const refs = [
       </p>
     </section>
 
-    <section class="learn-section">
+    <section class="learn-section" id="lanes">
       <h2>4. The deterministic lanes, and why these four</h2>
 
       <h3>CLIPScore: what cosine similarity actually measures</h3>
@@ -233,6 +249,21 @@ const refs = [
         on a blue sphere&rdquo; from the reverse. Those compositional checks
         belong to the judge's semantics axis.
       </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words</p>
+        <p>
+          CLIP is a model that studied 400 million internet pictures together
+          with their captions until it could tell which caption belongs to
+          which picture. We use it as a matching meter: we hand it your
+          prompt and a frame from the video, and it returns a number for
+          &ldquo;how much does this picture look like that sentence.&rdquo;
+          High number, the video is about what you asked for. Low number, the
+          model probably wandered off. What CLIP can't do is fine print: it
+          knows &ldquo;dog on a beach,&rdquo; but it can't reliably count
+          three dogs or tell left from right. That fine print is the judge's
+          job.
+        </p>
+      </div>
 
       <h3>DINO, not CLIP, for identity</h3>
       <p>
@@ -253,6 +284,21 @@ const refs = [
         tracks cosine similarity against frame zero. If the subject quietly
         morphs into a different subject by frame forty, this lane catches it.
       </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words</p>
+        <p>
+          CLIP thinks in categories: to CLIP, one golden retriever looks much
+          like another golden retriever. DINO thinks in individuals: it
+          learned, without any labels, to recognize that two different views
+          show the <em>same</em> exact thing, so its features capture the
+          fur pattern, the proportions, the specific face. AI video models
+          have a famous failure where the subject slowly turns into a
+          slightly different subject as the clip plays. We take a fingerprint
+          of the very first frame with DINO and compare every later frame
+          against it. If any frame stops matching, the dog stopped being that
+          dog, and we catch it.
+        </p>
+      </div>
 
       <h3>Optical flow: motion as a number</h3>
       <p>
@@ -275,6 +321,20 @@ const refs = [
         precisely because of the sampling blind spot in section 3: it is the
         lane the judge can never own.
       </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words</p>
+        <p>
+          Optical flow asks: between this frame and the next one, how far did
+          the pixels move? Average that over the whole clip and you get one
+          honest number for &ldquo;how much is actually happening.&rdquo;
+          Near zero means the video is basically a photograph, which is a
+          known trick models use to look better. Flicker is even simpler: we
+          subtract each frame from the next and measure how different they
+          are. A smooth clip changes gently; a strobing, glitchy clip jumps.
+          Both checks look at <em>every single frame</em>, which is exactly
+          what the big AI judge can't do.
+        </p>
+      </div>
 
       <h3>Why not a learned video reward model?</h3>
       <p>
@@ -294,7 +354,7 @@ const refs = [
       </p>
     </section>
 
-    <section class="learn-section">
+    <section class="learn-section" id="judge">
       <h2>5. How the judge is built</h2>
       <p>
         Take's L2 judge is a frontier vision-language model reading a
@@ -310,6 +370,22 @@ const refs = [
         preserves coarse temporal order through reading order, and it costs
         one model call instead of sixteen.
       </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words: what ffmpeg does here</p>
+        <p>
+          ffmpeg is the open-source Swiss army knife of video; nearly every
+          video pipeline on the internet runs on it. Take uses it for all the
+          physical handling of the file: first to verify the clip actually
+          decodes and has the right length, size, and framerate; then to walk
+          through every frame for the motion and flicker math; then to pull
+          eight evenly spaced frames out of the clip, stamp each one with its
+          timestamp, and tile them into a single grid image, like a strip of
+          film laid flat on a light table. That grid, the contact sheet, is
+          the one picture the judge actually looks at. So when the verdict
+          says &ldquo;what the judge saw,&rdquo; that image is literally it:
+          eight moments from your clip, in order, made by ffmpeg.
+        </p>
+      </div>
       <p>
         <strong>Uniform sampling, first and last pinned.</strong> Uniform is
         the published default for short clips (VideoScore, VBench, IG-VLM all
@@ -364,7 +440,7 @@ const refs = [
       </p>
     </section>
 
-    <section class="learn-section">
+    <section class="learn-section" id="economics">
       <h2>6. The cascade as economics</h2>
       <p>
         The four levels are ordered by cost per verdict.
@@ -398,7 +474,7 @@ const refs = [
       </p>
     </section>
 
-    <section class="learn-section">
+    <section class="learn-section" id="calibration">
       <h2>7. First-party calibration: 14 clips, real thresholds</h2>
       <p>
         Papers give the architecture; they do not give thresholds for
@@ -525,7 +601,7 @@ const refs = [
       </p>
     </section>
 
-    <section class="learn-section">
+    <section class="learn-section" id="limits">
       <h2>8. Honest limits</h2>
       <p>
         The cascade has known blind spots, and pretending otherwise would
@@ -667,6 +743,25 @@ const refs = [
       border-bottom: 1px solid color-mix(in oklab, var(--take-accent) 38%, transparent);
     }
     .learn-section a:hover { border-bottom-color: var(--take-accent); }
+
+    .learn-plain {
+      margin: 22px 0 26px;
+      padding: 16px 18px;
+      border-radius: 12px;
+      border: 1px solid color-mix(in oklab, var(--take-accent) 22%, var(--line));
+      border-left: 3px solid var(--take-accent);
+      background: color-mix(in oklab, var(--take-accent) 5%, var(--paper-2));
+    }
+    .learn-plain .learn-plain-label {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 650;
+      color: var(--take-accent);
+      margin: 0 0 8px;
+    }
+    .learn-plain p:last-child { margin-bottom: 0; }
 
     .learn-cost-list {
       margin: 0 0 16px;

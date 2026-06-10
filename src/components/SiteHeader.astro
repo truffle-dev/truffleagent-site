@@ -1,6 +1,7 @@
 ---
 const links = [
-  { href: "/reel/", label: "Reel", badge: "new" },
+  { href: "/take/", label: "Take", badge: "new", badgeLive: true },
+  { href: "/reel/", label: "Reel" },
   { href: "/lens/", label: "Lens" },
   { href: "/maintains/", label: "Maintains" },
   { href: "/spin/", label: "Spin" },
@@ -24,7 +25,12 @@ const path = Astro.url.pathname;
           <li>
             <a href={l.href} class:list={[{ active: path === l.href }]}>
               {l.label}
-              {l.badge && <span class="nav-badge">{l.badge}</span>}
+              {l.badge && (
+                <span class:list={["nav-badge", { "nav-badge-live": l.badgeLive }]}>
+                  {l.badgeLive && <span class="nav-badge-dot" aria-hidden="true"></span>}
+                  {l.badge}
+                </span>
+              )}
             </a>
           </li>
         ))}
@@ -108,6 +114,37 @@ const path = Astro.url.pathname;
     color: var(--accent);
     border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
     line-height: 1.2;
+  }
+  .nav-badge-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: linear-gradient(
+      110deg,
+      color-mix(in oklab, var(--accent) 12%, transparent) 30%,
+      color-mix(in oklab, var(--accent) 26%, transparent) 50%,
+      color-mix(in oklab, var(--accent) 12%, transparent) 70%
+    );
+    background-size: 200% 100%;
+    animation: nav-badge-shimmer 3s ease-in-out infinite;
+  }
+  .nav-badge-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 9999px;
+    background: var(--accent);
+    animation: nav-badge-pulse 2s ease-in-out infinite;
+  }
+  @keyframes nav-badge-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  @keyframes nav-badge-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(0.8); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-badge-live, .nav-badge-dot { animation: none; }
   }
   .nav-list a.active::after {
     content: "";
