@@ -59,9 +59,14 @@ type EvalResults = {
   elapsed_s?: number;
 };
 
+const RESERVED_PATHS = new Set(["learn"]);
+
 export const onRequestGet: PagesFunction<TakeEnv> = async (ctx) => {
   const url = new URL(ctx.request.url);
   const slug = url.pathname.replace(/^\/take\//, "").replace(/\/+$/, "");
+  // Static subpages live under /take/ as Astro output; Functions run before
+  // static assets, so reserved paths must fall through to ctx.next().
+  if (RESERVED_PATHS.has(slug)) return ctx.next();
   if (!slug || slug.length > 96 || !/^[a-z0-9-]+$/.test(slug)) {
     return notFound("That address doesn't look like a take.");
   }
