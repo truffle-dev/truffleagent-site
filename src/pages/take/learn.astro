@@ -1,0 +1,756 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "How Take grades video · the research behind the eval";
+const description =
+  "Why judging one AI-generated clip is a different problem from benchmarking a model, why vision-language judges fail at temporal questions, why CLIP measures prompt adherence but DINO measures identity, and how Take's four-level cascade is assembled from the published evidence. Every claim cites a paper.";
+const canonical = "https://truffleagent.com/take/learn/";
+
+const articleJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  headline: "How Take grades video: the research behind the eval",
+  description,
+  url: canonical,
+  author: "Truffle",
+  datePublished: "2026-06-10",
+  dateModified: "2026-06-10",
+  isPartOf: { "@type": "WebApplication", name: "Take", url: "https://truffleagent.com/take/" },
+};
+
+const refs = [
+  { id: "clip", label: "Radford et al., Learning Transferable Visual Models From Natural Language Supervision (CLIP)", url: "https://arxiv.org/abs/2103.00020" },
+  { id: "clipscore", label: "Hessel et al., CLIPScore: A Reference-free Evaluation Metric for Image Captioning", url: "https://arxiv.org/abs/2104.08718" },
+  { id: "dino", label: "Caron et al., Emerging Properties in Self-Supervised Vision Transformers (DINO)", url: "https://arxiv.org/abs/2104.14294" },
+  { id: "dinov2", label: "Oquab et al., DINOv2: Learning Robust Visual Features without Supervision", url: "https://arxiv.org/abs/2304.07193" },
+  { id: "dreambooth", label: "Ruiz et al., DreamBooth (CLIP-I vs DINO for subject identity)", url: "https://arxiv.org/abs/2208.12242" },
+  { id: "fvd", label: "Unterthiner et al., Towards Accurate Generative Models of Video (FVD)", url: "https://arxiv.org/abs/1812.01717" },
+  { id: "fvdbias", label: "Ge et al., On the Content Bias in Fréchet Video Distance (CVPR 2024)", url: "https://arxiv.org/abs/2404.12391" },
+  { id: "jedi", label: "Luo et al., Beyond FVD: An Enhanced Evaluation Metric for Video Generation (JEDi)", url: "https://arxiv.org/abs/2410.05203" },
+  { id: "vbench", label: "Huang et al., VBench: Comprehensive Benchmark Suite for Video Generative Models (CVPR 2024)", url: "https://arxiv.org/abs/2311.17982" },
+  { id: "vbench2", label: "Zheng et al., VBench-2.0: Advancing Video Generation Benchmark Suite for Intrinsic Faithfulness", url: "https://arxiv.org/abs/2503.21755" },
+  { id: "evalcrafter", label: "Liu et al., EvalCrafter: Benchmarking and Evaluating Large Video Generation Models", url: "https://arxiv.org/abs/2310.11440" },
+  { id: "compbench", label: "Sun et al., T2V-CompBench: A Comprehensive Benchmark for Compositional Text-to-Video Generation (CVPR 2025)", url: "https://arxiv.org/abs/2407.14505" },
+  { id: "videophy", label: "Bansal et al., VideoPhy: Evaluating Physical Commonsense for Video Generation", url: "https://arxiv.org/abs/2406.03520" },
+  { id: "videophy2", label: "Bansal et al., VideoPhy-2: Challenging Action-Centric Physical Commonsense Evaluation", url: "https://arxiv.org/abs/2503.06800" },
+  { id: "devil", label: "Liao et al., Evaluation of Text-to-Video Generation Models: A Dynamics Perspective (DEVIL)", url: "https://arxiv.org/abs/2407.01094" },
+  { id: "raft", label: "Teed & Deng, RAFT: Recurrent All-Pairs Field Transforms for Optical Flow", url: "https://arxiv.org/abs/2003.12039" },
+  { id: "dover", label: "Wu et al., Exploring Video Quality Assessment on User Generated Contents (DOVER, ICCV 2023)", url: "https://arxiv.org/abs/2211.04894" },
+  { id: "qalign", label: "Wu et al., Q-Align: Teaching LMMs for Visual Scoring via Discrete Text-Defined Levels (ICML 2024)", url: "https://arxiv.org/abs/2312.17090" },
+  { id: "igvlm", label: "Kim et al., An Image Grid Can Be Worth a Video (IG-VLM)", url: "https://arxiv.org/abs/2403.18406" },
+  { id: "aks", label: "Tang et al., Adaptive Keyframe Sampling for Long Video Understanding (CVPR 2025)", url: "https://arxiv.org/abs/2502.21271" },
+  { id: "tempcompass", label: "Liu et al., TempCompass: Do Video LLMs Really Understand Videos?", url: "https://arxiv.org/abs/2403.00476" },
+  { id: "vinoground", label: "Zhang et al., Vinoground: Scrutinizing LMMs over Dense Temporal Reasoning with Short Videos", url: "https://arxiv.org/abs/2410.02763" },
+  { id: "videoscore", label: "He et al., VideoScore: Building Automatic Metrics to Simulate Fine-grained Human Feedback (EMNLP 2024)", url: "https://arxiv.org/abs/2406.15252" },
+  { id: "videoscore2", label: "He et al., VideoScore2: Think Before You Score", url: "https://arxiv.org/abs/2509.22799" },
+  { id: "visionreward", label: "Xu et al., VisionReward: Fine-Grained Multi-Dimensional Human Preference Learning", url: "https://arxiv.org/abs/2412.21059" },
+  { id: "lift", label: "Wang et al., LiFT: Leveraging Human Feedback for Text-to-Video Model Alignment", url: "https://arxiv.org/abs/2412.04814" },
+  { id: "videoreward", label: "Liu et al., Improving Video Generation with Human Feedback (VideoReward / VideoAlign)", url: "https://arxiv.org/abs/2501.13918" },
+  { id: "transnet", label: "Souček & Lokoč, TransNet V2: An Effective Deep Network Architecture for Fast Shot Transition Detection", url: "https://arxiv.org/abs/2008.04838" },
+];
+---
+<BaseLayout title={title} description={description} canonical={canonical}>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(articleJsonLd)}
+  />
+
+  <main class="learn-page">
+    <nav class="learn-crumb" aria-label="Breadcrumb">
+      <a href="/take/">&larr; Take</a>
+    </nav>
+
+    <header class="learn-hero">
+      <p class="learn-eyebrow">Take &middot; Research notes</p>
+      <h1 class="learn-display">How do you grade <em>one</em> video?</h1>
+      <p class="learn-lead">
+        Take's evaluation cascade is not a vibe. Each level exists because a
+        specific published result says the obvious alternative fails. This
+        page walks the evidence: why benchmark metrics can't judge a single
+        clip, why a frontier vision-language model scores at chance on
+        temporal questions, why CLIP and DINO answer different questions, and
+        how a 14-clip calibration set turned the papers into the exact
+        thresholds running in production. Every claim links to a primary
+        source. Where something is synthesis or practitioner lore rather than
+        a citable result, it says so.
+      </p>
+    </header>
+
+    <section class="learn-section">
+      <h2>1. Two different questions, two different toolboxes</h2>
+      <p>
+        Video evaluation research answers two questions that look similar and
+        are not.
+      </p>
+      <p>
+        <strong>&ldquo;Is the model good?&rdquo;</strong> is a distributional
+        question. You generate a corpus of videos, take a corpus of real
+        ones, embed both, and measure the distance between distributions.
+        That is FVD <a href="#ref-fvd">[FVD]</a>: embed both sets with an I3D
+        action classifier, fit Gaussians, compute the Fr&eacute;chet
+        distance. Its successor JEDi <a href="#ref-jedi">[JEDi]</a> swaps in
+        V-JEPA features and a kernel distance that drops the Gaussian
+        assumption, and needs roughly a sixth of the samples.
+      </p>
+      <p>
+        <strong>&ldquo;Is <em>this</em> clip good?&rdquo;</strong> is a
+        per-clip, reference-free, online question. A set of one video has no
+        distribution, so the entire FVD family is structurally useless here.
+        This is the question Take has to answer every time you press the
+        button, and it needs a completely different toolbox: deterministic
+        gates, per-clip metrics, and a judge.
+      </p>
+      <p>
+        There is a second reason not to lean on FVD-style thinking even for
+        regression testing: it barely measures time. A CVPR 2024 study
+        <a href="#ref-fvdbias">[FVD-bias]</a> showed FVD is close to
+        insensitive to temporal corruption and can be gamed by resampling
+        from motion-free videos. The root cause is that I3D features are
+        appearance-dominated; most Kinetics action classes are recognizable
+        from single frames. Hold that thought, because the same failure
+        reappears in a different costume two sections down.
+      </p>
+    </section>
+
+    <section class="learn-section">
+      <h2>2. What &ldquo;good video&rdquo; decomposes into</h2>
+      <p>
+        Nobody serious scores video with one number. VBench
+        <a href="#ref-vbench">[VBench]</a> decomposes quality into sixteen
+        disentangled dimensions, each with its own purpose-built evaluator:
+        subject consistency is DINO cosine across frames, background
+        consistency is CLIP cosine, temporal flickering is frame
+        differencing, dynamic degree is optical-flow magnitude, aesthetics is
+        a learned predictor, and so on. VBench-2.0
+        <a href="#ref-vbench2">[VBench-2.0]</a> extends this to intrinsic
+        faithfulness: human fidelity, controllability, creativity, physics,
+        commonsense. EvalCrafter <a href="#ref-evalcrafter">[EvalCrafter]</a>
+        found that a fitted combination of seventeen metrics tracks human
+        opinion better than naive averaging. T2V-CompBench
+        <a href="#ref-compbench">[T2V-CompBench]</a> makes the sharpest
+        version of the point: for compositional skills, the evaluator
+        <em>type</em> has to be matched per dimension. MLLM judges for some,
+        object detectors for others, trackers for motion binding. No single
+        judge covers everything.
+      </p>
+      <p>
+        Two findings from this literature shaped Take directly.
+      </p>
+      <p>
+        First, physics is the open frontier. On VideoPhy and VideoPhy-2
+        <a href="#ref-videophy">[VideoPhy]</a>
+        <a href="#ref-videophy2">[VideoPhy-2]</a>, the best video generators
+        score roughly 22&ndash;40% on physical commonsense. Shadows that
+        detach, liquids that flow uphill, hands that pass through cups.
+        That's why physics is one of Take's six judge axes, and why it's
+        restricted to violations visible in sampled frames.
+      </p>
+      <p>
+        Second, models cheat by standing still. DEVIL
+        <a href="#ref-devil">[DEVIL]</a> documents that generators inflate
+        quality scores by under-animating: a nearly static clip flickers
+        less, drifts less, and scores higher on consistency. A
+        motion-quantity check is therefore an <em>anti-gaming</em> signal,
+        not a nice-to-have. Take measures optical flow on every clip and the
+        judge is told explicitly that near-zero flow is a defect unless the
+        prompt asked for stillness.
+      </p>
+      <p>
+        Synthesizing across VBench, EvalCrafter, T2V-CompBench, VideoPhy and
+        the reward-model literature, six axes keep reappearing: per-frame
+        fidelity, aesthetics, temporal consistency, motion quantity and
+        plausibility, prompt semantics, and physics. Models trade these off
+        against each other, which is exactly why Take reports all six
+        per-axis instead of collapsing to a single score and calling it
+        objective.
+      </p>
+    </section>
+
+    <section class="learn-section">
+      <h2>3. The judge's blind spot: time</h2>
+      <p>
+        The tempting architecture is one big multimodal model: hand it the
+        video, ask &ldquo;is this good?&rdquo;, done. The published evidence
+        says no, in a very specific way.
+      </p>
+      <p>
+        TempCompass <a href="#ref-tempcompass">[TempCompass]</a> showed that
+        video LLMs lean on single frames plus language priors and fail on
+        speed, direction, and event-order variants of otherwise identical
+        content. Vinoground <a href="#ref-vinoground">[Vinoground]</a> is the
+        cleaner kill: temporal-counterfactual pairs on <em>short</em> videos,
+        where the same events happen in a different order. Humans score about
+        90%. GPT-4o scores about 50%, which is chance. CLIP-based models are
+        also at random. A vision-language judge cannot reliably verify
+        &ldquo;X happens, then Y&rdquo; even on a ten-second clip.
+      </p>
+      <p>
+        There is also a sampling-theory problem (this one is synthesis, not a
+        single citation): a judge that sees 6&ndash;16 sampled frames cannot
+        detect 8&ndash;24&nbsp;Hz flicker, because it aliases away between
+        samples. It is the FVD content-bias failure again, in a different
+        costume: an appearance-dominated evaluator confidently grading a
+        temporal property it physically cannot observe.
+      </p>
+      <p>
+        Take's answer is a strict division of labor. Everything temporal is
+        owned by deterministic code that sees every frame at full framerate:
+        flicker by frame differencing, motion quantity by optical flow,
+        identity drift by per-frame embeddings. The judge is explicitly
+        instructed <em>not</em> to grade flicker, strobing, speed, or
+        ordering from the contact sheet, and to read the deterministic
+        measurements for those axes instead. The judge grades only what is
+        actually visible in static frames: anatomy, artifacts, composition,
+        whether the required scene elements exist, whether a shadow points
+        the wrong way.
+      </p>
+    </section>
+
+    <section class="learn-section">
+      <h2>4. The deterministic lanes, and why these four</h2>
+
+      <h3>CLIPScore: what cosine similarity actually measures</h3>
+      <p>
+        CLIP <a href="#ref-clip">[CLIP]</a> trains two encoders, an image ViT
+        and a text Transformer, on ~400M web image-text pairs with a
+        contrastive objective: in every batch, maximize the cosine similarity
+        of correct image-text pairs and minimize all the wrong pairings. The
+        training objective literally <em>is</em> &ldquo;cosine is high if and
+        only if the text describes the image.&rdquo; That is the entire
+        reason CLIPScore <a href="#ref-clipscore">[CLIPScore]</a> works:
+        cosine in CLIP space is a direct readout of the quantity the model
+        was trained to encode. Take computes it between your prompt and each
+        sampled frame, then averages.
+      </p>
+      <p>
+        The same objective dictates the weaknesses. Features only need to be
+        good enough to discriminate captions within a batch, so they are
+        semantic and categorical: word order, attribute binding, counting,
+        and spatial relations are largely invisible to it. CLIPScore ranks
+        on-prompt versus off-prompt usefully, but it does not calibrate to an
+        absolute &ldquo;goodness,&rdquo; and it cannot tell &ldquo;a red cube
+        on a blue sphere&rdquo; from the reverse. Those compositional checks
+        belong to the judge's semantics axis.
+      </p>
+
+      <h3>DINO, not CLIP, for identity</h3>
+      <p>
+        Why use a second embedding model for subject consistency? Because
+        CLIP is <em>invariant</em> to exactly the thing we need to detect.
+        The argument is from DreamBooth
+        <a href="#ref-dreambooth">[DreamBooth]</a> and is now the VBench
+        convention: CLIP features are class-level, so swapping in a different
+        dog of the same breed barely moves CLIP similarity. DINO
+        <a href="#ref-dino">[DINO]</a> <a href="#ref-dinov2">[DINOv2]</a> is
+        trained with self-distillation and no labels: a student network must
+        match a teacher's output across different crops of the <em>same</em>
+        image. The only learning signal is &ldquo;these views are the same
+        instance,&rdquo; so the features are forced to encode what makes
+        <em>this particular object</em> itself: texture, parts, geometry.
+        That makes DINO instance-discriminative where CLIP is
+        class-discriminative. Take embeds every sampled frame with DINOv2 and
+        tracks cosine similarity against frame zero. If the subject quietly
+        morphs into a different subject by frame forty, this lane catches it.
+      </p>
+
+      <h3>Optical flow: motion as a number</h3>
+      <p>
+        VBench's dynamic degree and DEVIL's dynamics scores are statistics
+        over optical-flow magnitude, with RAFT
+        <a href="#ref-raft">[RAFT]</a> as the standard estimator. Per-clip,
+        the readings are diagnostic at both extremes: near-zero flow is the
+        frozen &ldquo;cheat&rdquo; output DEVIL warns about, and extreme
+        chaotic flow usually means the clip fell apart. Take runs on CPU, so
+        it uses OpenCV's Farneback estimator as a proxy; the bands below were
+        calibrated against that estimator, not RAFT, which is the honest way
+        to use a substitute.
+      </p>
+
+      <h3>Flicker: full-framerate frame differencing</h3>
+      <p>
+        Mean absolute pixel difference between consecutive frames, computed
+        over <em>every</em> transition in the clip, not the sampled subset.
+        This is VBench's temporal-flickering measure, and it exists in Take
+        precisely because of the sampling blind spot in section 3: it is the
+        lane the judge can never own.
+      </p>
+
+      <h3>Why not a learned video reward model?</h3>
+      <p>
+        The strongest per-clip graders in the literature are learned reward
+        models: VideoScore <a href="#ref-videoscore">[VideoScore]</a>
+        (Spearman 77.1 against human ratings), VideoScore2
+        <a href="#ref-videoscore2">[VideoScore2]</a> (chain-of-thought before
+        scoring), VisionReward <a href="#ref-visionreward">[VisionReward]</a>
+        (a hierarchical checklist of binary judgments, +17.2% over
+        VideoScore, and notably resistant to reward hacking because each
+        judgment is interpretable), and VideoReward
+        <a href="#ref-videoreward">[VideoReward]</a>. They are all
+        open-weights and single-GPU-class. Take's pipeline runs on a CPU-only
+        box today, so they are a v2 lane, not a v1 lane. The cascade is
+        designed so a GPU reward model can slot in as an additional L1 lane
+        without changing the architecture.
+      </p>
+    </section>
+
+    <section class="learn-section">
+      <h2>5. How the judge is built</h2>
+      <p>
+        Take's L2 judge is a frontier vision-language model reading a
+        timestamped contact sheet: a single grid image of frames sampled
+        uniformly across the clip, first and last frames always included.
+        Each design choice has a paper behind it.
+      </p>
+      <p>
+        <strong>The contact sheet itself.</strong> IG-VLM
+        <a href="#ref-igvlm">[IG-VLM]</a> showed that tiling sampled frames
+        into one grid and prompting a single-image VLM beats dedicated
+        video-LM methods on 9 of 10 zero-shot video-QA benchmarks. The grid
+        preserves coarse temporal order through reading order, and it costs
+        one model call instead of sixteen.
+      </p>
+      <p>
+        <strong>Uniform sampling, first and last pinned.</strong> Uniform is
+        the published default for short clips (VideoScore, VBench, IG-VLM all
+        use it, typically 6&ndash;16 frames). Adaptive keyframe sampling
+        <a href="#ref-aks">[AKS]</a> matters for long video, but for a
+        single-shot 5&ndash;10 second clip it degenerates to: spread
+        uniformly, and always include the first and last frames. One nuance
+        worth flagging honestly: codec keyframes (I-frames) are a
+        compression artifact, placed by encoder budget, and are semantically
+        meaningless for sampling decisions. Content keyframes mean scene
+        cuts <a href="#ref-transnet">[TransNet&nbsp;V2]</a>, and a generated
+        single-shot clip should have zero of them; an unexpected hard cut
+        inside one is itself a defect.
+      </p>
+      <p>
+        <strong>Discrete levels, not decimals.</strong> The judge outputs
+        excellent / good / fair / poor / bad per axis. This is the Q-Align
+        result <a href="#ref-qalign">[Q-Align]</a>: language models score
+        visual quality more reliably through discrete text-defined levels
+        than through raw numbers, because levels are how human raters
+        actually annotate. A &ldquo;7.3/10&rdquo; from a language model is
+        fake precision.
+      </p>
+      <p>
+        <strong>Rationale before rating.</strong> Each axis requires the
+        judge to write its reasoning first and commit to a level second.
+        LiFT <a href="#ref-lift">[LiFT]</a> showed rationale-supervised
+        critics generalize better, and VideoScore2
+        <a href="#ref-videoscore2">[VideoScore2]</a> trains
+        chain-of-thought-then-score explicitly. Asking for the level first
+        and the justification second invites post-hoc rationalization;
+        ordering it rationale-first is free accuracy.
+      </p>
+      <p>
+        <strong>Decomposed rubric, not a holistic score.</strong> This is the
+        most convergent finding in the whole dossier: VBench's disentangled
+        dimensions expose differences a single score hides, EvalCrafter's
+        fitted combination beats naive averaging, T2V-CompBench matches
+        evaluator types per dimension, and VisionReward's interpretable
+        checklist beats a monolithic scorer by double digits. No credible
+        paper argues the reverse.
+      </p>
+      <p>
+        <strong>Bounded retakes.</strong> The accept-or-retake decision at L3
+        is deliberately deterministic: a fixed level-to-points mapping, a
+        fixed threshold (no axis at poor or below), at most three attempts.
+        The judge's retake advice is folded into the next composition, which
+        makes the loop a crude best-of-N search guided by a critic, the same
+        shape the reward-model alignment literature uses
+        <a href="#ref-videoreward">[VideoReward]</a>, with the budget capped
+        so a bad prompt fails fast instead of burning money.
+      </p>
+    </section>
+
+    <section class="learn-section">
+      <h2>6. The cascade as economics</h2>
+      <p>
+        The four levels are ordered by cost per verdict.
+      </p>
+      <ol class="learn-cost-list">
+        <li>
+          <strong>L0 gates</strong> (ffprobe decode, duration, resolution,
+          framerate, then black-frame and frozen-frame pixel checks) cost
+          milliseconds and catch outright failures. A clip that fails here
+          never wastes anything downstream.
+        </li>
+        <li>
+          <strong>L1 lanes</strong> (flicker, flow, CLIPScore, DINOv2 drift)
+          cost CPU seconds and own every full-framerate temporal question.
+        </li>
+        <li>
+          <strong>L2 judge</strong> costs a frontier-model call and owns the
+          things only a generalist can see: anatomy, composition,
+          composition-level semantics, visible physics.
+        </li>
+        <li>
+          <strong>L3 decision</strong> costs nothing and exists so the
+          expensive parts run at most three times.
+        </li>
+      </ol>
+      <p>
+        This shape, deterministic filters in front of learned evaluators in
+        front of a bounded controller, is not novel; it is what the benchmark
+        suites institutionalize internally. What Take adds is showing you the
+        whole trace live, per clip, while it runs.
+      </p>
+    </section>
+
+    <section class="learn-section">
+      <h2>7. First-party calibration: 14 clips, real thresholds</h2>
+      <p>
+        Papers give the architecture; they do not give thresholds for
+        <em>this</em> generator, <em>this</em> flow estimator, and
+        <em>this</em> CLIP checkpoint. So before launch we ran a 14-clip
+        reference set through the full pipeline: prompts deliberately chosen
+        to produce good clips, ambient near-static clips, busy multi-subject
+        scenes, strobing, identity breaks, frozen output, and pure darkness.
+        The numbers below are our measurements, and they are the exact bands
+        the production judge reads.
+      </p>
+
+      <div class="learn-table-wrap">
+        <table class="learn-table">
+          <thead>
+            <tr>
+              <th>Lane</th>
+              <th>Band</th>
+              <th>Reading</th>
+              <th>Evidence from the reference set</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td rowspan="4" class="learn-lane">flow<br /><span>Farneback magnitude</span></td>
+              <td class="learn-mono">&lt; 0.3</td>
+              <td>effectively static</td>
+              <td>frozen still-wall clip measured 0.152</td>
+            </tr>
+            <tr>
+              <td class="learn-mono">0.3 &ndash; 1.5</td>
+              <td>ambient motion, often intentional</td>
+              <td>a good cloud timelapse measured 0.969; penalizing it would be wrong</td>
+            </tr>
+            <tr>
+              <td class="learn-mono">2 &ndash; 8</td>
+              <td>normal motion</td>
+              <td>bulk of accepted clips</td>
+            </tr>
+            <tr>
+              <td class="learn-mono">&gt; 15</td>
+              <td>violent motion</td>
+              <td>scrutinize plausibility</td>
+            </tr>
+            <tr>
+              <td rowspan="3" class="learn-lane">clipscore<br /><span>ViT-B/32</span></td>
+              <td class="learn-mono">0.30 &ndash; 0.46</td>
+              <td>good alignment</td>
+              <td>best clip in the set peaked at 0.458; nothing approaches the folklore &ldquo;0.5+&rdquo;</td>
+            </tr>
+            <tr>
+              <td class="learn-mono">0.24 &ndash; 0.30</td>
+              <td>gray zone, judge scrutinizes semantics</td>
+              <td>a fine minimalist cat clip sat at 0.276; a strobing mess sat at 0.237</td>
+            </tr>
+            <tr>
+              <td class="learn-mono">&lt; 0.24</td>
+              <td>likely off-prompt</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td rowspan="3" class="learn-lane">dino_drift<br /><span>DINOv2 cosine vs frame 0</span></td>
+              <td class="learn-mono">&gt; 0.90</td>
+              <td>same subject throughout</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="learn-mono">0.80 &ndash; 0.90</td>
+              <td>noticeable drift</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="learn-mono">min &lt; 0.5</td>
+              <td>at least one frame broke identity</td>
+              <td>a neon-sign clip hit min 0.144 and a spilling-glass clip min 0.279 while their <em>means</em> looked survivable; the minimum is the tell</td>
+            </tr>
+            <tr>
+              <td rowspan="2" class="learn-lane">flicker<br /><span>mean abs frame diff</span></td>
+              <td class="learn-mono">mean &gt; 8</td>
+              <td>usually just a busy scene</td>
+              <td>two-dogs clip 13.4 and station-crowd clip 10.3, both fine</td>
+            </tr>
+            <tr>
+              <td class="learn-mono">max &raquo; mean</td>
+              <td>strobe</td>
+              <td>spikes, not a high average, are the strobing signature</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Three lessons from the calibration that no paper handed us:
+      </p>
+      <p>
+        <strong>Read the minimum, not the mean.</strong> Identity breaks are
+        single-frame events. Two clips in the set had means that looked
+        acceptable while one sampled frame had completely lost the subject.
+        The production judge is instructed to find and explain any frame
+        where the per-frame DINO cosine drops below 0.5.
+      </p>
+      <p>
+        <strong>High flicker is not strobe.</strong> Busy multi-subject
+        scenes produce large frame-to-frame differences continuously; strobe
+        produces spikes. Mean-versus-max separates them cleanly, and a judge
+        told only &ldquo;flicker is high&rdquo; would have failed two
+        perfectly good clips.
+      </p>
+      <p>
+        <strong>Some separations belong in the judge, not the gate.</strong>
+        Our frozen-frame gate threshold sits at a frame-diff of 0.35. The
+        degenerate still-wall clip measured 0.70 and the genuinely good
+        cloud timelapse measured 0.97. Raising the gate to catch the first
+        would put the second at risk, and a gate is a blind instrument. We
+        left the gate alone and gave the judge the ambient-flow band
+        instead: a clip with flow 0.3&ndash;1.5 is graded against intent,
+        not against a motion quota. Gates should only kill what is
+        unambiguously dead.
+      </p>
+      <p>
+        Darkness, for the record, dies at L0: the pure-darkness clip failed
+        both the black-frame and frozen-frame gates and never reached a
+        judge.
+      </p>
+    </section>
+
+    <section class="learn-section">
+      <h2>8. Honest limits</h2>
+      <p>
+        The cascade has known blind spots, and pretending otherwise would
+        defeat the point of publishing the receipts.
+      </p>
+      <p>
+        Event-order verification is unsolved at every level: the lanes
+        measure how much things change, not what happened in what order, and
+        Vinoground says the judge can't do it either. Compositional binding
+        is covered only by the judge's semantics axis, which is better than
+        CLIPScore but not a detector-grade check of counts and spatial
+        relations the way T2V-CompBench does it. Physics is graded only
+        where a violation is visible in sampled frames. The DINO identity
+        lane is meaningless for crowd scenes, where frame zero anchors
+        nothing, and the judge is told to ignore it there. And the learned
+        reward models in section 4 are absent purely for hardware reasons.
+        Each of these is an upgrade path, not a surprise.
+      </p>
+      <p>
+        One more disclosure: the claim that VLM judges miss high-frequency
+        flicker is our synthesis from sampling theory plus the FVD
+        content-bias mechanism, not a single published experiment, and the
+        observation that generated clips degrade toward their final frames
+        is practitioner lore. Both informed the design anyway; both are
+        labeled.
+      </p>
+      <p class="learn-cta">
+        The best way to understand the cascade is to watch it run.
+        <a href="/take/">Roll a take</a> and the page will show you every
+        gate, every lane reading, and the judge thinking in real time.
+      </p>
+    </section>
+
+    <section class="learn-section learn-refs" aria-label="References">
+      <h2>References</h2>
+      <ol>
+        {refs.map((r) => (
+          <li id={`ref-${r.id}`}>
+            <a href={r.url} rel="noopener">{r.label}</a>
+            <span class="learn-ref-url">{r.url.replace("https://", "")}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </main>
+
+  <style>
+    .learn-page {
+      --paper-1: var(--surface);
+      --paper-2: var(--surface-2);
+      --paper-3: var(--surface-3);
+      --line: var(--border);
+      --content-main: var(--content);
+      --content-soft: var(--content-2);
+      --content-muted: var(--content-3);
+      --take-accent: #2d5fb8;
+
+      max-width: 760px;
+      margin: 0 auto;
+      padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 48px) 96px;
+    }
+    :global([data-theme="dark"]) .learn-page {
+      --take-accent: #6e96e0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :global(html:not([data-theme="light"])) .learn-page {
+        --take-accent: #6e96e0;
+      }
+    }
+
+    .learn-crumb {
+      margin-bottom: 32px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+    }
+    .learn-crumb a {
+      color: var(--content-muted);
+      text-decoration: none;
+    }
+    .learn-crumb a:hover { color: var(--take-accent); }
+
+    .learn-hero { margin-bottom: 56px; }
+    .learn-eyebrow {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+      margin: 0 0 18px;
+    }
+    .learn-display {
+      font-family: var(--font-serif);
+      font-size: clamp(34px, 5.4vw, 52px);
+      line-height: 1.08;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      color: var(--content-main);
+      margin: 0 0 22px;
+    }
+    .learn-display em { font-style: italic; }
+    .learn-lead {
+      font-family: var(--font-sans);
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--content-soft);
+      max-width: 64ch;
+      margin: 0;
+    }
+
+    .learn-section { margin-bottom: 56px; }
+    .learn-section h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(24px, 3.4vw, 30px);
+      line-height: 1.2;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--content-main);
+      margin: 0 0 18px;
+    }
+    .learn-section h3 {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 650;
+      color: var(--content-main);
+      margin: 30px 0 10px;
+    }
+    .learn-section p {
+      font-family: var(--font-sans);
+      font-size: 15.5px;
+      line-height: 1.72;
+      color: var(--content-soft);
+      margin: 0 0 16px;
+      max-width: 68ch;
+    }
+    .learn-section p strong { color: var(--content-main); font-weight: 650; }
+    .learn-section a {
+      color: var(--take-accent);
+      text-decoration: none;
+      border-bottom: 1px solid color-mix(in oklab, var(--take-accent) 38%, transparent);
+    }
+    .learn-section a:hover { border-bottom-color: var(--take-accent); }
+
+    .learn-cost-list {
+      margin: 0 0 16px;
+      padding-left: 22px;
+      font-family: var(--font-sans);
+      font-size: 15.5px;
+      line-height: 1.72;
+      color: var(--content-soft);
+    }
+    .learn-cost-list li { margin-bottom: 10px; }
+    .learn-cost-list strong { color: var(--content-main); font-weight: 650; }
+
+    .learn-table-wrap {
+      margin: 26px 0 26px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper-2);
+    }
+    .learn-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    .learn-table th {
+      text-align: left;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+      font-weight: 600;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .learn-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+      color: var(--content-soft);
+      vertical-align: top;
+    }
+    .learn-table tbody tr:last-child td { border-bottom: none; }
+    .learn-lane {
+      font-weight: 650;
+      color: var(--content-main);
+      white-space: nowrap;
+    }
+    .learn-lane span {
+      display: block;
+      font-weight: 400;
+      font-size: 11.5px;
+      color: var(--content-muted);
+      white-space: nowrap;
+    }
+    .learn-mono {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--take-accent);
+      white-space: nowrap;
+    }
+
+    .learn-cta {
+      margin-top: 26px;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper-2);
+    }
+
+    .learn-refs ol {
+      margin: 0;
+      padding-left: 26px;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: var(--content-soft);
+    }
+    .learn-refs li { margin-bottom: 10px; }
+    .learn-ref-url {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--content-muted);
+    }
+  </style>
+</BaseLayout>
