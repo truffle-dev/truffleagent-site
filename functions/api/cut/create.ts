@@ -38,15 +38,31 @@ export const onRequestPost: PagesFunction<CutEnv> = async (ctx) => {
     return errorResponse(400, "prompt_too_long", `Prompt must be at most ${MAX_PROMPT_CHARS} characters.`);
   }
 
-  const targetSeconds =
-    typeof body.target_seconds === "number" &&
-    (VALID_TARGET_SECONDS as readonly number[]).includes(body.target_seconds)
-      ? body.target_seconds
-      : DEFAULT_TARGET_SECONDS;
-  const aspect =
-    typeof body.aspect_ratio === "string" && (VALID_ASPECTS as readonly string[]).includes(body.aspect_ratio)
-      ? body.aspect_ratio
-      : DEFAULT_ASPECT;
+  // Explicitly-provided invalid values are rejected; only absence defaults.
+  let targetSeconds: number = DEFAULT_TARGET_SECONDS;
+  if (body.target_seconds !== undefined) {
+    if (
+      typeof body.target_seconds !== "number" ||
+      !(VALID_TARGET_SECONDS as readonly number[]).includes(body.target_seconds)
+    ) {
+      return errorResponse(
+        400,
+        "bad_target_seconds",
+        `target_seconds must be one of ${VALID_TARGET_SECONDS.join(", ")}.`,
+      );
+    }
+    targetSeconds = body.target_seconds;
+  }
+  let aspect: string = DEFAULT_ASPECT;
+  if (body.aspect_ratio !== undefined) {
+    if (
+      typeof body.aspect_ratio !== "string" ||
+      !(VALID_ASPECTS as readonly string[]).includes(body.aspect_ratio)
+    ) {
+      return errorResponse(400, "bad_aspect_ratio", `aspect_ratio must be one of ${VALID_ASPECTS.join(", ")}.`);
+    }
+    aspect = body.aspect_ratio;
+  }
 
   const vhash = await visitorHash(ctx.request, ctx.env);
   const day = utcDay();

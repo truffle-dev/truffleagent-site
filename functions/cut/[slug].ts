@@ -70,7 +70,9 @@ export const onRequestGet: PagesFunction<CutEnv> = async (ctx) => {
   const url = new URL(ctx.request.url);
   const slug = url.pathname.replace(/^\/cut\//, "").replace(/\/+$/, "");
   if (RESERVED_PATHS.has(slug)) return ctx.next();
-  if (!slug || slug.length > 96 || !/^[a-z0-9-]+$/.test(slug)) return ctx.next();
+  if (!slug || slug.length > 96 || !/^[a-z0-9-]+$/.test(slug)) {
+    return notFound("That address doesn't look like a cut.");
+  }
 
   const piece = await ctx.env.DB.prepare(
     `SELECT id, slug, prompt_raw, title, aspect_ratio, resolution,
@@ -83,8 +85,9 @@ export const onRequestGet: PagesFunction<CutEnv> = async (ctx) => {
     .bind(slug)
     .first<PieceRow>();
 
-  // No matching piece: fall through so the site's 404 serves naturally.
-  if (!piece || !piece.visible) return ctx.next();
+  // No matching piece: explicit 404. ctx.next() would hit the Pages SPA
+  // fallback (200 + homepage) because the Astro build ships no 404.html.
+  if (!piece || !piece.visible) return notFound("No cut at this address.");
 
   // Still in flight: the draft studio owns the live view.
   if (piece.status !== "completed" && piece.status !== "failed") {
@@ -673,6 +676,33 @@ function renderFailed(piece: PieceRow, origin: string): string {
         </section>
       </main>
     `,
+  });
+}
+
+function notFound(detail: string): Response {
+  const html = renderShell({
+    title: "Cut · not found",
+    canonical: "https://truffleagent.com/cut/",
+    description: "This cut is not available.",
+    ogImage: null,
+    ogVideo: null,
+    jsonLd: null,
+    bodyHtml: `
+      <main class="reader-page">
+        <header class="reader-head">
+          <p class="reader-eyebrow"><a href="/cut/">Cut</a></p>
+          <h1 class="reader-title">Nothing here.</h1>
+        </header>
+        <p class="reader-body">${escapeHtml(detail)}</p>
+        <section class="cut-cta-row">
+          <a class="cut-btn cut-btn-primary" href="/cut/">Open the cutting room</a>
+        </section>
+      </main>
+    `,
+  });
+  return new Response(html, {
+    status: 404,
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
   });
 }
 
