@@ -1,0 +1,412 @@
+---
+// Homepage premier feature for Cut. The stage renders the piece's actual
+// composition: an EDL-style timeline strip. When HERO is set (a real shipped
+// piece), the final video plays above the strip; until then the strip alone
+// carries the visual. Honest rule: never fake a clip — only real pieces here.
+type Hero = {
+  id: string;
+  slug: string;
+  caption: string;
+  score: string;
+  version: number;
+} | null;
+
+const HERO: Hero = null;
+
+// The strip mirrors a real 4-shot composition shape: 5s shots, chained.
+const STRIP = [
+  { n: 1, label: "establish", chained: false },
+  { n: 2, label: "follow", chained: true },
+  { n: 3, label: "turn", chained: true },
+  { n: 4, label: "resolve", chained: true },
+];
+---
+<section class="cut-feature" id="cut-feature">
+  <div class="container-page">
+    <div class="cutf-grid">
+      <div class="cutf-copy reveal">
+        <p class="eyebrow">Premier · just shipped</p>
+        <h2 class="editorial text-balance">
+          One prompt.<br/>
+          A whole <em>edit</em>.
+        </h2>
+        <p class="prose-truffle cutf-lede">
+          <em>Cut</em> is a multi-shot video studio at <code>/cut/</code>.
+          Describe a story and an agent directs the production: it writes a
+          shot list, renders each five-second shot chained off the last frame
+          of the one before, grades every take, stitches the edit, and judges
+          the finished piece on seven axes &mdash; continuity across the cuts
+          included. You watch all of it live.
+        </p>
+
+        <ul class="cutf-points">
+          <li><span class="dot" aria-hidden="true"></span><span>The edit is data, not just pixels: an EDL-style composition you can read, with every shot's eval receipt attached.</span></li>
+          <li><span class="dot" aria-hidden="true"></span><span>Finished pieces take up to five <em>chat revisions</em>. Reorders and transition changes re-cut in seconds; only re-shoots re-render.</span></li>
+          <li><span class="dot" aria-hidden="true"></span><span>Every junction ships a seam sheet: the two frames that meet at each cut, judged for continuity.</span></li>
+        </ul>
+
+        <div class="cutf-actions">
+          <a class="btn btn-primary" href="/cut/">
+            Roll a <em>cut</em><span aria-hidden="true" style="margin-left:0.3rem">→</span>
+          </a>
+          <a class="btn btn-ghost" href="/cut/learn/">How it cuts</a>
+        </div>
+      </div>
+
+      <div class="cutf-stage reveal" style="transition-delay:120ms">
+        <div class="cutf-stage-frame">
+          {HERO && (
+            <a class="cutf-hero" href={`/cut/${HERO.slug}/`} aria-label={`Watch: ${HERO.caption}`}>
+              <video
+                src={`/v-cut/final/${HERO.id}/v${HERO.version}.mp4`}
+                poster={`/i-cut/fsheet/${HERO.id}/v${HERO.version}.jpg`}
+                muted
+                loop
+                playsinline
+                preload="metadata"
+              ></video>
+              <span class="cutf-hero-meta">
+                <span class="cutf-hero-caption">{HERO.caption}</span>
+                <span class="cutf-hero-score">judged {HERO.score}</span>
+              </span>
+            </a>
+          )}
+
+          <div class="cutf-timeline" role="img" aria-label="An edit timeline: four five-second shots, each chained to the last frame of the one before, with a final stitched track underneath">
+            <div class="cutf-track-label">composition · v1</div>
+            <div class="cutf-track">
+              {STRIP.map((s) => (
+                <div class="cutf-shot" data-n={s.n}>
+                  {s.chained && <span class="cutf-chain" aria-hidden="true">⟜</span>}
+                  <span class="cutf-shot-n">s{s.n}</span>
+                  <span class="cutf-shot-label">{s.label}</span>
+                  <span class="cutf-shot-dur">5s</span>
+                  <span class="cutf-shot-check" aria-hidden="true">✓</span>
+                </div>
+              ))}
+            </div>
+            <div class="cutf-track cutf-track-final">
+              <div class="cutf-final">
+                <span class="cutf-final-label">final.mp4</span>
+                <span class="cutf-final-dur">20s · 3 cuts · seams judged</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cutf-stage-meta">
+            <span class="cutf-stage-dot" aria-hidden="true"></span>
+            <span class="cutf-stage-text">
+              <em>directing</em> &middot; plan → shoot → chain → stitch → judge
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cut-feature {
+    padding-block: clamp(4rem, 8vw, 6.5rem);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    background:
+      radial-gradient(
+        1200px 480px at 20% -10%,
+        color-mix(in oklab, var(--accent) 10%, transparent),
+        transparent 70%
+      ),
+      var(--surface);
+  }
+
+  .cutf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: center;
+  }
+
+  .cutf-copy .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--accent) 40%, var(--border) 60%);
+    color: var(--accent);
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .cutf-copy h2 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    line-height: 1.05;
+  }
+  .cutf-copy h2 em { color: var(--accent); }
+
+  .cutf-lede { max-width: 540px; margin: 0 0 1.5rem; }
+  .cutf-lede code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.35em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .cutf-points {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 540px;
+  }
+  .cutf-points li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    color: var(--content-2);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .cutf-points .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--accent);
+    flex-shrink: 0;
+    transform: translateY(-2px);
+  }
+  .cutf-points em { font-style: italic; color: var(--content); }
+
+  .cutf-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .cutf-actions .btn-primary em { font-style: italic; }
+
+  .cutf-stage { width: 100%; }
+  .cutf-stage-frame {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+    padding: 1.1rem 1.1rem 0.8rem;
+    box-shadow: 0 28px 60px -36px color-mix(in oklab, var(--content) 22%, transparent);
+  }
+
+  .cutf-hero {
+    position: relative;
+    display: block;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    aspect-ratio: 16 / 9;
+    margin-bottom: 0.75rem;
+    isolation: isolate;
+    transition: border-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+  }
+  .cutf-hero:hover {
+    border-color: color-mix(in oklab, var(--accent) 50%, var(--border));
+    transform: translateY(-2px);
+  }
+  .cutf-hero video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .cutf-hero-meta {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.85rem 0.65rem 0.5rem;
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--surface) 96%, transparent) 0%,
+      color-mix(in oklab, var(--surface) 80%, transparent) 60%,
+      transparent 100%
+    );
+  }
+  .cutf-hero-caption {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.75rem;
+    color: var(--content);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cutf-hero-score {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .cutf-timeline {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    padding: 0.7rem 0.7rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .cutf-track-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--content-2);
+  }
+  .cutf-track {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.35rem;
+  }
+  .cutf-shot {
+    position: relative;
+    border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--border));
+    border-radius: 8px;
+    background: color-mix(in oklab, var(--accent) 7%, var(--surface));
+    padding: 0.5rem 0.5rem 0.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .cutf-chain {
+    position: absolute;
+    left: -0.62rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 0.85rem;
+    line-height: 1;
+    background: var(--surface);
+    z-index: 1;
+  }
+  .cutf-shot-n {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  .cutf-shot-label {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--content);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cutf-shot-dur {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--content-2);
+  }
+  .cutf-shot-check {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.45rem;
+    font-size: 0.6rem;
+    color: var(--accent);
+  }
+  .cutf-track-final { grid-template-columns: 1fr; }
+  .cutf-final {
+    border: 1px dashed color-mix(in oklab, var(--accent) 45%, var(--border));
+    border-radius: 8px;
+    padding: 0.45rem 0.55rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .cutf-final-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--content);
+  }
+  .cutf-final-dur {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--content-2);
+    white-space: nowrap;
+  }
+
+  .cutf-stage-meta {
+    margin-top: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.4rem 0.2rem;
+    border-top: 1px dashed color-mix(in oklab, var(--border) 80%, transparent);
+    color: var(--content-2);
+    font-size: 0.8125rem;
+    font-family: var(--font-mono);
+  }
+  .cutf-stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 22%, transparent);
+    animation: cutf-pulse 1.6s ease-in-out infinite;
+  }
+  .cutf-stage-text em {
+    font-style: italic;
+    color: var(--accent);
+    font-family: var(--font-serif);
+  }
+
+  @keyframes cutf-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.7; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cutf-stage-dot { animation: none; }
+    .cutf-hero, .cutf-hero:hover { transform: none; }
+  }
+
+  @media (max-width: 880px) {
+    .cutf-grid { grid-template-columns: 1fr; gap: 2.25rem; }
+    .cutf-stage-frame { max-width: 460px; margin-inline: auto; }
+    .cutf-track { grid-template-columns: repeat(2, 1fr); }
+    .cutf-chain { display: none; }
+  }
+</style>
+
+<script>
+  const hero = document.querySelector<HTMLAnchorElement>("#cut-feature .cutf-hero");
+  if (hero) {
+    const v = hero.querySelector("video");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const play = (el: HTMLVideoElement) => { const p = el.play(); if (p) p.catch(() => {}); };
+    const stop = (el: HTMLVideoElement) => { el.pause(); try { el.currentTime = 0; } catch (e) {} };
+    if (v && !reduced) {
+      if (coarse) {
+        const io = new IntersectionObserver(
+          (entries) => { for (const e of entries) { if (e.isIntersecting) play(v); else stop(v); } },
+          { threshold: 0.6 },
+        );
+        io.observe(hero);
+      } else {
+        hero.addEventListener("mouseenter", () => play(v));
+        hero.addEventListener("mouseleave", () => stop(v));
+        hero.addEventListener("focus", () => play(v));
+        hero.addEventListener("blur", () => stop(v));
+      }
+    }
+  }
+</script>

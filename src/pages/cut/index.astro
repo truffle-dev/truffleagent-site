@@ -1,0 +1,788 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  MAX_PROMPT_CHARS,
+  DAILY_QUOTA_PIECES,
+  VALID_TARGET_SECONDS,
+  DEFAULT_TARGET_SECONDS,
+  DEFAULT_ASPECT,
+  SHOT_SECONDS,
+  MAX_SHOT_ATTEMPTS,
+  REVISION_CAP,
+} from "../../../functions/_cut-shared.ts";
+
+const title = "Cut · type a story, watch the agent direct the edit";
+const description =
+  "Cut is a multi-shot AI video studio. An agent plans the shots, chains them frame to frame, evaluates every take, stitches the edit, and judges the finished piece on seven axes. Everything it does is visible while it happens.";
+const canonical = "https://truffleagent.com/cut/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Cut",
+  alternateName: ["Truffle Cut"],
+  url: canonical,
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Multi-shot text-to-video on Luma Ray3.2",
+    "Agent plans a shot list with style block and transitions",
+    "Frame chaining: each shot is seeded by the last frame of the one before it",
+    "Every shot graded by the full eval cascade, with bounded retakes",
+    "Automatic stitch with measured seam continuity",
+    "Final judge rules on seven axes including continuity across cuts",
+    "Live EDL timeline, shot DAG, and agent stream while it runs",
+    "Chat revisions on the finished piece",
+  ],
+  author: "Truffle",
+};
+
+// Aspect choices surfaced in the form (the API accepts more, the studio
+// keeps the three that read well in the gallery).
+const aspects = ["16:9", "9:16", "1:1"];
+const defaultAspect = DEFAULT_ASPECT;
+
+const maxPrompt = MAX_PROMPT_CHARS;
+const dailyQuota = DAILY_QUOTA_PIECES;
+const maxAttempts = MAX_SHOT_ATTEMPTS;
+const revisionCap = REVISION_CAP;
+const lengths = VALID_TARGET_SECONDS.map((s) => ({
+  value: s,
+  label: `${s}s — ${s / SHOT_SECONDS} shots`,
+}));
+const defaultLength = DEFAULT_TARGET_SECONDS;
+---
+<BaseLayout title={title} description={description} canonical={canonical}>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(webAppJsonLd)}
+  />
+
+  <main class="cut-page">
+    <header class="cut-hero">
+      <p class="cut-eyebrow">New on Truffle</p>
+      <h1 class="cut-display">
+        Type a story.<br /><em>The agent directs the shots.</em><br /><em>And judges every cut.</em>
+      </h1>
+      <p class="cut-lead">
+        Cut is a multi-shot AI video studio. An agent plans the shots, chains
+        them frame to frame so the sequence holds together, evaluates every
+        take, stitches the edit, and judges the whole piece on seven axes.
+        You watch all of it happen: the timeline, the retakes, the seams,
+        the verdicts.
+      </p>
+    </header>
+
+    <section class="cut-studio" aria-label="Studio">
+      <form id="cut-form" class="cut-form" novalidate>
+        <fieldset class="cut-fieldset">
+          <label class="cut-label" for="cut-prompt">
+            <span class="cut-label-step">The piece</span>
+            <span class="cut-label-title">Describe the video you want</span>
+            <span class="cut-label-hint">
+              A scene, a sequence, a small story. The agent breaks it into
+              shots and writes proper direction for each one before anything
+              renders.
+            </span>
+          </label>
+          <textarea
+            id="cut-prompt"
+            class="cut-textarea"
+            name="prompt"
+            rows="3"
+            maxlength={maxPrompt}
+            placeholder="e.g. A paper boat sets off down a rain gutter, rides the current past towering boots and umbrellas, and slips through a storm drain into the dark"
+            autocomplete="off"
+            spellcheck="true"
+          ></textarea>
+
+          <div class="cut-controls">
+            <label class="cut-control">
+              <span class="cut-control-title">Length</span>
+              <select id="cut-length" class="cut-select" aria-label="Length">
+                {lengths.map((l) => (
+                  <option value={l.value} selected={l.value === defaultLength}>{l.label}</option>
+                ))}
+              </select>
+            </label>
+            <label class="cut-control">
+              <span class="cut-control-title">Aspect</span>
+              <select id="cut-aspect" class="cut-select" aria-label="Aspect ratio">
+                {aspects.map((a) => (
+                  <option value={a} selected={a === defaultAspect}>{a}</option>
+                ))}
+              </select>
+            </label>
+            <div class="cut-cost" id="cut-cost" aria-live="polite"></div>
+          </div>
+
+          <div class="cut-row cut-row-end">
+            <span class="cut-counter" id="cut-counter">0 / {maxPrompt}</span>
+            <button id="cut-generate" type="submit" class="cut-button cut-button-primary">
+              Roll the cut
+            </button>
+          </div>
+          <p class="cut-quota-note">
+            {dailyQuota} pieces per visitor per day. Every shot carries its
+            eval receipt, and finished pieces take up to {revisionCap} chat
+            revisions.
+          </p>
+        </fieldset>
+
+        <div class="cut-alert" id="cut-alert" hidden role="alert"></div>
+      </form>
+    </section>
+
+    <section class="cut-how" aria-label="How it works">
+      <h2 class="cut-section-title">How it works</h2>
+      <p class="cut-section-lead">
+        One agent runs the whole production. Each stage is visible live while
+        your piece is in flight, and the receipts ship with the final video.
+      </p>
+      <ol class="cut-steps">
+        <li class="cut-step">
+          <span class="cut-step-tag">01 · Plan</span>
+          <h3>The shot list</h3>
+          <p>
+            The agent reads your prompt and writes an edit plan: one prompt
+            per five-second shot, a shared style block, and the transitions
+            between them. The plan is the source of truth for everything
+            that follows.
+          </p>
+        </li>
+        <li class="cut-step">
+          <span class="cut-step-tag">02 · Shoot + chain</span>
+          <h3>Frame-chained renders</h3>
+          <p>
+            Shots render in sequence on Luma Ray3.2. The last frame of each
+            accepted shot seeds the next one, so subjects and light carry
+            across the cut. Every render is graded by the full eval cascade;
+            weak takes are reshot, up to {maxAttempts} attempts each.
+          </p>
+        </li>
+        <li class="cut-step">
+          <span class="cut-step-tag">03 · Stitch</span>
+          <h3>The assembly</h3>
+          <p>
+            Accepted shots are stitched into one piece, cuts and crossfades
+            exactly as planned. Every seam is measured for visual
+            continuity, and the numbers are published next to the edit.
+          </p>
+        </li>
+        <li class="cut-step">
+          <span class="cut-step-tag">04 · Judge</span>
+          <h3>The final verdict</h3>
+          <p>
+            A judge reviews the whole piece on seven axes, the six it grades
+            single shots on plus continuity across cuts. It writes its
+            rationale before its ratings, and the verdict ships with the
+            video.
+          </p>
+        </li>
+      </ol>
+      <p class="cut-learn-link">
+        <a href="/cut/learn/">How the direction loop is built, end to end &rarr;</a>
+      </p>
+    </section>
+
+    <section class="cut-gallery-wrap" aria-label="Gallery">
+      <h2 class="cut-section-title">Gallery</h2>
+      <p class="cut-section-lead">
+        Finished pieces, newest first. Open one for the full edit: every
+        shot, every seam, every verdict.
+      </p>
+      <div id="cut-gallery" class="cut-gallery"></div>
+      <p id="cut-gallery-empty" class="cut-gallery-empty" hidden>
+        Nothing here yet. The first finished cuts arrive soon.
+      </p>
+      <div class="cut-gallery-more" id="cut-gallery-more" hidden>
+        <button id="cut-load-more" type="button" class="cut-button">
+          Load more
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <style>
+    .cut-page {
+      --paper-1: var(--surface);
+      --paper-2: var(--surface-2);
+      --paper-3: var(--surface-3);
+      --line: var(--border);
+      --content-main: var(--content);
+      --content-soft: var(--content-2);
+      --content-muted: var(--content-3);
+      /* Filmic identity: deep slate surfaces, amber accent. */
+      --cut-slate: #2b3440;
+      --cut-accent: #9a6700;
+
+      max-width: 920px;
+      margin: 0 auto;
+      padding: clamp(48px, 7vw, 96px) clamp(20px, 5vw, 48px) 96px;
+    }
+    :global([data-theme="dark"]) .cut-page {
+      --cut-slate: #1d242e;
+      --cut-accent: #d9a13e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :global(html:not([data-theme="light"])) .cut-page {
+        --cut-slate: #1d242e;
+        --cut-accent: #d9a13e;
+      }
+    }
+
+    .cut-hero { margin-bottom: 56px; }
+    .cut-eyebrow {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+      margin: 0 0 18px;
+    }
+    .cut-display {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(40px, 7vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin: 0 0 24px;
+      color: var(--content-main);
+    }
+    .cut-display em { font-style: italic; }
+    .cut-lead {
+      font-family: var(--font-sans);
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--content-soft);
+      margin: 0;
+      max-width: 64ch;
+    }
+
+    .cut-studio { margin: 24px 0 72px; }
+    .cut-form { display: flex; flex-direction: column; gap: 20px; }
+    .cut-fieldset {
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      border-radius: 14px;
+      padding: 22px 22px 18px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .cut-label { display: flex; flex-direction: column; gap: 4px; }
+    .cut-label-step {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cut-accent);
+    }
+    .cut-label-title {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--content-main);
+      line-height: 1.2;
+    }
+    .cut-label-hint {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--content-soft);
+      max-width: 56ch;
+    }
+    .cut-textarea {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid color-mix(in oklab, var(--content-main) 18%, var(--line));
+      border-radius: 12px;
+      padding: 14px 16px;
+      resize: vertical;
+      min-height: 96px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .cut-textarea:focus-visible {
+      outline: none;
+      border-color: var(--cut-accent);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--cut-accent) 22%, transparent);
+    }
+
+    .cut-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: flex-end;
+    }
+    .cut-control { display: flex; flex-direction: column; gap: 6px; }
+    .cut-control-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+    }
+    .cut-select {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid color-mix(in oklab, var(--content-main) 18%, var(--line));
+      border-radius: 10px;
+      padding: 9px 12px;
+      min-width: 130px;
+    }
+    .cut-select:focus-visible {
+      outline: none;
+      border-color: var(--cut-accent);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--cut-accent) 22%, transparent);
+    }
+    .cut-cost {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.6;
+      color: var(--content-soft);
+      padding: 8px 12px;
+      background: var(--paper-3);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-left: auto;
+    }
+    @media (max-width: 640px) {
+      .cut-cost { margin-left: 0; width: 100%; box-sizing: border-box; }
+    }
+
+    .cut-row { display: flex; align-items: center; gap: 14px; }
+    .cut-row-end { justify-content: space-between; }
+    .cut-counter {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: var(--content-muted);
+    }
+    .cut-button {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--content-main);
+      background: var(--paper-1);
+      border: 1px solid color-mix(in oklab, var(--content-main) 22%, var(--line));
+      border-radius: 999px;
+      padding: 11px 22px;
+      cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+    }
+    .cut-button-primary {
+      color: #fff;
+      background: var(--cut-slate);
+      border-color: var(--cut-slate);
+      box-shadow: inset 0 -2px 0 color-mix(in oklab, var(--cut-accent) 70%, transparent);
+    }
+    .cut-button-primary:hover:not(:disabled) {
+      background: color-mix(in oklab, var(--cut-slate) 84%, #000);
+    }
+    .cut-button:disabled { opacity: 0.55; cursor: wait; }
+    .cut-quota-note {
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      color: var(--content-muted);
+      margin: 0;
+    }
+    .cut-alert {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      color: #8a2a1d;
+      background: color-mix(in oklab, #c0392b 9%, var(--paper-2));
+      border: 1px solid color-mix(in oklab, #c0392b 35%, var(--line));
+      border-radius: 12px;
+      padding: 13px 16px;
+    }
+    :global([data-theme="dark"]) .cut-alert { color: #e8a79c; }
+
+    .cut-section-title {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(26px, 4vw, 34px);
+      color: var(--content-main);
+      margin: 0 0 12px;
+    }
+    .cut-section-lead {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--content-soft);
+      margin: 0 0 28px;
+      max-width: 62ch;
+    }
+
+    .cut-how { margin: 0 0 80px; }
+    .cut-steps {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+    }
+    .cut-step {
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      border-radius: 14px;
+      padding: 18px 18px 16px;
+      position: relative;
+      border-top: 3px solid color-mix(in oklab, var(--cut-accent) 55%, var(--line));
+    }
+    .cut-step-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+      color: var(--cut-accent);
+      border: 1px solid color-mix(in oklab, var(--cut-accent) 40%, var(--line));
+      background: color-mix(in oklab, var(--cut-accent) 8%, var(--paper-2));
+      border-radius: 999px;
+      padding: 3px 9px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .cut-step h3 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--content-main);
+      margin: 0 0 8px;
+    }
+    .cut-step p {
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--content-soft);
+      margin: 0;
+    }
+    .cut-learn-link {
+      margin: 22px 0 0;
+      font-family: var(--font-sans);
+      font-size: 14px;
+    }
+    .cut-learn-link a {
+      color: var(--cut-accent);
+      text-decoration: none;
+      border-bottom: 1px solid color-mix(in oklab, var(--cut-accent) 40%, transparent);
+    }
+    .cut-learn-link a:hover { border-bottom-color: var(--cut-accent); }
+
+    .cut-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .cut-gallery-empty {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--content-muted);
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      padding: 36px 20px;
+      text-align: center;
+    }
+    .cut-gallery-more {
+      display: flex;
+      justify-content: center;
+      margin-top: 22px;
+    }
+  </style>
+
+  <style is:global>
+    /* Gallery cards are created via document.createElement; scoped styles
+       (data-astro-cid-*) never match JS-built DOM, so these live globally. */
+    .cut-card {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--surface-2);
+      text-decoration: none;
+      transition: border-color 150ms ease, transform 150ms ease;
+    }
+    .cut-card:hover,
+    .cut-card:focus-visible {
+      border-color: color-mix(in oklab, #9a6700 50%, var(--border));
+      transform: translateY(-2px);
+    }
+    [data-theme="dark"] .cut-card:hover,
+    [data-theme="dark"] .cut-card:focus-visible {
+      border-color: color-mix(in oklab, #d9a13e 50%, var(--border));
+    }
+    .cut-card-poster {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #1d242e;
+      overflow: hidden;
+    }
+    .cut-card-poster > img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .cut-card-score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+      color: #1a1408;
+      background: rgba(217, 161, 62, 0.92);
+      padding: 4px 9px;
+      border-radius: 999px;
+    }
+    .cut-card-length {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+      background: rgba(20, 26, 34, 0.72);
+      padding: 4px 8px;
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+    }
+    .cut-card-body {
+      padding: 12px 14px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .cut-card-title {
+      font-family: var(--font-serif);
+      font-size: 15.5px;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--content);
+      margin: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .cut-card-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      color: var(--content-3);
+    }
+  </style>
+
+  <script is:inline define:vars={{ maxPrompt, dailyQuota }}>
+    (function bootStudio() {
+      const $ = (id) => document.getElementById(id);
+      const form = $("cut-form");
+      const promptEl = $("cut-prompt");
+      const counter = $("cut-counter");
+      const lengthSel = $("cut-length");
+      const aspectSel = $("cut-aspect");
+      const costEl = $("cut-cost");
+      const generateBtn = $("cut-generate");
+      const alertEl = $("cut-alert");
+      if (!form) return;
+
+      function updateCounter() {
+        counter.textContent = (promptEl.value || "").length + " / " + maxPrompt;
+      }
+      updateCounter();
+      promptEl.addEventListener("input", updateCounter);
+
+      function updateNote() {
+        const shots = Math.round(Number(lengthSel.value) / 5);
+        costEl.textContent =
+          "Free. " + shots + " shots, each graded before it makes the cut.";
+      }
+      updateNote();
+      lengthSel.addEventListener("change", updateNote);
+
+      function showAlert(msg) {
+        alertEl.textContent = msg;
+        alertEl.hidden = false;
+        alertEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      function clearAlert() {
+        alertEl.hidden = true;
+        alertEl.textContent = "";
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const prompt = (promptEl.value || "").trim();
+        if (prompt.length < 8) {
+          showAlert("Add a few more words. A scene, a sequence, a small story.");
+          return;
+        }
+        generateBtn.disabled = true;
+        const prevText = generateBtn.textContent;
+        generateBtn.textContent = "Planning...";
+        try {
+          const r = await fetch("/api/cut/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({
+              prompt,
+              target_seconds: Number(lengthSel.value),
+              aspect_ratio: aspectSel.value,
+            }),
+          });
+          let json = null;
+          try { json = await r.json(); } catch {}
+          if (r.status === 429) {
+            const code = json && json.error && json.error.code;
+            showAlert(
+              code === "global_cap"
+                ? "Today's slate is full across all visitors. The studio reopens at midnight UTC."
+                : "You've used your " + dailyQuota + " pieces for today. Come back tomorrow for a fresh slate.",
+            );
+            return;
+          }
+          if (!r.ok || !json || !json.ok) {
+            const msg = json && json.error && json.error.message
+              ? json.error.message
+              : "Could not start the piece. Try again in a moment.";
+            showAlert(msg);
+            return;
+          }
+          window.location.href = "/cut/draft/" + json.id + "/";
+        } catch {
+          showAlert("Network error. Check your connection and try again.");
+        } finally {
+          generateBtn.disabled = false;
+          generateBtn.textContent = prevText;
+        }
+      });
+    })();
+
+    (function bootGallery() {
+      const root = document.getElementById("cut-gallery");
+      const empty = document.getElementById("cut-gallery-empty");
+      const moreWrap = document.getElementById("cut-gallery-more");
+      const moreBtn = document.getElementById("cut-load-more");
+      if (!root || !empty || !moreWrap || !moreBtn) return;
+
+      let cursor = null;
+      let loadedAny = false;
+      let loading = false;
+
+      async function loadPage() {
+        if (loading) return;
+        loading = true;
+        moreBtn.disabled = true;
+        const prevText = moreBtn.textContent;
+        moreBtn.textContent = "Loading...";
+        try {
+          const qs = cursor ? "?before=" + encodeURIComponent(cursor) : "";
+          const r = await fetch("/api/cut/gallery" + qs, {
+            headers: { Accept: "application/json" },
+          });
+          if (!r.ok) throw new Error("gallery " + r.status);
+          const json = await r.json();
+          const pieces = (json && json.pieces) || [];
+          if (pieces.length > 0) {
+            loadedAny = true;
+            const frag = document.createDocumentFragment();
+            for (const piece of pieces) {
+              const card = renderCard(piece);
+              if (card) frag.appendChild(card);
+            }
+            root.appendChild(frag);
+          }
+          cursor = (json && json.next_before) || null;
+          moreWrap.hidden = !cursor;
+          empty.hidden = loadedAny;
+        } catch {
+          moreWrap.hidden = true;
+          empty.hidden = loadedAny;
+        } finally {
+          loading = false;
+          moreBtn.disabled = false;
+          moreBtn.textContent = prevText;
+        }
+      }
+
+      function renderCard(piece) {
+        if (!piece || !piece.slug) return null;
+        const a = document.createElement("a");
+        a.className = "cut-card";
+        a.href = "/cut/" + piece.slug + "/";
+        const label = piece.title || piece.prompt_raw || piece.slug;
+        a.setAttribute("aria-label", "Open cut: " + label);
+
+        const poster = document.createElement("div");
+        poster.className = "cut-card-poster";
+        if (piece.poster_url) {
+          const img = new Image();
+          img.src = piece.poster_url;
+          img.alt = label;
+          img.loading = "lazy";
+          img.decoding = "async";
+          poster.appendChild(img);
+        }
+        if (typeof piece.final_score === "number") {
+          const score = document.createElement("span");
+          score.className = "cut-card-score";
+          score.textContent = piece.final_score + "/28";
+          poster.appendChild(score);
+        }
+        if (piece.target_seconds) {
+          const len = document.createElement("span");
+          len.className = "cut-card-length";
+          len.textContent = piece.target_seconds + "s";
+          poster.appendChild(len);
+        }
+        a.appendChild(poster);
+
+        const body = document.createElement("div");
+        body.className = "cut-card-body";
+        const titleEl = document.createElement("h3");
+        titleEl.className = "cut-card-title";
+        titleEl.textContent = label;
+        body.appendChild(titleEl);
+        const meta = document.createElement("span");
+        meta.className = "cut-card-meta";
+        const shots = piece.target_seconds ? Math.round(piece.target_seconds / 5) : 0;
+        meta.textContent =
+          (shots ? shots + " shots" : "") +
+          (typeof piece.final_score === "number"
+            ? (shots ? " · " : "") + "judged " + piece.final_score + "/28"
+            : "");
+        body.appendChild(meta);
+        a.appendChild(body);
+        return a;
+      }
+
+      moreBtn.addEventListener("click", loadPage);
+      loadPage();
+    })();
+  </script>
+</BaseLayout>

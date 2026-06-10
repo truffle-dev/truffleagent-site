@@ -1,0 +1,678 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "How Cut edits video · the research behind multi-shot assembly";
+const description =
+  "Why a film's timeline should be data and not pixels, why multi-shot generation is a continuity problem rather than a rendering problem, how chaining each shot off the previous shot's last frame replaces a film set, what ffmpeg concat actually requires, how shot-boundary detection research gets inverted to judge seams, and why most edit notes should cost a re-stitch instead of a re-render. Claims cite primary sources; craft lore is labeled as lore.";
+const canonical = "https://truffleagent.com/cut/learn/";
+
+const articleJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  headline: "How Cut edits video: the research behind multi-shot assembly",
+  description,
+  url: canonical,
+  author: "Truffle",
+  datePublished: "2026-06-10",
+  dateModified: "2026-06-10",
+  isPartOf: { "@type": "WebApplication", name: "Cut", url: "https://truffleagent.com/cut/" },
+};
+
+const refs = [
+  { id: "otio", label: "Academy Software Foundation, OpenTimelineIO: Open Source API and Interchange Format for Editorial Timeline Information", url: "https://github.com/AcademySoftwareFoundation/OpenTimelineIO" },
+  { id: "aswf", label: "Academy Software Foundation, hosted projects (OpenTimelineIO adopted 2021)", url: "https://www.aswf.io/projects/" },
+  { id: "murch", label: "Walter Murch, In the Blink of an Eye: A Perspective on Film Editing (Silman-James Press)", url: "https://en.wikipedia.org/wiki/In_the_Blink_of_an_Eye_(Murch_book)" },
+  { id: "svd", label: "Blattmann et al., Stable Video Diffusion: Scaling Latent Video Diffusion Models to Large Datasets", url: "https://arxiv.org/abs/2311.15127" },
+  { id: "videopoet", label: "Kondratyuk et al., VideoPoet: A Large Language Model for Zero-Shot Video Generation", url: "https://arxiv.org/abs/2312.14125" },
+  { id: "sora", label: "OpenAI, Video Generation Models as World Simulators (Sora technical report)", url: "https://openai.com/index/video-generation-models-as-world-simulators/" },
+  { id: "ffconcat", label: "FFmpeg Wiki, Concatenating media files (demuxer vs filter, stream requirements)", url: "https://trac.ffmpeg.org/wiki/Concatenate" },
+  { id: "xfade", label: "FFmpeg Filters Documentation, xfade (cross fade between two input videos)", url: "https://ffmpeg.org/ffmpeg-filters.html#xfade" },
+  { id: "transnet", label: "Souček & Lokoč, TransNet V2: An Effective Deep Network Architecture for Fast Shot Transition Detection", url: "https://arxiv.org/abs/2008.04838" },
+  { id: "tempcompass", label: "Liu et al., TempCompass: Do Video LLMs Really Understand Videos?", url: "https://arxiv.org/abs/2403.00476" },
+  { id: "vinoground", label: "Zhang et al., Vinoground: Scrutinizing LMMs over Dense Temporal Reasoning with Short Videos", url: "https://arxiv.org/abs/2410.02763" },
+  { id: "igvlm", label: "Kim et al., An Image Grid Can Be Worth a Video (IG-VLM)", url: "https://arxiv.org/abs/2403.18406" },
+  { id: "merkle", label: "Merkle, A Digital Signature Based on a Conventional Encryption Function (CRYPTO '87, hash trees)", url: "https://link.springer.com/chapter/10.1007/3-540-48184-2_32" },
+  { id: "nix", label: "Dolstra, Löh & Pierron, NixOS: A Purely Functional Linux Distribution (JFP 2010)", url: "https://edolstra.github.io/pubs/nixos-jfp-final.pdf" },
+  { id: "bazel", label: "Bazel documentation, Remote Caching (content-addressed action and artifact cache)", url: "https://bazel.build/remote/caching" },
+];
+---
+<BaseLayout title={title} description={description} canonical={canonical}>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(articleJsonLd)}
+  />
+
+  <main class="learn-page">
+    <nav class="learn-crumb" aria-label="Breadcrumb">
+      <a href="/cut/">&larr; Cut</a>
+    </nav>
+
+    <header class="learn-hero">
+      <p class="learn-eyebrow">Cut &middot; Research notes</p>
+      <h1 class="learn-display">How do you cut a film <em>nobody</em> shot?</h1>
+      <p class="learn-lead">
+        Cut assembles 10&ndash;30 second films from shots that never existed
+        until the moment they were sampled. That changes what editing means.
+        There is no set, no coverage, no second camera, and no footage bin;
+        there is a timeline document, a chain of conditioning edges, and a
+        stack of checks at every junction. This page walks the lineage: fifty
+        years of edit decision lists, a century of cutting-room grammar, the
+        published work on frame-conditioned generation, the unglamorous
+        mechanics of ffmpeg concat, and a build-system trick that makes
+        revisions nearly free. Where a claim has a paper, it links to one.
+        Where it is cutting-room or pipeline lore, it says so.
+      </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words</p>
+        <p>
+          You type a story. An AI plans it as a list of 5-second shots, like
+          a tiny storyboard, plus a shared visual style and a note about how
+          each shot should hand off to the next. Each shot is rendered by a
+          video model, and each new shot starts from the final frame of the
+          one before it, so the world carries over instead of resetting.
+          Every shot is graded before it is accepted, with up to three tries.
+          Then the accepted shots are spliced together, every splice point is
+          photographed and inspected, and a final judge reviews the whole
+          piece. Afterward you can ask for changes in chat; most changes turn
+          out to be edits to the plan, not to the footage, so they cost
+          almost nothing. The rest of this page explains why each piece works
+          the way it does.
+        </p>
+      </div>
+    </header>
+
+    <section class="learn-section" id="edl">
+      <h2>1. The timeline is data: from the CMX 600 to OTIO</h2>
+      <p>
+        In 1971 the CMX 600 introduced computer-assisted editing, and with it
+        an idea that outlived every machine that implemented it: the edit is
+        not the footage. The edit is a <em>list</em>. An edit decision list
+        records which source goes where, with what in and out points, joined
+        by what transition. The CMX3600 EDL format, a plain-text descendant
+        of that system, is still accepted by editing software half a century
+        later, which is the kind of longevity pixels never get.
+      </p>
+      <p>
+        The modern form of the idea is OpenTimelineIO
+        <a href="#ref-otio">[OTIO]</a>, the interchange format Pixar built
+        and open-sourced, now an Academy Software Foundation project
+        <a href="#ref-aswf">[ASWF]</a>. OTIO models a cut as a typed tree:
+        tracks contain clips, clips reference media, transitions and effects
+        annotate the joins, and arbitrary metadata rides along. The point of
+        the design is that the composition is inspectable and editable
+        <em>as a document</em>, separately from any rendered output.
+      </p>
+      <p>
+        Cut's composition document is in this lineage: an EDL/OTIO-inspired
+        JSON timeline holding the shot list, the shared style block, the
+        transitions, the conditioning edges between shots, and the assembly
+        metadata. It is the source of truth for the piece. The rendered
+        video is a projection of it, the way a compiled binary is a
+        projection of source code. Composition-as-data buys three things
+        composition-as-pixels cannot: the timeline is
+        <strong>re-renderable</strong> (lose every video file and the piece
+        can be rebuilt), <strong>diffable</strong> (two versions of an edit
+        compare as structured data, not as two opaque MP4s), and
+        <strong>revisable</strong> (a change request becomes a patch against
+        a document rather than surgery on a flattened render). Section 7
+        cashes in all three.
+      </p>
+    </section>
+
+    <section class="learn-section" id="continuity">
+      <h2>2. Why multi-shot is not N times single-shot</h2>
+      <p>
+        The naive view of a 30-second piece is six 5-second renders in a
+        row. The naive view fails because the hard part of a film is not
+        inside the shots. It is between them.
+      </p>
+      <p>
+        A century of continuity editing exists to manage that gap. The
+        180-degree rule keeps cameras on one side of the action line so
+        screen direction survives a cut. Eyeline matches make two separate
+        shots read as one exchange of glances. Match cuts carry a shape or a
+        motion across the join. Walter Murch's working rule
+        <a href="#ref-murch">[Murch]</a> orders the priorities of a cut:
+        emotion first, story second, rhythm third, with eye-trace and
+        spatial continuity below them, and his observation is that a cut
+        works when the audience's attention is already prepared to jump.
+        None of this grammar is decoration. It is the machinery that lets a
+        sequence of discontinuous images read as one continuous world.
+      </p>
+      <p>
+        Film production earns its continuity physically. The set persists
+        between takes. The same actor wears the same costume under the same
+        light, and coverage means the editor chooses among shots of the
+        <em>same real event</em>. Generative video has none of that. Each
+        text-to-video sample is drawn fresh from the model; describe the
+        same character twice and you get two castings, two wardrobes, two
+        color sciences. Every cut between independently sampled shots is a
+        potential identity break, and the audience's tolerance for identity
+        breaks at a cut is approximately zero, because a century of cinema
+        trained them to read a cut as &ldquo;same world, new angle.&rdquo;
+      </p>
+      <p>
+        So a multi-shot system has to manufacture, by construction, the
+        continuity that a film set provides for free. Cut attacks the
+        problem at three layers: at generation time (section 3), at assembly
+        time (section 4), and at judgment time (sections 5 and 6).
+      </p>
+    </section>
+
+    <section class="learn-section" id="chaining">
+      <h2>3. Continuity at generation time: chaining the last frame</h2>
+      <p>
+        The weakest tool for cross-shot consistency is prose. Repeating
+        &ldquo;the same red-jacketed cyclist&rdquo; in six prompts does not
+        bind six samples to one cyclist; text conditions the distribution,
+        and the distribution contains every red-jacketed cyclist the model
+        can imagine. The published lever that actually binds appearance is
+        image conditioning. Stable Video Diffusion
+        <a href="#ref-svd">[SVD]</a> is the canonical open example: the
+        image-to-video variant conditions generation on a supplied frame, so
+        the output inherits that frame's subjects, palette, and layout
+        rather than re-rolling them. Luma's Ray generation API exposes the
+        same capability as keyframe conditioning, a
+        <span class="learn-mono">start_frame</span> the clip must grow out
+        of.
+      </p>
+      <p>
+        Cut chains on it. Shot 1 renders from text alone. Shot 2 is seeded
+        with the final frame of the accepted shot 1, plus its own prompt and
+        the shared style block. Shot 3 seeds from shot 2, and so on down the
+        timeline. The world state at each junction, who is in frame, what
+        they wear, where the light falls, is carried by actual pixels rather
+        than by a description of pixels. Continuity is generated, not faked
+        in post. The conditioning edges live in the composition document as
+        first-class data, which matters later: they are what makes
+        invalidation cascade correctly in section 7.
+      </p>
+      <p>
+        Chaining has a known failure mode: drift. Each hop conditions on the
+        output of the previous hop, so small errors compound, the same
+        error-accumulation shape that limits long autoregressive generation.
+        VideoPoet <a href="#ref-videopoet">[VideoPoet]</a>, which generates
+        video autoregressively and extends clips by predicting from the last
+        second of output, sits squarely in this regime, and OpenAI's Sora
+        report <a href="#ref-sora">[Sora]</a> treats long-horizon temporal
+        consistency as a headline challenge rather than a solved one. A
+        chain is a ratchet: it can carry identity forward, but it can also
+        carry a defect forward. Cut bounds the chain at 2&ndash;6 shots,
+        re-asserts the style block in every shot's prompt as a corrective
+        pressure, and, crucially, only chains off <em>accepted</em> frames:
+        every shot passes Take's full evaluation cascade (deterministic
+        gates, perceptual metrics, frame-grid judge, at most three attempts)
+        before its last frame is allowed to seed the next shot. A flawed
+        frame that gets rejected never becomes anyone's ancestor.
+      </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words</p>
+        <p>
+          Telling the model &ldquo;same character as before&rdquo; is like
+          describing a stranger to a sketch artist twice and hoping for
+          identical drawings. Handing it the last frame of the previous shot
+          is like handing the artist a photograph. Cut always hands over the
+          photograph. The risk is the photocopy-of-a-photocopy effect, where
+          tiny flaws build up shot after shot, so Cut keeps the chain short,
+          re-states the visual style every time, and never passes a frame
+          forward until that shot has been inspected and accepted.
+        </p>
+      </div>
+    </section>
+
+    <section class="learn-section" id="assembly">
+      <h2>4. Mechanical assembly: what concat actually requires</h2>
+      <p>
+        This section is practitioner lore, in the same sense the Take page
+        uses the term: it is documented behavior and hard-won pipeline
+        habit, not a research result. It is also where naive multi-shot
+        pipelines actually die.
+      </p>
+      <p>
+        ffmpeg offers two main paths for joining clips
+        <a href="#ref-ffconcat">[ffmpeg-concat]</a>. The concat
+        <em>demuxer</em> splices files without re-encoding, which is fast
+        and lossless, but it is only valid when every input carries the same
+        codec, resolution, framerate, pixel format, and timebase; feed it
+        mismatched streams and the output ranges from stuttering timestamps
+        to a file that simply does not play. The concat <em>filter</em>
+        re-encodes and is forgiving, at the price of a generation loss and
+        CPU time. Either way, the reliable recipe is the same:
+        <strong>normalize before you concatenate</strong>. Cut decodes each
+        accepted shot and re-encodes it to one canonical profile, same
+        codec, same resolution, same constant framerate, same pixel format,
+        same timebase, before any joining happens. Generated video makes
+        this non-optional: clips arriving from a rendering API at different
+        times are not guaranteed bit-identical encoder settings, and
+        normalization-before-concat is the difference between a video and a
+        corrupted file.
+      </p>
+      <p>
+        Transitions are an assembly-time choice. A hard cut is free: it is
+        the absence of processing, two normalized streams butted together.
+        A crossfade is not: ffmpeg's
+        <span class="learn-mono">xfade</span> filter
+        <a href="#ref-xfade">[xfade]</a> overlaps the tail of one shot with
+        the head of the next for a stated duration and offset, consuming
+        timeline from both sides and forcing a re-encode of the junction.
+        The composition document records the transition per junction, which
+        is exactly what lets a &ldquo;make that cut a crossfade&rdquo; note
+        in section 7 be a re-stitch instead of a re-render.
+      </p>
+    </section>
+
+    <section class="learn-section" id="seams">
+      <h2>5. Judging the seams: shot-boundary research, inverted</h2>
+      <p>
+        There is a mature research line on finding cuts. Shot transition
+        detection networks like TransNet&nbsp;V2
+        <a href="#ref-transnet">[TransNet&nbsp;V2]</a> are trained to scan
+        footage and locate the frames where one shot ends and another
+        begins, learning the visual signature of a hard cut or a dissolve.
+        Cut's situation is the mirror image: it does not need to find its
+        cuts, it placed them. The question inverts from &ldquo;where is the
+        cut?&rdquo; to &ldquo;does the cut I made read as
+        intentional?&rdquo; A junction can be mechanically perfect and still
+        be a bad edit: a subject who teleports, a palette that lurches, an
+        exposure jump that reads as a glitch instead of a scene change.
+      </p>
+      <p>
+        Cut inspects every junction two ways. Deterministically, it measures
+        the color and luminance delta across the join, last frame of shot N
+        against first frame of shot N+1; a junction that chained correctly
+        at generation time should change little unless the timeline says it
+        should. And as evidence for the judge, it renders a
+        <strong>seam contact sheet</strong>: at every junction, the outgoing
+        frame and the incoming frame side by side, labeled, in order. The
+        sheet does for cuts what Take's contact sheet does for clips: it
+        turns a temporal claim into a static image that both a model and a
+        human can actually check. If shot 3 hands a cyclist to shot 4 and
+        shot 4 opens on a different bicycle, the seam sheet shows it in one
+        glance, with no video playback and no temporal reasoning required.
+      </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words</p>
+        <p>
+          Imagine printing the very last frame of each shot next to the very
+          first frame of the shot that follows it, like pairs of photographs
+          taped to a wall at every splice. That is the seam contact sheet.
+          Most continuity mistakes, a character whose jacket changes color, a
+          sky that jumps from dusk to noon, are obvious the instant the two
+          frames sit side by side, even though they hide easily inside a
+          playing video.
+        </p>
+      </div>
+    </section>
+
+    <section class="learn-section" id="judge">
+      <h2>6. The final judge: a sequence is not a long clip</h2>
+      <p>
+        Judging an assembled piece is a different problem from judging one
+        shot, and the temptation is the same one Take's research notes
+        document: hand a vision-language model the whole video and ask if it
+        is good. The evidence against that is unchanged. TempCompass
+        <a href="#ref-tempcompass">[TempCompass]</a> showed video LLMs lean
+        on single frames plus language priors and fail on speed, direction,
+        and event order; Vinoground
+        <a href="#ref-vinoground">[Vinoground]</a> showed GPT-4o at chance
+        on temporal counterfactuals over <em>short</em> videos. A multi-shot
+        piece is strictly worse terrain: the property under judgment,
+        whether six shots read as one continuous story, is temporal twice
+        over, ordering within shots and ordering across them.
+      </p>
+      <p>
+        So Cut's final judge never watches video. It reads two static
+        artifacts. The first is a frame grid sampled across the
+        <em>whole piece</em>, every shot represented, in timeline order, the
+        IG-VLM result <a href="#ref-igvlm">[IG-VLM]</a> applied at sequence
+        scale: tiling frames into one image preserves coarse order through
+        reading order and beats dedicated video-LM approaches on most
+        zero-shot video QA. The second is the seam contact sheet from
+        section 5, which pre-localizes exactly the junction comparisons a
+        sampled grid might straddle or miss. Everything the judge would be
+        bad at verifying temporally has been converted into something it is
+        good at: side-by-side comparison of frames it can actually see.
+      </p>
+      <p>
+        The judge rules on seven axes. Six are inherited from Take's
+        per-clip rubric, fidelity, aesthetics, consistency, motion,
+        semantics, physics, applied at the piece level. The seventh is
+        <strong>cross-cut continuity</strong>: does each junction preserve
+        identity, palette, and light where the timeline says it should, and
+        change them where the timeline says it should. That last clause
+        matters. A deliberate scene change is supposed to produce a large
+        junction delta, so the judge reads the composition document's
+        transition and style intent alongside the seam sheet, rather than
+        penalizing every big delta as a defect. Verdicts at the piece level
+        feed bounded repair, the same shape as Take's bounded retakes:
+        re-shoot the named offending shot, not the piece, and not forever.
+      </p>
+    </section>
+
+    <section class="learn-section" id="routing">
+      <h2>7. Edit routing: most notes touch the timeline, not the pixels</h2>
+      <p>
+        A finished piece accepts up to five chat revisions. The design
+        insight is in what people actually ask for. &ldquo;Swap shots 2 and
+        3.&rdquo; &ldquo;Make the last cut a crossfade.&rdquo; &ldquo;Change
+        the title.&rdquo; These notes are edits to the composition document.
+        No pixel they care about needs to be re-generated; the shots already
+        exist, normalized, on disk. Charging a full re-render for a reorder
+        would be like recompiling a program because someone renamed the
+        README.
+      </p>
+      <p>
+        Cut therefore routes every revision note through a classifier with
+        two outcomes. <strong>Deterministic</strong> notes (reorder,
+        transition change, trim, retitle) are applied to the timeline and
+        the piece is re-stitched from cached shots: ffmpeg time, seconds,
+        approximately free. <strong>Generative</strong> notes
+        (&ldquo;re-shoot shot 4 with rain,&rdquo; &ldquo;make the whole
+        thing warmer&rdquo;) genuinely change what some shot must contain,
+        so those shots, and only those shots, go back to the renderer.
+      </p>
+      <p>
+        The mechanism that makes &ldquo;only those shots&rdquo; safe rather
+        than hopeful is content addressing, borrowed from build systems.
+        Each shot carries a content hash over everything that determines its
+        pixels: its prompt, the shared style block, and its conditioning
+        fingerprint, the identity of the frame it was seeded with. This is
+        the Merkle-tree construction <a href="#ref-merkle">[Merkle]</a>:
+        because the conditioning fingerprint is part of the hash, each
+        shot's hash transitively commits to its entire ancestry in the
+        chain. Nix <a href="#ref-nix">[Nix]</a> built a whole operating
+        system on the principle that an artifact's address is the hash of
+        everything that produced it, so identical inputs are never rebuilt;
+        Bazel's remote cache <a href="#ref-bazel">[Bazel]</a> applies the
+        same memoization to compilation at scale. Cut applies it to shots: a
+        revision re-renders exactly the shots whose hash changed and serves
+        every other shot from cache.
+      </p>
+      <p>
+        The chain does the dependency analysis for free. Re-shoot shot 2 and
+        its last frame changes, which changes shot 3's conditioning
+        fingerprint, which changes shot 3's hash, and so on downstream:
+        invalidation cascades along the conditioning edges automatically,
+        with no hand-maintained dependency list to forget. Upstream shots
+        are untouched; a style-block change, by contrast, lands in every
+        shot's hash and honestly invalidates everything. The hash does not
+        decide what to rebuild. It <em>is</em> the decision.
+      </p>
+      <div class="learn-plain">
+        <p class="learn-plain-label">In plain words</p>
+        <p>
+          Every shot gets a fingerprint made from its instructions: what was
+          asked for, what style applies, and which frame it grew out of.
+          When you request a change, Cut recomputes the fingerprints. Shots
+          whose fingerprint did not change are reused from storage at no
+          cost; only the changed ones are re-filmed. And because each shot's
+          fingerprint includes the frame it started from, re-filming one
+          shot automatically flags the shots after it, while everything
+          before it stays untouched. Software build tools have worked this
+          way for years; Cut just treats shots as build artifacts.
+        </p>
+      </div>
+    </section>
+
+    <section class="learn-section" id="arithmetic">
+      <h2>8. The arithmetic</h2>
+      <p>
+        The whole design lands in one comparison. A 6-shot piece with 5
+        revisions, handled naively, is 30 shot renders on top of the
+        original 6, before counting retakes. With edit routing and content
+        addressing, a typical revision pass re-renders 0 shots (the note was
+        deterministic) or 1&ndash;2 (one shot re-shot, occasionally with a
+        cascade hop), so 5 revisions usually cost a handful of renders, not
+        thirty.
+      </p>
+      <ol class="learn-cost-list">
+        <li>
+          <strong>Per shot:</strong> at most 3 render attempts, gated by the
+          full eval cascade. A shot that cannot pass in three tries fails
+          fast instead of burning budget.
+        </li>
+        <li>
+          <strong>Per junction:</strong> deterministic delta checks plus a
+          seam contact sheet, CPU seconds and one image.
+        </li>
+        <li>
+          <strong>Per version:</strong> one stitch, one frame grid, one
+          final-judge call, and a bounded repair pass.
+        </li>
+        <li>
+          <strong>Per revision:</strong> a router call, then a re-stitch
+          (seconds) or a targeted re-render of only the hash-invalidated
+          shots.
+        </li>
+      </ol>
+      <p>
+        Every bound is enforced, not aspirational, and they compose into a
+        hard ceiling of $4.50 per piece, revisions included. The numbers are
+        ordinary engineering. What makes them possible is the oldest idea on
+        this page: the CMX 600's insight that the edit is a list. Because
+        Cut's film is a document, changing the film is mostly changing the
+        document, and documents are cheap.
+      </p>
+      <p class="learn-cta">
+        The best way to understand the pipeline is to watch it plan, shoot,
+        grade, and splice. <a href="/cut/">Cut a film</a> and the page shows
+        the shot list, every junction, and the judge's ruling as they
+        happen.
+      </p>
+    </section>
+
+    <section class="learn-section learn-refs" aria-label="References">
+      <h2>References</h2>
+      <ol>
+        {refs.map((r) => (
+          <li id={`ref-${r.id}`}>
+            <a href={r.url} rel="noopener">{r.label}</a>
+            <span class="learn-ref-url">{r.url.replace("https://", "")}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </main>
+
+  <style>
+    .learn-page {
+      --paper-1: var(--surface);
+      --paper-2: var(--surface-2);
+      --paper-3: var(--surface-3);
+      --line: var(--border);
+      --content-main: var(--content);
+      --content-soft: var(--content-2);
+      --content-muted: var(--content-3);
+      --cut-accent: #b04a2c;
+
+      max-width: 760px;
+      margin: 0 auto;
+      padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 48px) 96px;
+    }
+    :global([data-theme="dark"]) .learn-page {
+      --cut-accent: #e09275;
+    }
+    @media (prefers-color-scheme: dark) {
+      :global(html:not([data-theme="light"])) .learn-page {
+        --cut-accent: #e09275;
+      }
+    }
+
+    .learn-crumb {
+      margin-bottom: 32px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+    }
+    .learn-crumb a {
+      color: var(--content-muted);
+      text-decoration: none;
+    }
+    .learn-crumb a:hover { color: var(--cut-accent); }
+
+    .learn-hero { margin-bottom: 56px; }
+    .learn-eyebrow {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+      margin: 0 0 18px;
+    }
+    .learn-display {
+      font-family: var(--font-serif);
+      font-size: clamp(34px, 5.4vw, 52px);
+      line-height: 1.08;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      color: var(--content-main);
+      margin: 0 0 22px;
+    }
+    .learn-display em { font-style: italic; }
+    .learn-lead {
+      font-family: var(--font-sans);
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--content-soft);
+      max-width: 64ch;
+      margin: 0;
+    }
+
+    .learn-section { margin-bottom: 56px; }
+    .learn-section h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(24px, 3.4vw, 30px);
+      line-height: 1.2;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--content-main);
+      margin: 0 0 18px;
+    }
+    .learn-section h3 {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 650;
+      color: var(--content-main);
+      margin: 30px 0 10px;
+    }
+    .learn-section p {
+      font-family: var(--font-sans);
+      font-size: 15.5px;
+      line-height: 1.72;
+      color: var(--content-soft);
+      margin: 0 0 16px;
+      max-width: 68ch;
+    }
+    .learn-section p strong { color: var(--content-main); font-weight: 650; }
+    .learn-section a {
+      color: var(--cut-accent);
+      text-decoration: none;
+      border-bottom: 1px solid color-mix(in oklab, var(--cut-accent) 38%, transparent);
+    }
+    .learn-section a:hover { border-bottom-color: var(--cut-accent); }
+
+    .learn-plain {
+      margin: 22px 0 26px;
+      padding: 16px 18px;
+      border-radius: 12px;
+      border: 1px solid color-mix(in oklab, var(--cut-accent) 22%, var(--line));
+      border-left: 3px solid var(--cut-accent);
+      background: color-mix(in oklab, var(--cut-accent) 5%, var(--paper-2));
+    }
+    .learn-plain .learn-plain-label {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 650;
+      color: var(--cut-accent);
+      margin: 0 0 8px;
+    }
+    .learn-plain p:last-child { margin-bottom: 0; }
+
+    .learn-cost-list {
+      margin: 0 0 16px;
+      padding-left: 22px;
+      font-family: var(--font-sans);
+      font-size: 15.5px;
+      line-height: 1.72;
+      color: var(--content-soft);
+    }
+    .learn-cost-list li { margin-bottom: 10px; }
+    .learn-cost-list strong { color: var(--content-main); font-weight: 650; }
+
+    .learn-table-wrap {
+      margin: 26px 0 26px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper-2);
+    }
+    .learn-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    .learn-table th {
+      text-align: left;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--content-muted);
+      font-weight: 600;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .learn-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+      color: var(--content-soft);
+      vertical-align: top;
+    }
+    .learn-table tbody tr:last-child td { border-bottom: none; }
+    .learn-lane {
+      font-weight: 650;
+      color: var(--content-main);
+      white-space: nowrap;
+    }
+    .learn-lane span {
+      display: block;
+      font-weight: 400;
+      font-size: 11.5px;
+      color: var(--content-muted);
+      white-space: nowrap;
+    }
+    .learn-mono {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--cut-accent);
+      white-space: nowrap;
+    }
+
+    .learn-cta {
+      margin-top: 26px;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper-2);
+    }
+
+    .learn-refs ol {
+      margin: 0;
+      padding-left: 26px;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: var(--content-soft);
+    }
+    .learn-refs li { margin-bottom: 10px; }
+    .learn-ref-url {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--content-muted);
+    }
+  </style>
+</BaseLayout>

@@ -45,3 +45,11 @@ bucket_name = "truffle-reel-images"
 [[r2_buckets]]
 binding = "TAKE_BUCKET"
 bucket_name = "truffle-take-videos"
+
+# R2 bucket for /cut/ multi-shot stitched video pieces + eval artifacts.
+# Public reads go through /v-cut/<key> (videos) and /i-cut/<key> (images).
+# Keys: video/<piece>/v<version>/<shot>/<attempt>.mp4, final/<piece>/v<v>.mp4,
+# sheet|frame per shot, fsheet/<piece>/v<v>.jpg, seams/<piece>/v<v>.jpg.
+[[r2_buckets]]
+binding = "CUT_BUCKET"
+bucket_name = "truffle-cut-videos"
