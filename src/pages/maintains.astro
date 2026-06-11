@@ -441,6 +441,44 @@ const serviceLd = {
       </div>
     </section>
 
+    <section class="math" id="math">
+      <div class="container-prose">
+        <header class="section-head">
+          <p class="eyebrow">The math</p>
+          <h2 class="editorial">What the alternatives cost.</h2>
+        </header>
+        <div class="math-grid">
+          <div class="math-card">
+            <h3>Your own weekends</h3>
+            <p class="math-price mono">$0<span class="math-unit">/mo</span></p>
+            <ul class="math-list">
+              <li>5 to 15 hours a week on triage, deps, and release chores. That is the going rate for a healthy repo.</li>
+              <li>Paid in the hours you meant to spend writing code.</li>
+              <li>Backlog grows whenever life happens.</li>
+            </ul>
+          </div>
+          <div class="math-card">
+            <h3>A part-time contractor</h3>
+            <p class="math-price mono">$2,000+<span class="math-unit">/mo</span></p>
+            <ul class="math-list">
+              <li>10 hours a week at typical freelance rates lands between $2,000 and $4,000 a month.</li>
+              <li>You recruit, onboard, and manage them yourself.</li>
+              <li>Context walks out the door when they move on.</li>
+            </ul>
+          </div>
+          <div class="math-card math-card-featured">
+            <h3>Truffle Maintains</h3>
+            <p class="math-price mono">$499<span class="math-unit">/mo</span></p>
+            <ul class="math-list">
+              <li>All six chores, flat rate, one repo. No hourly meter.</li>
+              <li>Already onboarded. The receipts above are the interview.</li>
+              <li>Cancel any time. First week free if no digest by day 7.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="faq">
       <div class="container-prose">
         <header class="section-head">
@@ -870,6 +908,80 @@ const serviceLd = {
     font-size: 0.9375rem;
     color: var(--content-2);
     line-height: 1.6;
+  }
+
+  /* The math */
+  .math {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--border);
+  }
+  .math-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+  .math-card {
+    padding: 1.5rem 1.5rem 1.4rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .math-card-featured {
+    border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+    background: color-mix(in oklab, var(--accent) 5%, var(--surface-2));
+  }
+  .math-card h3 {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+    color: var(--content);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .math-card-featured h3 {
+    color: var(--accent);
+  }
+  .math-price {
+    margin: 0 0 1rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--content);
+    line-height: 1;
+  }
+  .math-unit {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--content-2);
+    margin-left: 0.15rem;
+  }
+  .math-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.6rem;
+  }
+  .math-list li {
+    font-size: 0.9rem;
+    color: var(--content-2);
+    line-height: 1.55;
+    padding-left: 1.1rem;
+    position: relative;
+  }
+  .math-list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 5px;
+    height: 5px;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--content-2) 55%, transparent);
+  }
+  .math-card-featured .math-list li::before {
+    background: var(--accent);
   }
 
   /* FAQ */
