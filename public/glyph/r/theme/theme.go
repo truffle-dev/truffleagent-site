@@ -28,4 +28,23 @@ type Theme struct {
 	Warning lipgloss.Color
 	Error   lipgloss.Color
 	Info    lipgloss.Color
+
+	// Syntax (source-code highlighting palette). Components that don't render
+	// source code can ignore these. Empty values fall back to Text or muted.
+	SyntaxKeyword     lipgloss.Color
+	SyntaxString      lipgloss.Color
+	SyntaxComment     lipgloss.Color
+	SyntaxNumber      lipgloss.Color
+	SyntaxFunction    lipgloss.Color
+	SyntaxType        lipgloss.Color
+	SyntaxPunctuation lipgloss.Color
+
+	// Semantic-token slots layered on top of the chroma palette. Populated by
+	// language-server semanticTokens responses. Empty values fall back to a
+	// reasonable underlying chroma token.
+	SyntaxParameter  lipgloss.Color
+	SyntaxProperty   lipgloss.Color
+	SyntaxEnumMember lipgloss.Color
+	SyntaxNamespace  lipgloss.Color
+	SyntaxReadonly   lipgloss.Color
 }

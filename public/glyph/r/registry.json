@@ -4,6 +4,23 @@
   "homepage": "https://truffleagent.com/glyph",
   "items": [
     {
+      "name": "accordion",
+      "type": "glyph:component",
+      "title": "Accordion",
+      "description": "Vertical stack of titled, collapsible sections with a focused-cursor model. Single-expanded by default; WithAllowMultiple opens independent sections.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "data",
+        "navigation",
+        "primitive"
+      ],
+      "meta": {
+        "added": "2026-06-06",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "breadcrumb",
       "type": "glyph:component",
       "title": "Breadcrumb",
@@ -188,6 +205,40 @@
       }
     },
     {
+      "name": "gauge",
+      "type": "glyph:component",
+      "title": "Gauge",
+      "description": "Read-only horizontal bar showing where a value sits inside a [min, max] range. Optional warning/critical threshold colors, leading label, units suffix, and numeric readout. Use for CPU, disk capacity, signal strength, queue depth.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "display",
+        "chart"
+      ],
+      "meta": {
+        "added": "2026-06-08",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "json-tree-view",
+      "type": "glyph:component",
+      "title": "JSON Tree View",
+      "description": "Interactive, collapsible tree view for arbitrary JSON values. A thin shell over tree-view that formats strings, numbers, booleans, null, objects, and arrays with type-aware colors and count suffixes.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "data",
+        "navigation",
+        "tree",
+        "json"
+      ],
+      "meta": {
+        "added": "2026-06-06",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "kbd",
       "type": "glyph:component",
       "title": "Kbd",
@@ -303,6 +354,22 @@
       }
     },
     {
+      "name": "pagination-bar",
+      "type": "glyph:component",
+      "title": "Pagination Bar",
+      "description": "Single-line page indicator with prev/next chevrons, a 1-indexed 'page of total' label, and an optional '(N items)' suffix. WithPerPage + WithTotalItems derive the page count and visible item range automatically.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "navigation",
+        "primitive"
+      ],
+      "meta": {
+        "added": "2026-06-06",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "panel",
       "type": "glyph:component",
       "title": "Panel",
@@ -337,6 +404,22 @@
       }
     },
     {
+      "name": "range-slider",
+      "type": "glyph:component",
+      "title": "Range Slider",
+      "description": "Single-line horizontal slider over a numeric range. Keyboard motion with left/right/h/l, home/end/g/G, and PgUp/PgDn/J/K for 10×step jumps. Supports integer or fractional ranges, a custom formatter, a units suffix, and a disabled state.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "input",
+        "primitive"
+      ],
+      "meta": {
+        "added": "2026-06-08",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "select",
       "type": "glyph:component",
       "title": "Select",
@@ -350,6 +433,23 @@
       ],
       "meta": {
         "added": "2026-05-23",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "sparkline-chart",
+      "type": "glyph:component",
+      "title": "Sparkline Chart",
+      "description": "Single-line vertical-bar mini-chart over a float64 series. Maps each value to one of eight unicode block heights (▁▂▃▄▅▆▇█), auto-scales the y-range from data, and renders an optional label prefix and latest-value suffix.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "data",
+        "display",
+        "primitive"
+      ],
+      "meta": {
+        "added": "2026-06-06",
         "frame": "bubbletea"
       }
     },
@@ -420,6 +520,22 @@
       }
     },
     {
+      "name": "table-virtualized",
+      "type": "glyph:component",
+      "title": "Virtualized Table",
+      "description": "Column-aligned table over a RowProvider, with O(visible) render cost regardless of source size. Drop in for log explorers, query result viewers, or any surface where the row count outgrows the screen by orders of magnitude.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "data",
+        "navigation"
+      ],
+      "meta": {
+        "added": "2026-06-06",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "tabs",
       "type": "glyph:component",
       "title": "Tabs",
@@ -463,6 +579,40 @@
       ],
       "meta": {
         "added": "2026-05-22",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "timeline",
+      "type": "glyph:component",
+      "title": "Timeline",
+      "description": "Vertical sequence of events with status dots, an optional pre-formatted time gutter, and multi-line bodies. Drop in for deploy history, audit logs, oncall feeds, and agent-run replays.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "data",
+        "feed",
+        "history"
+      ],
+      "meta": {
+        "added": "2026-06-06",
+        "frame": "bubbletea"
+      }
+    },
+    {
+      "name": "tree-view",
+      "type": "glyph:component",
+      "title": "Tree View",
+      "description": "Generic, recursive collapsible tree of nodes. The flexible primitive beneath file-tree, json-tree-view, and any agent-state / org-chart / call-graph surface.",
+      "version": "0.3.0",
+      "frame": "bubbletea",
+      "categories": [
+        "data",
+        "navigation",
+        "tree"
+      ],
+      "meta": {
+        "added": "2026-06-06",
         "frame": "bubbletea"
       }
     }
