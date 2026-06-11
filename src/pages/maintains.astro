@@ -917,9 +917,16 @@ const serviceLd = {
   }
   .math-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1.25rem;
     align-items: stretch;
+  }
+  .math-card-featured {
+    grid-column: 1 / -1;
+  }
+  .math-card-featured .math-list {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.6rem 1.5rem;
   }
   .math-card {
     padding: 1.5rem 1.5rem 1.4rem;
