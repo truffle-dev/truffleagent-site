@@ -92,6 +92,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-frame" type="button" title="Add frame (R)">Frame</button>
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
+          <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog">?</button>
           <span class="easel-save-state" id="save-state" aria-live="polite">Saved</span>
           <button class="easel-tool" id="tool-publish" type="button" title="Show this board in the public gallery">Publish</button>
           <button class="easel-tool easel-tool-share" id="tool-share" type="button" title="Copy board link">Share</button>
@@ -102,6 +103,25 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         <div class="easel-world" id="world"></div>
         <div class="easel-drop-hint" id="drop-hint" hidden>Drop images to add them to the board</div>
         <div class="easel-zoom-badge" id="zoom-badge">100%</div>
+        <div class="easel-keys" id="keys-overlay" role="dialog" aria-label="Keyboard shortcuts" hidden>
+          <h2 class="easel-keys-title">Keyboard shortcuts</h2>
+          <dl class="easel-keys-list">
+            <dt><kbd>T</kbd></dt><dd>Add text</dd>
+            <dt><kbd>S</kbd></dt><dd>Add sticky</dd>
+            <dt><kbd>R</kbd></dt><dd>Add frame</dd>
+            <dt><kbd>U</kbd></dt><dd>Upload images</dd>
+            <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste an image from the clipboard</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt><dd>Undo</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo (or <kbd>Ctrl</kbd>+<kbd>Y</kbd>)</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Save now</dd>
+            <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
+            <dt><kbd>Alt</kbd> + drag</dt><dd>Move without snapping</dd>
+            <dt>Double-click</dt><dd>Edit text, sticky, or frame label</dd>
+            <dt>Scroll / pinch</dt><dd>Zoom · drag empty space to pan</dd>
+            <dt><kbd>?</kbd></dt><dd>Toggle this panel · <kbd>Esc</kbd> closes</dd>
+          </dl>
+        </div>
       </div>
 
       <!-- Agent dock -->
@@ -327,6 +347,47 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: rgba(0, 0, 0, 0.07);
       z-index: 4;
       user-select: none;
+    }
+    .easel-keys {
+      position: absolute;
+      right: 0.9rem;
+      bottom: 0.9rem;
+      z-index: 11; /* above the agent panel (10) so the dialog is fully readable */
+      width: min(330px, calc(100% - 1.8rem));
+      max-height: calc(100% - 1.8rem);
+      overflow-y: auto;
+      padding: 0.9rem 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    }
+    .easel-keys-title {
+      margin: 0 0 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+    .easel-keys-list {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.35rem 0.75rem;
+      margin: 0;
+      font-size: 0.8rem;
+    }
+    .easel-keys-list dt { white-space: nowrap; }
+    .easel-keys-list dd { margin: 0; opacity: 0.85; }
+    .easel-keys kbd {
+      display: inline-block;
+      padding: 0 0.3rem;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.04);
+      font-size: 0.72rem;
+      font-family: inherit;
     }
 
     /* ---------- elements ---------- */
@@ -581,6 +642,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const stage = $("stage");
     const world = $("world");
     const dropHint = $("drop-hint");
+    const keysOverlay = $("keys-overlay");
     const zoomBadge = $("zoom-badge");
     const saveState = $("save-state");
     const titleInput = $<HTMLInputElement>("board-title");
@@ -1058,6 +1120,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       else if (ev.key.toLowerCase() === "r") addFrame();
       else if (ev.key.toLowerCase() === "u") fileInput.click();
       else if (ev.key.toLowerCase() === "f") zoomToFit();
+      else if (ev.key === "?") keysOverlay.hidden = !keysOverlay.hidden;
+      else if (ev.key === "Escape" && !keysOverlay.hidden) keysOverlay.hidden = true;
     });
 
     // ---------- creation ----------
@@ -1286,6 +1350,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     $("tool-frame").addEventListener("click", addFrame);
     $("tool-upload").addEventListener("click", () => fileInput.click());
     $("tool-zoom-fit").addEventListener("click", zoomToFit);
+    $("tool-keys").addEventListener("click", () => { keysOverlay.hidden = !keysOverlay.hidden; });
     $("tool-share").addEventListener("click", async () => {
       if (!boardId) return;
       await navigator.clipboard.writeText(`${location.origin}/easel/?b=${boardId}`);
