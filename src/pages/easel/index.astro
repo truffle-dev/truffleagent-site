@@ -1,0 +1,1131 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  MAX_PROMPT_CHARS,
+  DAILY_QUOTA_SESSIONS,
+  DAILY_QUOTA_GENERATIONS,
+  MAX_UPLOAD_BYTES,
+} from "../../../functions/_easel-shared.ts";
+
+const title = "Easel · drop images, ask the agent, watch it work the canvas";
+const description =
+  "Easel is an agent-operated creative canvas. Drop images on an infinite board, type what you want, and watch a real agent see the board, think out loud, arrange your work, and generate what's missing — live.";
+const canonical = "https://truffleagent.com/easel/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Easel",
+  alternateName: ["Truffle Easel"],
+  url: canonical,
+  applicationCategory: "DesignApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Infinite pan/zoom canvas with drag-and-drop images",
+    "Text, sticky notes, and frames",
+    "A real agent that sees the board and operates it live",
+    "Agent thinking streamed while it arranges, labels, and aligns",
+    "Image generation on Luma uni-1 to fill the gaps",
+    "Shareable board links, no account required",
+  ],
+  author: "Truffle",
+};
+
+const maxPrompt = MAX_PROMPT_CHARS;
+const quotaSessions = DAILY_QUOTA_SESSIONS;
+const quotaGenerations = DAILY_QUOTA_GENERATIONS;
+const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
+---
+<BaseLayout title={title} description={description} canonical={canonical}>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(webAppJsonLd)}
+  />
+
+  <main class="easel-page">
+    <!-- Landing hero: hidden once a board is open -->
+    <header class="easel-hero" id="easel-hero">
+      <p class="easel-eyebrow">New on Truffle</p>
+      <h1 class="easel-display">
+        Drop your images.<br /><em>The agent works the canvas.</em>
+      </h1>
+      <p class="easel-lead">
+        Easel is a creative workspace run by a real agent. Drop images on an
+        infinite board, type what you want — a moodboard, a layout, a story
+        wall — and watch the agent see the board, think out loud, arrange
+        your work, and generate what's missing. Live, while you watch.
+      </p>
+      <div class="easel-hero-actions">
+        <button class="easel-btn easel-btn-primary" id="new-board-btn" type="button">
+          Start a board
+        </button>
+        <span class="easel-hero-note">
+          Free · no account · {quotaSessions} agent runs and {quotaGenerations} generated images per day
+        </span>
+      </div>
+      <div class="easel-recent" id="easel-recent" hidden>
+        <h2 class="easel-recent-title">Your recent boards</h2>
+        <ul class="easel-recent-list" id="easel-recent-list"></ul>
+      </div>
+    </header>
+
+    <!-- Workspace: shown when a board is open -->
+    <section class="easel-workspace" id="easel-workspace" hidden>
+      <div class="easel-topbar">
+        <a class="easel-topbar-home" href="/easel/" data-easel-home>Easel</a>
+        <input
+          class="easel-title-input"
+          id="board-title"
+          maxlength="120"
+          spellcheck="false"
+          aria-label="Board title"
+        />
+        <div class="easel-topbar-tools">
+          <button class="easel-tool" id="tool-text" type="button" title="Add text (T)">Text</button>
+          <button class="easel-tool" id="tool-sticky" type="button" title="Add sticky (S)">Sticky</button>
+          <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
+          <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
+          <span class="easel-save-state" id="save-state" aria-live="polite">Saved</span>
+          <button class="easel-tool easel-tool-share" id="tool-share" type="button" title="Copy board link">Share</button>
+        </div>
+      </div>
+
+      <div class="easel-stage" id="stage">
+        <div class="easel-world" id="world"></div>
+        <div class="easel-drop-hint" id="drop-hint" hidden>Drop images to add them to the board</div>
+        <div class="easel-zoom-badge" id="zoom-badge">100%</div>
+      </div>
+
+      <!-- Agent dock -->
+      <aside class="easel-agent" id="agent-dock">
+        <div class="easel-agent-head">
+          <span class="easel-agent-dot" id="agent-dot"></span>
+          <span class="easel-agent-name">Agent</span>
+          <button class="easel-agent-collapse" id="agent-collapse" type="button" aria-label="Collapse agent panel">–</button>
+        </div>
+        <div class="easel-agent-feed" id="agent-feed">
+          <p class="easel-agent-empty" id="agent-empty">
+            Ask for anything: “arrange these into a moodboard with a title,”
+            “group by color and label the groups,” “generate two more images
+            that match the vibe.” The agent sees the board and works it live.
+          </p>
+        </div>
+        <form class="easel-agent-form" id="agent-form">
+          <textarea
+            class="easel-agent-input"
+            id="agent-input"
+            rows="2"
+            maxlength={maxPrompt}
+            placeholder="Tell the agent what to do with this board…"
+          ></textarea>
+          <button class="easel-btn easel-btn-primary easel-agent-send" id="agent-send" type="submit">
+            Run
+          </button>
+        </form>
+      </aside>
+
+      <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden />
+    </section>
+  </main>
+
+  <style>
+    .easel-page {
+      min-height: 100vh;
+    }
+    .easel-hero {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 6rem 1.5rem 4rem;
+      text-align: center;
+    }
+    .easel-eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.78rem;
+      opacity: 0.65;
+      margin-bottom: 1rem;
+    }
+    .easel-display {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.12;
+      margin: 0 0 1.25rem;
+    }
+    .easel-display em {
+      font-style: italic;
+    }
+    .easel-lead {
+      font-size: 1.08rem;
+      line-height: 1.65;
+      opacity: 0.85;
+      margin: 0 auto 2rem;
+      max-width: 620px;
+    }
+    .easel-hero-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .easel-hero-note {
+      font-size: 0.85rem;
+      opacity: 0.6;
+    }
+    .easel-recent {
+      margin-top: 3.5rem;
+      text-align: left;
+    }
+    .easel-recent-title {
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .easel-recent-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+  </style>
+
+  <!-- Workspace + canvas element styles. Everything below is applied to
+       JS-created DOM nodes, so it must live in a global stylesheet:
+       Astro's scoped styles only match SSR-rendered nodes. -->
+  <style is:global>
+    .easel-btn {
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      border-radius: 999px;
+      padding: 0.55rem 1.4rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      background: transparent;
+    }
+    .easel-btn-primary {
+      background: #1a1a1a;
+      color: #fdfbf7;
+      border-color: #1a1a1a;
+    }
+    .easel-btn-primary:hover { opacity: 0.88; }
+
+    .easel-workspace {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      background: #fdfbf7;
+    }
+    .easel-topbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.9rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      background: #fffdf9;
+      z-index: 3;
+    }
+    .easel-topbar-home {
+      font-weight: 700;
+      text-decoration: none;
+      color: inherit;
+      font-size: 1rem;
+    }
+    .easel-title-input {
+      border: none;
+      background: transparent;
+      font-size: 0.95rem;
+      font-weight: 500;
+      width: 16rem;
+      padding: 0.3rem 0.4rem;
+      border-radius: 6px;
+    }
+    .easel-title-input:hover, .easel-title-input:focus {
+      background: rgba(0, 0, 0, 0.05);
+      outline: none;
+    }
+    .easel-topbar-tools {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .easel-tool {
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      background: transparent;
+      border-radius: 8px;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .easel-tool:hover { background: rgba(0, 0, 0, 0.05); }
+    .easel-save-state {
+      font-size: 0.78rem;
+      opacity: 0.55;
+      min-width: 4.5rem;
+      text-align: right;
+    }
+
+    .easel-stage {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+      cursor: default;
+      touch-action: none;
+      background:
+        radial-gradient(circle, rgba(0, 0, 0, 0.07) 1px, transparent 1px) 0 0 / 24px 24px,
+        #fdfbf7;
+    }
+    .easel-stage.is-panning { cursor: grabbing; }
+    .easel-world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      transform-origin: 0 0;
+    }
+    .easel-drop-hint {
+      position: absolute;
+      inset: 1rem;
+      border: 2px dashed rgba(0, 0, 0, 0.3);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      background: rgba(253, 251, 247, 0.85);
+      pointer-events: none;
+      z-index: 5;
+    }
+    .easel-zoom-badge {
+      position: absolute;
+      left: 0.9rem;
+      bottom: 0.9rem;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.07);
+      z-index: 4;
+      user-select: none;
+    }
+
+    /* ---------- elements ---------- */
+    .easel-el {
+      position: absolute;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    .easel-el.is-agent-moving {
+      transition: top 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                  left 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                  width 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                  height 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .easel-el.is-selected {
+      outline: 2px solid #4658e0;
+      outline-offset: 1px;
+    }
+    .easel-el-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 6px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
+      pointer-events: none;
+    }
+    .easel-el-text {
+      font-size: 28px;
+      line-height: 1.25;
+      padding: 4px 6px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: hidden;
+    }
+    .easel-el-sticky {
+      background: #fff3a3;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      padding: 12px;
+      font-size: 15px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: hidden;
+    }
+    .easel-el-frame {
+      border: 1.5px solid rgba(0, 0, 0, 0.35);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.35);
+    }
+    .easel-el-frame .easel-frame-label {
+      position: absolute;
+      top: -1.6em;
+      left: 0;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      white-space: nowrap;
+    }
+    .easel-el[data-editing="1"] {
+      user-select: text;
+      cursor: text;
+    }
+    .easel-resize-handle {
+      position: absolute;
+      right: -7px;
+      bottom: -7px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4658e0;
+      border: 2px solid #fdfbf7;
+      cursor: nwse-resize;
+      display: none;
+    }
+    .easel-el.is-selected .easel-resize-handle { display: block; }
+    .easel-el-ghost {
+      opacity: 0.55;
+      filter: saturate(0.4);
+    }
+    .easel-el-ghost::after {
+      content: "generating…";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      background: rgba(253, 251, 247, 0.6);
+      border-radius: 6px;
+    }
+
+    /* ---------- agent dock ---------- */
+    .easel-agent {
+      position: absolute;
+      right: 1rem;
+      bottom: 1rem;
+      width: min(380px, calc(100vw - 2rem));
+      max-height: min(520px, 70vh);
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      z-index: 10;
+      overflow: hidden;
+    }
+    .easel-agent.is-collapsed .easel-agent-feed,
+    .easel-agent.is-collapsed .easel-agent-form { display: none; }
+    .easel-agent-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .easel-agent.is-collapsed .easel-agent-head { border-bottom: none; }
+    .easel-agent-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #9aa0a6;
+      flex: none;
+    }
+    .easel-agent-dot.is-live {
+      background: #2fb344;
+      animation: easel-pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes easel-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(47, 179, 68, 0.45); }
+      50% { box-shadow: 0 0 0 6px rgba(47, 179, 68, 0); }
+    }
+    .easel-agent-collapse {
+      margin-left: auto;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0.1rem 0.4rem;
+    }
+    .easel-agent-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      min-height: 120px;
+    }
+    .easel-agent-empty {
+      font-size: 0.84rem;
+      line-height: 1.55;
+      opacity: 0.6;
+      margin: 0;
+    }
+    .easel-feed-item {
+      font-size: 0.84rem;
+      line-height: 1.5;
+      border-radius: 10px;
+      padding: 0.5rem 0.65rem;
+    }
+    .easel-feed-user {
+      background: #1a1a1a;
+      color: #fdfbf7;
+      align-self: flex-end;
+      max-width: 90%;
+    }
+    .easel-feed-thought {
+      background: rgba(0, 0, 0, 0.045);
+      white-space: pre-wrap;
+    }
+    .easel-feed-tool {
+      font-family: ui-monospace, "JetBrains Mono", monospace;
+      font-size: 0.74rem;
+      background: rgba(70, 88, 224, 0.07);
+      border: 1px solid rgba(70, 88, 224, 0.18);
+      color: #2c3aa8;
+    }
+    .easel-feed-error {
+      background: rgba(200, 40, 40, 0.08);
+      border: 1px solid rgba(200, 40, 40, 0.25);
+      color: #8c1f1f;
+    }
+    .easel-feed-done {
+      background: rgba(47, 179, 68, 0.09);
+      border: 1px solid rgba(47, 179, 68, 0.25);
+    }
+    .easel-agent-form {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.6rem 0.85rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .easel-agent-input {
+      flex: 1;
+      resize: none;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      border-radius: 10px;
+      padding: 0.5rem 0.6rem;
+      font-size: 0.86rem;
+      font-family: inherit;
+    }
+    .easel-agent-input:focus { outline: 2px solid rgba(70, 88, 224, 0.4); }
+    .easel-agent-send { padding: 0.45rem 1rem; align-self: flex-end; }
+    .easel-agent-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .easel-recent-list a {
+      display: block;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      text-decoration: none;
+      color: inherit;
+      font-size: 0.9rem;
+    }
+    .easel-recent-list a:hover { background: rgba(0, 0, 0, 0.04); }
+  </style>
+
+  <script>
+    // Easel canvas client. Board doc is the source of truth; this client
+    // renders it, edits it optimistically, and reconciles with the server
+    // via a version counter. During agent sessions it polls at 1Hz and
+    // animates agent mutations.
+
+    type El = {
+      id: string;
+      type: "image" | "text" | "sticky" | "frame";
+      x: number; y: number; w: number; h: number; z: number;
+      rotation?: number;
+      props: Record<string, any>;
+    };
+    type Doc = { elements: El[]; background: string };
+
+    const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
+      document.getElementById(id) as T;
+
+    const hero = $("easel-hero");
+    const workspace = $("easel-workspace");
+    const stage = $("stage");
+    const world = $("world");
+    const dropHint = $("drop-hint");
+    const zoomBadge = $("zoom-badge");
+    const saveState = $("save-state");
+    const titleInput = $<HTMLInputElement>("board-title");
+    const fileInput = $<HTMLInputElement>("file-input");
+    const agentFeed = $("agent-feed");
+    const agentEmpty = $("agent-empty");
+    const agentForm = $<HTMLFormElement>("agent-form");
+    const agentInput = $<HTMLTextAreaElement>("agent-input");
+    const agentSend = $<HTMLButtonElement>("agent-send");
+    const agentDot = $("agent-dot");
+
+    let boardId: string | null = null;
+    let doc: Doc = { elements: [], background: "white" };
+    let version = 0;
+    let selectedId: string | null = null;
+    let nextElNum = 1;
+    let saveTimer: number | null = null;
+    let saving = false;
+    let dirty = false;
+    let agentRunning = false;
+    let pollTimer: number | null = null;
+
+    // ---------- viewport ----------
+    let panX = 0, panY = 0, zoom = 1;
+    const applyView = () => {
+      world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+      zoomBadge.textContent = `${Math.round(zoom * 100)}%`;
+    };
+    const stagePoint = (clientX: number, clientY: number) => {
+      const r = stage.getBoundingClientRect();
+      return { x: (clientX - r.left - panX) / zoom, y: (clientY - r.top - panY) / zoom };
+    };
+
+    // ---------- recent boards (localStorage) ----------
+    const RECENT_KEY = "easel.recent.v1";
+    const loadRecent = (): { id: string; title: string }[] => {
+      try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
+    };
+    const rememberBoard = (id: string, title: string) => {
+      const list = loadRecent().filter((b) => b.id !== id);
+      list.unshift({ id, title });
+      localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 12)));
+    };
+    const renderRecent = () => {
+      const list = loadRecent();
+      if (!list.length) return;
+      $("easel-recent").hidden = false;
+      const ul = $("easel-recent-list");
+      ul.innerHTML = "";
+      for (const b of list) {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = `/easel/?b=${encodeURIComponent(b.id)}`;
+        a.textContent = b.title || b.id;
+        li.appendChild(a);
+        ul.appendChild(li);
+      }
+    };
+
+    // ---------- API ----------
+    const api = async (path: string, init?: RequestInit) => {
+      const res = await fetch(path, init);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || body.ok === false) {
+        const msg = body?.error?.message || `${res.status}`;
+        throw Object.assign(new Error(msg), { status: res.status, code: body?.error?.code });
+      }
+      return body;
+    };
+
+    // ---------- rendering ----------
+    const elNode = (el: El): HTMLElement => {
+      let node = world.querySelector<HTMLElement>(`[data-el-id="${el.id}"]`);
+      if (!node) {
+        node = document.createElement("div");
+        node.dataset.elId = el.id;
+        node.className = `easel-el easel-el-${el.type}`;
+        if (el.type === "image") {
+          const img = document.createElement("img");
+          img.draggable = false;
+          node.appendChild(img);
+        } else if (el.type === "frame") {
+          const label = document.createElement("span");
+          label.className = "easel-frame-label";
+          node.appendChild(label);
+        }
+        const handle = document.createElement("div");
+        handle.className = "easel-resize-handle";
+        node.appendChild(handle);
+        world.appendChild(node);
+        wireElement(node);
+      }
+      return node;
+    };
+
+    const renderEl = (el: El, animate = false) => {
+      const node = elNode(el);
+      if (animate) {
+        node.classList.add("is-agent-moving");
+        window.setTimeout(() => node.classList.remove("is-agent-moving"), 600);
+      }
+      node.style.left = `${el.x}px`;
+      node.style.top = `${el.y}px`;
+      node.style.width = `${el.w}px`;
+      node.style.height = `${el.h}px`;
+      node.style.zIndex = String(el.z);
+      node.style.transform = el.rotation ? `rotate(${el.rotation}deg)` : "";
+      if (el.type === "image") {
+        const img = node.querySelector("img")!;
+        const src = String(el.props.src || "");
+        if (img.getAttribute("src") !== src && src) img.src = src;
+        node.classList.toggle("easel-el-ghost", !!el.props.ghost);
+      } else if (el.type === "text") {
+        node.childNodes[0]?.nodeType === Node.TEXT_NODE
+          ? (node.childNodes[0].textContent = String(el.props.text ?? ""))
+          : node.insertBefore(document.createTextNode(String(el.props.text ?? "")), node.firstChild);
+        node.style.fontSize = `${Number(el.props.size) || 28}px`;
+        node.style.fontWeight = String(el.props.weight || 600);
+        node.style.color = String(el.props.color || "#1a1a1a");
+        node.style.textAlign = String(el.props.align || "left");
+      } else if (el.type === "sticky") {
+        node.childNodes[0]?.nodeType === Node.TEXT_NODE
+          ? (node.childNodes[0].textContent = String(el.props.text ?? ""))
+          : node.insertBefore(document.createTextNode(String(el.props.text ?? "")), node.firstChild);
+        node.style.background = String(el.props.color || "#fff3a3");
+      } else if (el.type === "frame") {
+        const label = node.querySelector<HTMLElement>(".easel-frame-label")!;
+        label.textContent = String(el.props.label ?? "");
+      }
+      node.classList.toggle("is-selected", selectedId === el.id);
+    };
+
+    const renderDoc = (animate = false) => {
+      const ids = new Set(doc.elements.map((e) => e.id));
+      world.querySelectorAll<HTMLElement>("[data-el-id]").forEach((n) => {
+        if (!ids.has(n.dataset.elId!)) n.remove();
+      });
+      for (const el of doc.elements) renderEl(el, animate);
+      // track next element number
+      for (const el of doc.elements) {
+        const m = /^e(\d+)$/.exec(el.id);
+        if (m) nextElNum = Math.max(nextElNum, Number(m[1]) + 1);
+      }
+    };
+
+    const getEl = (id: string) => doc.elements.find((e) => e.id === id);
+    const maxZ = () => doc.elements.reduce((m, e) => Math.max(m, e.z), 0);
+
+    // ---------- persistence ----------
+    const setSaveState = (s: string) => { saveState.textContent = s; };
+    const scheduleSave = () => {
+      dirty = true;
+      setSaveState("Editing…");
+      if (saveTimer) window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(saveNow, 700);
+    };
+    const saveNow = async () => {
+      if (!boardId || saving || !dirty) return;
+      saving = true;
+      dirty = false;
+      setSaveState("Saving…");
+      try {
+        const body = await api(`/api/easel/board/${boardId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ doc, base_version: version, title: titleInput.value }),
+        });
+        version = body.version;
+        setSaveState("Saved");
+        rememberBoard(boardId, titleInput.value);
+      } catch (err: any) {
+        if (err.status === 409) {
+          // Agent (or another tab) moved the board forward; refetch and merge
+          // by taking the server doc. Local unsaved deltas are lost, which is
+          // acceptable during an agent run — the agent owns the board then.
+          await refetchBoard(true);
+          setSaveState("Synced");
+        } else {
+          dirty = true;
+          setSaveState("Offline");
+        }
+      } finally {
+        saving = false;
+        if (dirty) scheduleSave();
+      }
+    };
+
+    const refetchBoard = async (animate = false) => {
+      if (!boardId) return;
+      const body = await api(`/api/easel/board/${boardId}?since=${version}`);
+      if (body.unchanged) return;
+      version = body.version;
+      doc = body.doc;
+      if (document.activeElement !== titleInput) titleInput.value = body.title;
+      renderDoc(animate);
+    };
+
+    // ---------- element interaction ----------
+    const selectEl = (id: string | null) => {
+      selectedId = id;
+      world.querySelectorAll<HTMLElement>("[data-el-id]").forEach((n) => {
+        n.classList.toggle("is-selected", n.dataset.elId === id);
+      });
+    };
+
+    const wireElement = (node: HTMLElement) => {
+      const handle = node.querySelector<HTMLElement>(".easel-resize-handle")!;
+
+      node.addEventListener("pointerdown", (ev) => {
+        if (ev.button !== 0 || node.dataset.editing === "1") return;
+        ev.stopPropagation();
+        const id = node.dataset.elId!;
+        const el = getEl(id);
+        if (!el) return;
+        selectEl(id);
+        el.z = maxZ() + 1;
+        node.style.zIndex = String(el.z);
+
+        const resizing = ev.target === handle;
+        const start = stagePoint(ev.clientX, ev.clientY);
+        const orig = { x: el.x, y: el.y, w: el.w, h: el.h };
+        const ratio = orig.w / Math.max(orig.h, 1);
+        node.setPointerCapture(ev.pointerId);
+
+        const onMove = (mv: PointerEvent) => {
+          const p = stagePoint(mv.clientX, mv.clientY);
+          const dx = p.x - start.x, dy = p.y - start.y;
+          if (resizing) {
+            el.w = Math.max(40, orig.w + dx);
+            el.h = mv.shiftKey || el.type !== "image"
+              ? Math.max(40, orig.h + dy)
+              : Math.max(40, el.w / ratio);
+          } else {
+            el.x = orig.x + dx;
+            el.y = orig.y + dy;
+          }
+          renderEl(el);
+        };
+        const onUp = () => {
+          node.removeEventListener("pointermove", onMove);
+          node.removeEventListener("pointerup", onUp);
+          scheduleSave();
+        };
+        node.addEventListener("pointermove", onMove);
+        node.addEventListener("pointerup", onUp);
+      });
+
+      node.addEventListener("dblclick", () => {
+        const id = node.dataset.elId!;
+        const el = getEl(id);
+        if (!el || (el.type !== "text" && el.type !== "sticky")) return;
+        node.dataset.editing = "1";
+        node.contentEditable = "plaintext-only";
+        node.focus();
+        const sel = window.getSelection();
+        sel?.selectAllChildren(node);
+        const finish = () => {
+          node.dataset.editing = "0";
+          node.contentEditable = "false";
+          // first text node only (resize handle/label are elements)
+          el.props.text = node.childNodes[0]?.textContent ?? "";
+          renderEl(el);
+          scheduleSave();
+          node.removeEventListener("blur", finish);
+        };
+        node.addEventListener("blur", finish);
+      });
+    };
+
+    // ---------- stage interaction (pan, zoom, deselect, delete) ----------
+    stage.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0 && ev.button !== 1) return;
+      selectEl(null);
+      stage.classList.add("is-panning");
+      const startX = ev.clientX - panX, startY = ev.clientY - panY;
+      stage.setPointerCapture(ev.pointerId);
+      const onMove = (mv: PointerEvent) => {
+        panX = mv.clientX - startX;
+        panY = mv.clientY - startY;
+        applyView();
+      };
+      const onUp = () => {
+        stage.classList.remove("is-panning");
+        stage.removeEventListener("pointermove", onMove);
+        stage.removeEventListener("pointerup", onUp);
+      };
+      stage.addEventListener("pointermove", onMove);
+      stage.addEventListener("pointerup", onUp);
+    });
+
+    stage.addEventListener("wheel", (ev) => {
+      ev.preventDefault();
+      const r = stage.getBoundingClientRect();
+      const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      const factor = ev.deltaY < 0 ? 1.1 : 1 / 1.1;
+      const next = Math.min(4, Math.max(0.1, zoom * factor));
+      // zoom around cursor
+      panX = mx - ((mx - panX) / zoom) * next;
+      panY = my - ((my - panY) / zoom) * next;
+      zoom = next;
+      applyView();
+    }, { passive: false });
+
+    document.addEventListener("keydown", (ev) => {
+      if (workspace.hidden) return;
+      const tag = (document.activeElement?.tagName || "").toLowerCase();
+      const typing = tag === "input" || tag === "textarea" ||
+        (document.activeElement as HTMLElement)?.isContentEditable;
+      if (typing) return;
+      if ((ev.key === "Delete" || ev.key === "Backspace") && selectedId) {
+        doc.elements = doc.elements.filter((e) => e.id !== selectedId);
+        selectEl(null);
+        renderDoc();
+        scheduleSave();
+      } else if (ev.key.toLowerCase() === "t") addText();
+      else if (ev.key.toLowerCase() === "s") addSticky();
+      else if (ev.key.toLowerCase() === "u") fileInput.click();
+      else if (ev.key.toLowerCase() === "f") zoomToFit();
+    });
+
+    // ---------- creation ----------
+    const centerPoint = () => {
+      const r = stage.getBoundingClientRect();
+      return stagePoint(r.left + r.width / 2, r.top + r.height / 2);
+    };
+    const addElement = (el: Omit<El, "id" | "z">) => {
+      const full: El = { ...el, id: `e${nextElNum++}`, z: maxZ() + 1 };
+      doc.elements.push(full);
+      renderEl(full);
+      selectEl(full.id);
+      scheduleSave();
+      return full;
+    };
+    const addText = () => {
+      const c = centerPoint();
+      addElement({ type: "text", x: c.x - 160, y: c.y - 24, w: 320, h: 48,
+        props: { text: "Double-click to edit", size: 28, weight: 600 } });
+    };
+    const addSticky = () => {
+      const c = centerPoint();
+      addElement({ type: "sticky", x: c.x - 90, y: c.y - 90, w: 180, h: 180,
+        props: { text: "New note", color: "#fff3a3" } });
+    };
+
+    const zoomToFit = () => {
+      if (!doc.elements.length) { panX = 0; panY = 0; zoom = 1; applyView(); return; }
+      const xs = doc.elements.map((e) => e.x), ys = doc.elements.map((e) => e.y);
+      const xe = doc.elements.map((e) => e.x + e.w), ye = doc.elements.map((e) => e.y + e.h);
+      const minX = Math.min(...xs), minY = Math.min(...ys);
+      const maxX = Math.max(...xe), maxY = Math.max(...ye);
+      const r = stage.getBoundingClientRect();
+      const pad = 80;
+      zoom = Math.min(2, Math.max(0.1, Math.min(
+        (r.width - pad * 2) / Math.max(maxX - minX, 1),
+        (r.height - pad * 2) / Math.max(maxY - minY, 1),
+      )));
+      panX = (r.width - (maxX - minX) * zoom) / 2 - minX * zoom;
+      panY = (r.height - (maxY - minY) * zoom) / 2 - minY * zoom;
+      applyView();
+    };
+
+    // ---------- uploads ----------
+    const uploadFiles = async (files: FileList | File[], at?: { x: number; y: number }) => {
+      if (!boardId) return;
+      let offset = 0;
+      for (const file of Array.from(files)) {
+        if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) continue;
+        try {
+          setSaveState("Uploading…");
+          const res = await fetch(`/api/easel/upload?board=${boardId}`, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+          const body = await res.json();
+          if (!res.ok || !body.ok) throw new Error(body?.error?.message || String(res.status));
+          const dims = await imageDims(file);
+          const w = Math.min(420, dims.w);
+          const h = w * (dims.h / Math.max(dims.w, 1));
+          const p = at ?? centerPoint();
+          addElement({
+            type: "image",
+            x: p.x - w / 2 + offset, y: p.y - h / 2 + offset, w, h,
+            props: { src: body.src, natural_w: dims.w, natural_h: dims.h },
+          });
+          offset += 28;
+        } catch (err: any) {
+          setSaveState(err?.message?.includes("quota") ? "Upload quota hit" : "Upload failed");
+        }
+      }
+    };
+    const imageDims = (file: File): Promise<{ w: number; h: number }> =>
+      new Promise((resolve) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => { resolve({ w: img.naturalWidth, h: img.naturalHeight }); URL.revokeObjectURL(url); };
+        img.onerror = () => { resolve({ w: 400, h: 300 }); URL.revokeObjectURL(url); };
+        img.src = url;
+      });
+
+    let dragDepth = 0;
+    stage.addEventListener("dragenter", (ev) => { ev.preventDefault(); dragDepth++; dropHint.hidden = false; });
+    stage.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; dropHint.hidden = true; } });
+    stage.addEventListener("dragover", (ev) => ev.preventDefault());
+    stage.addEventListener("drop", (ev) => {
+      ev.preventDefault();
+      dragDepth = 0;
+      dropHint.hidden = true;
+      if (ev.dataTransfer?.files?.length) {
+        uploadFiles(ev.dataTransfer.files, stagePoint(ev.clientX, ev.clientY));
+      }
+    });
+
+    // ---------- agent ----------
+    const addFeedItem = (cls: string, text: string) => {
+      agentEmpty.hidden = true;
+      const div = document.createElement("div");
+      div.className = `easel-feed-item ${cls}`;
+      div.textContent = text;
+      agentFeed.appendChild(div);
+      agentFeed.scrollTop = agentFeed.scrollHeight;
+      return div;
+    };
+
+    const startPolling = () => {
+      if (pollTimer) return;
+      pollTimer = window.setInterval(() => refetchBoard(true).catch(() => {}), 1000);
+    };
+    const stopPolling = () => {
+      if (pollTimer) { window.clearInterval(pollTimer); pollTimer = null; }
+    };
+
+    agentForm.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const prompt = agentInput.value.trim();
+      if (!prompt || !boardId || agentRunning) return;
+      // flush pending edits so the agent sees the latest board
+      if (dirty) await saveNow();
+
+      agentRunning = true;
+      agentSend.disabled = true;
+      agentDot.classList.add("is-live");
+      addFeedItem("easel-feed-user", prompt);
+      agentInput.value = "";
+      startPolling();
+
+      try {
+        const body = await api(`/api/easel/agent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ board_id: boardId, prompt }),
+        });
+        const sessionId = body.session_id;
+        await streamSession(sessionId);
+      } catch (err: any) {
+        addFeedItem("easel-feed-error",
+          err?.code === "daily_quota_exceeded"
+            ? "Daily agent quota reached. Come back tomorrow."
+            : `Could not start the agent: ${err.message}`);
+      } finally {
+        agentRunning = false;
+        agentSend.disabled = false;
+        agentDot.classList.remove("is-live");
+        stopPolling();
+        refetchBoard(true).catch(() => {});
+      }
+    });
+
+    const streamSession = (sessionId: string) =>
+      new Promise<void>((resolve) => {
+        const es = new EventSource(`/api/easel/stream/${sessionId}`);
+        let thoughtNode: HTMLElement | null = null;
+        const finish = () => { es.close(); resolve(); };
+        es.addEventListener("thought", (ev) => {
+          const data = JSON.parse((ev as MessageEvent).data);
+          if (!thoughtNode) thoughtNode = addFeedItem("easel-feed-thought", "");
+          thoughtNode.textContent = data.text;
+          agentFeed.scrollTop = agentFeed.scrollHeight;
+        });
+        es.addEventListener("say", (ev) => {
+          const data = JSON.parse((ev as MessageEvent).data);
+          thoughtNode = null;
+          addFeedItem("easel-feed-thought", data.text);
+        });
+        es.addEventListener("tool", (ev) => {
+          const data = JSON.parse((ev as MessageEvent).data);
+          thoughtNode = null;
+          addFeedItem("easel-feed-tool", data.label);
+          refetchBoard(true).catch(() => {});
+        });
+        es.addEventListener("done", (ev) => {
+          const data = JSON.parse((ev as MessageEvent).data);
+          addFeedItem("easel-feed-done", data.summary || "Done.");
+          finish();
+        });
+        es.addEventListener("error_event", (ev) => {
+          const data = JSON.parse((ev as MessageEvent).data);
+          addFeedItem("easel-feed-error", data.message || "The agent hit an error.");
+          finish();
+        });
+        es.onerror = () => {
+          // EventSource reconnects automatically; only give up when the
+          // session has been closed server-side (readyState CLOSED).
+          if (es.readyState === EventSource.CLOSED) finish();
+        };
+        // hard ceiling so the UI never hangs forever
+        window.setTimeout(finish, 10 * 60 * 1000);
+      });
+
+    $("agent-collapse").addEventListener("click", () => {
+      $("agent-dock").classList.toggle("is-collapsed");
+    });
+
+    // ---------- toolbar ----------
+    $("tool-text").addEventListener("click", addText);
+    $("tool-sticky").addEventListener("click", addSticky);
+    $("tool-upload").addEventListener("click", () => fileInput.click());
+    $("tool-zoom-fit").addEventListener("click", zoomToFit);
+    $("tool-share").addEventListener("click", async () => {
+      if (!boardId) return;
+      await navigator.clipboard.writeText(`${location.origin}/easel/?b=${boardId}`);
+      const btn = $("tool-share");
+      const prev = btn.textContent;
+      btn.textContent = "Copied";
+      window.setTimeout(() => { btn.textContent = prev; }, 1200);
+    });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files?.length) uploadFiles(fileInput.files);
+      fileInput.value = "";
+    });
+    titleInput.addEventListener("input", scheduleSave);
+
+    // ---------- boot ----------
+    const openBoard = async (id: string) => {
+      boardId = id;
+      const body = await api(`/api/easel/board/${id}`);
+      version = body.version;
+      doc = body.doc;
+      titleInput.value = body.title;
+      hero.hidden = true;
+      workspace.hidden = false;
+      renderDoc();
+      zoomToFit();
+      rememberBoard(id, body.title);
+    };
+
+    $("new-board-btn").addEventListener("click", async () => {
+      const body = await api(`/api/easel/board`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      history.replaceState(null, "", `/easel/?b=${body.id}`);
+      await openBoard(body.id);
+    });
+
+    const params = new URLSearchParams(location.search);
+    const b = params.get("b");
+    if (b && /^el_[a-z0-9]{8,22}$/.test(b)) {
+      openBoard(b).catch(() => {
+        history.replaceState(null, "", "/easel/");
+        renderRecent();
+      });
+    } else {
+      renderRecent();
+    }
+    applyView();
+  </script>
+</BaseLayout>

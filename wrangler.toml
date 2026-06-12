@@ -53,3 +53,10 @@ bucket_name = "truffle-take-videos"
 [[r2_buckets]]
 binding = "CUT_BUCKET"
 bucket_name = "truffle-cut-videos"
+
+# R2 bucket for /easel/ canvas uploads + Luma-generated images.
+# Public reads go through /i-easel/<key> (Pages Function), immutable cache.
+# Keys: img/<board_id>/<image_id>.<ext>
+[[r2_buckets]]
+binding = "EASEL_BUCKET"
+bucket_name = "truffle-easel-images"
