@@ -608,6 +608,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // stack holds prior states. Cleared whenever the server doc replaces
     // ours (agent runs, other tabs) — undo never crosses a remote update.
     let undoStack: string[] = [];
+    let redoStack: string[] = [];
     let undoBase = "[]";
 
     // ---------- viewport ----------
@@ -745,6 +746,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         undoStack.push(undoBase);
         if (undoStack.length > 50) undoStack.shift();
         undoBase = cur;
+        // A fresh edit invalidates the redo branch. Undo/redo themselves
+        // land here with cur === undoBase, so they never clear it.
+        redoStack = [];
       }
       dirty = true;
       setSaveState("Editing…");
@@ -789,6 +793,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       version = body.version;
       doc = body.doc;
       undoStack = [];
+      redoStack = [];
       undoBase = JSON.stringify(doc.elements);
       if (document.activeElement !== titleInput) titleInput.value = body.title;
       renderDoc(animate);
@@ -797,8 +802,21 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const undo = () => {
       const prev = undoStack.pop();
       if (prev === undefined) return;
+      redoStack.push(undoBase);
       doc.elements = JSON.parse(prev);
       undoBase = prev;
+      selectEl(null);
+      renderDoc();
+      scheduleSave();
+    };
+
+    const redo = () => {
+      const next = redoStack.pop();
+      if (next === undefined) return;
+      undoStack.push(undoBase);
+      if (undoStack.length > 50) undoStack.shift();
+      doc.elements = JSON.parse(next);
+      undoBase = next;
       selectEl(null);
       renderDoc();
       scheduleSave();
@@ -1018,6 +1036,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if ((ev.metaKey || ev.ctrlKey) && !ev.shiftKey && ev.key.toLowerCase() === "z") {
         ev.preventDefault();
         undo();
+        return;
+      }
+      // Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y: redo.
+      if ((ev.metaKey || ev.ctrlKey) &&
+        ((ev.shiftKey && ev.key.toLowerCase() === "z") || ev.key.toLowerCase() === "y")) {
+        ev.preventDefault();
+        redo();
         return;
       }
       // Never hijack browser shortcuts (Ctrl+R reload, Ctrl+F find,
@@ -1304,6 +1329,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       version = body.version;
       doc = body.doc;
       undoStack = [];
+      redoStack = [];
       undoBase = JSON.stringify(doc.elements);
       isPublic = body.is_public === true;
       reflectPublish();
