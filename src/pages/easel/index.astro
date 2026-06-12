@@ -603,6 +603,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     let dirty = false;
     let agentRunning = false;
     let pollTimer: number | null = null;
+    // Undo: one snapshot per local gesture (drag, resize, add, delete, edit).
+    // undoBase holds the serialized elements at the last checkpoint; the
+    // stack holds prior states. Cleared whenever the server doc replaces
+    // ours (agent runs, other tabs) — undo never crosses a remote update.
+    let undoStack: string[] = [];
+    let undoBase = "[]";
 
     // ---------- viewport ----------
     let panX = 0, panY = 0, zoom = 1;
@@ -734,6 +740,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // ---------- persistence ----------
     const setSaveState = (s: string) => { saveState.textContent = s; };
     const scheduleSave = () => {
+      const cur = JSON.stringify(doc.elements);
+      if (cur !== undoBase) {
+        undoStack.push(undoBase);
+        if (undoStack.length > 50) undoStack.shift();
+        undoBase = cur;
+      }
       dirty = true;
       setSaveState("Editing…");
       if (saveTimer) window.clearTimeout(saveTimer);
@@ -776,8 +788,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (body.unchanged) return;
       version = body.version;
       doc = body.doc;
+      undoStack = [];
+      undoBase = JSON.stringify(doc.elements);
       if (document.activeElement !== titleInput) titleInput.value = body.title;
       renderDoc(animate);
+    };
+
+    const undo = () => {
+      const prev = undoStack.pop();
+      if (prev === undefined) return;
+      doc.elements = JSON.parse(prev);
+      undoBase = prev;
+      selectEl(null);
+      renderDoc();
+      scheduleSave();
     };
 
     // ---------- alignment guides ----------
@@ -988,6 +1012,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "s") {
         ev.preventDefault();
         if (dirty) saveNow();
+        return;
+      }
+      // Ctrl/Cmd+Z: undo the last local gesture.
+      if ((ev.metaKey || ev.ctrlKey) && !ev.shiftKey && ev.key.toLowerCase() === "z") {
+        ev.preventDefault();
+        undo();
         return;
       }
       // Never hijack browser shortcuts (Ctrl+R reload, Ctrl+F find,
@@ -1273,6 +1303,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const body = await api(`/api/easel/board/${id}`);
       version = body.version;
       doc = body.doc;
+      undoStack = [];
+      undoBase = JSON.stringify(doc.elements);
       isPublic = body.is_public === true;
       reflectPublish();
       titleInput.value = body.title;
