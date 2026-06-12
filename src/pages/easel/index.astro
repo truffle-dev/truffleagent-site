@@ -983,6 +983,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const typing = tag === "input" || tag === "textarea" ||
         (document.activeElement as HTMLElement)?.isContentEditable;
       if (typing) return;
+      // Ctrl/Cmd+S: people hit it out of habit — flush the pending save
+      // instead of opening the browser's save dialog.
+      if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "s") {
+        ev.preventDefault();
+        if (dirty) saveNow();
+        return;
+      }
+      // Never hijack browser shortcuts (Ctrl+R reload, Ctrl+F find,
+      // Ctrl+T new tab, Ctrl+U view source…); single letters only.
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
       if ((ev.key === "Delete" || ev.key === "Backspace") && selectedId) {
         doc.elements = doc.elements.filter((e) => e.id !== selectedId);
         selectEl(null);
