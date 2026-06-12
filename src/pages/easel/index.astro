@@ -89,6 +89,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         <div class="easel-topbar-tools">
           <button class="easel-tool" id="tool-text" type="button" title="Add text (T)">Text</button>
           <button class="easel-tool" id="tool-sticky" type="button" title="Add sticky (S)">Sticky</button>
+          <button class="easel-tool" id="tool-frame" type="button" title="Add frame (R)">Frame</button>
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
           <span class="easel-save-state" id="save-state" aria-live="polite">Saved</span>
@@ -722,6 +723,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 
     const getEl = (id: string) => doc.elements.find((e) => e.id === id);
     const maxZ = () => doc.elements.reduce((m, e) => Math.max(m, e.z), 0);
+    const minZ = () => doc.elements.reduce((m, e) => Math.min(m, e.z), 0);
 
     // ---------- persistence ----------
     const setSaveState = (s: string) => { saveState.textContent = s; };
@@ -790,8 +792,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const el = getEl(id);
         if (!el) return;
         selectEl(id);
-        el.z = maxZ() + 1;
-        node.style.zIndex = String(el.z);
+        // Frames live at the back so they never cover the elements inside
+        // them; everything else comes to the front on grab.
+        if (el.type !== "frame") {
+          el.z = maxZ() + 1;
+          node.style.zIndex = String(el.z);
+        }
 
         const resizing = ev.target === handle;
         const start = stagePoint(ev.clientX, ev.clientY);
@@ -825,7 +831,26 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       node.addEventListener("dblclick", () => {
         const id = node.dataset.elId!;
         const el = getEl(id);
-        if (!el || (el.type !== "text" && el.type !== "sticky")) return;
+        if (!el) return;
+        if (el.type === "frame") {
+          // Edit the frame's label span, not the frame body.
+          const label = node.querySelector<HTMLElement>(".easel-frame-label")!;
+          node.dataset.editing = "1";
+          label.contentEditable = "plaintext-only";
+          label.focus();
+          window.getSelection()?.selectAllChildren(label);
+          const finishLabel = () => {
+            node.dataset.editing = "0";
+            label.contentEditable = "false";
+            el.props.label = label.textContent ?? "";
+            renderEl(el);
+            scheduleSave();
+            label.removeEventListener("blur", finishLabel);
+          };
+          label.addEventListener("blur", finishLabel);
+          return;
+        }
+        if (el.type !== "text" && el.type !== "sticky") return;
         node.dataset.editing = "1";
         node.contentEditable = "plaintext-only";
         node.focus();
@@ -891,6 +916,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         scheduleSave();
       } else if (ev.key.toLowerCase() === "t") addText();
       else if (ev.key.toLowerCase() === "s") addSticky();
+      else if (ev.key.toLowerCase() === "r") addFrame();
       else if (ev.key.toLowerCase() === "u") fileInput.click();
       else if (ev.key.toLowerCase() === "f") zoomToFit();
     });
@@ -917,6 +943,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const c = centerPoint();
       addElement({ type: "sticky", x: c.x - 90, y: c.y - 90, w: 180, h: 180,
         props: { text: "New note", color: "#fff3a3" } });
+    };
+    const addFrame = () => {
+      // Frames go to the BACK of the z-order so they group elements
+      // visually without covering them.
+      const c = centerPoint();
+      const full: El = {
+        type: "frame", id: `e${nextElNum++}`, z: minZ() - 1,
+        x: c.x - 240, y: c.y - 160, w: 480, h: 320,
+        props: { label: "Frame" },
+      };
+      doc.elements.push(full);
+      renderEl(full);
+      selectEl(full.id);
+      scheduleSave();
     };
 
     const zoomToFit = () => {
@@ -1091,6 +1131,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // ---------- toolbar ----------
     $("tool-text").addEventListener("click", addText);
     $("tool-sticky").addEventListener("click", addSticky);
+    $("tool-frame").addEventListener("click", addFrame);
     $("tool-upload").addEventListener("click", () => fileInput.click());
     $("tool-zoom-fit").addEventListener("click", zoomToFit);
     $("tool-share").addEventListener("click", async () => {
