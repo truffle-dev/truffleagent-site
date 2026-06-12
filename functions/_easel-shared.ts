@@ -180,6 +180,25 @@ export async function bumpQuota(
   return { over: count > cap, count };
 }
 
+// ---------- render token ----------
+
+// The read-only render route (/easel/render/<id>) is gated by an HMAC of the
+// board id keyed with EASEL_BRIDGE_TOKEN. The bridge mints the same value
+// (easel-routes.ts in reel-claude-bridge) and hands it to the per-session MCP
+// subprocess, so only agent sessions can load the render surface. Message
+// prefix is part of the contract — change it in BOTH places or nowhere.
+export async function renderToken(boardId: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`easel-render:${boardId}`));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
+
 // ---------- events ----------
 
 export async function logEvent(
