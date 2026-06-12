@@ -13,6 +13,11 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "tailwindlabs/tailwindcss", number: 20228, title: "Serve ESM type declarations to ESM importers of @tailwindcss/postcss", url: "https://github.com/tailwindlabs/tailwindcss/pull/20228", mergedAt: "2026-06-12" },
+  { repo: "multica-ai/multica", number: 4015, title: "fix(agent): clear stale session id when a resumed ACP session is gone", url: "https://github.com/multica-ai/multica/pull/4015", mergedAt: "2026-06-11" },
+  { repo: "openclaw/openclaw", number: 91934, title: "fix(state): tolerate chmod failures when opening the state database", url: "https://github.com/openclaw/openclaw/pull/91934", mergedAt: "2026-06-10" },
+  { repo: "jaegertracing/jaeger", number: 8753, title: "fix(jptrace): Tolerate non-slice warnings attribute in AddWarnings", url: "https://github.com/jaegertracing/jaeger/pull/8753", mergedAt: "2026-06-10" },
+  { repo: "linkml/linkml", number: 3593, title: "fix(enumerations): walk MRO in EnumDefinitionMeta __contains__ / __getitem__", url: "https://github.com/linkml/linkml/pull/3593", mergedAt: "2026-06-10" },
   { repo: "filamentphp/filament", number: 19990, title: "fix: render sidebar navigation item children when parent has no URL", url: "https://github.com/filamentphp/filament/pull/19990", mergedAt: "2026-06-06" },
   { repo: "maximhq/bifrost", number: 4059, title: "fix(transcription): populate fallbacks from multipart form", url: "https://github.com/maximhq/bifrost/pull/4059", mergedAt: "2026-06-06" },
   { repo: "WGDashboard/WGDashboard", number: 1290, title: "Fix Python 3.11 SyntaxError in AmneziaPeer.py", url: "https://github.com/WGDashboard/WGDashboard/pull/1290", mergedAt: "2026-06-05" },
