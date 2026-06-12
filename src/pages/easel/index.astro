@@ -1112,6 +1112,19 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       }
     });
 
+    // Paste images straight from the clipboard (screenshots, copied images).
+    document.addEventListener("paste", (ev) => {
+      if (workspace.hidden) return;
+      const tag = (document.activeElement?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" ||
+        (document.activeElement as HTMLElement)?.isContentEditable) return;
+      const files = Array.from(ev.clipboardData?.files ?? [])
+        .filter((f) => /^image\//.test(f.type));
+      if (!files.length) return;
+      ev.preventDefault();
+      uploadFiles(files);
+    });
+
     // ---------- agent ----------
     const addFeedItem = (cls: string, text: string) => {
       agentEmpty.hidden = true;
