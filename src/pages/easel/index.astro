@@ -406,6 +406,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       display: none;
     }
     .easel-el.is-selected .easel-resize-handle { display: block; }
+    .easel-guide {
+      position: absolute;
+      background: #e0457b;
+      pointer-events: none;
+      z-index: 100000;
+    }
     .easel-el-ghost {
       opacity: 0.55;
       filter: saturate(0.4);
@@ -774,6 +780,67 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       renderDoc(animate);
     };
 
+    // ---------- alignment guides ----------
+    // While a human drags an element, snap its edges and centers to the
+    // edges and centers of every other element, and draw guide lines at
+    // the matched positions. Guides live in #world so they pan/zoom with
+    // the board; thickness compensates zoom to stay ~1.5px on screen.
+    const clearGuides = () => {
+      world.querySelectorAll(".easel-guide").forEach((n) => n.remove());
+    };
+    const drawGuide = (axis: "v" | "h", pos: number, lo: number, hi: number) => {
+      const g = document.createElement("div");
+      g.className = "easel-guide";
+      const t = 1.5 / zoom;
+      if (axis === "v") {
+        g.style.left = `${pos - t / 2}px`;
+        g.style.top = `${lo}px`;
+        g.style.width = `${t}px`;
+        g.style.height = `${hi - lo}px`;
+      } else {
+        g.style.left = `${lo}px`;
+        g.style.top = `${pos - t / 2}px`;
+        g.style.width = `${hi - lo}px`;
+        g.style.height = `${t}px`;
+      }
+      world.appendChild(g);
+    };
+    type Snap = { d: number; snap: number; at: number; o: El };
+    const snapMove = (el: El, nx: number, ny: number) => {
+      clearGuides();
+      const thr = 6 / zoom; // ~6 screen px regardless of zoom
+      let bx: Snap | null = null;
+      let by: Snap | null = null;
+      for (const o of doc.elements) {
+        if (o.id === el.id) continue;
+        const oxs = [o.x, o.x + o.w / 2, o.x + o.w];
+        const oys = [o.y, o.y + o.h / 2, o.y + o.h];
+        const exs = [nx, nx + el.w / 2, nx + el.w];
+        const eys = [ny, ny + el.h / 2, ny + el.h];
+        for (const ox of oxs) for (const ex of exs) {
+          const d = Math.abs(ex - ox);
+          if (d < thr && (!bx || d < bx.d)) bx = { d, snap: nx + (ox - ex), at: ox, o };
+        }
+        for (const oy of oys) for (const ey of eys) {
+          const d = Math.abs(ey - oy);
+          if (d < thr && (!by || d < by.d)) by = { d, snap: ny + (oy - ey), at: oy, o };
+        }
+      }
+      if (bx) nx = bx.snap;
+      if (by) ny = by.snap;
+      if (bx) {
+        const lo = Math.min(ny, bx.o.y) - 12;
+        const hi = Math.max(ny + el.h, bx.o.y + bx.o.h) + 12;
+        drawGuide("v", bx.at, lo, hi);
+      }
+      if (by) {
+        const lo = Math.min(nx, by.o.x) - 12;
+        const hi = Math.max(nx + el.w, by.o.x + by.o.w) + 12;
+        drawGuide("h", by.at, lo, hi);
+      }
+      return { x: nx, y: ny };
+    };
+
     // ---------- element interaction ----------
     const selectEl = (id: string | null) => {
       selectedId = id;
@@ -813,13 +880,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             el.h = mv.shiftKey || el.type !== "image"
               ? Math.max(40, orig.h + dy)
               : Math.max(40, el.w / ratio);
-          } else {
+          } else if (mv.altKey) {
+            // Alt bypasses snapping for free placement.
+            clearGuides();
             el.x = orig.x + dx;
             el.y = orig.y + dy;
+          } else {
+            const s = snapMove(el, orig.x + dx, orig.y + dy);
+            el.x = s.x;
+            el.y = s.y;
           }
           renderEl(el);
         };
         const onUp = () => {
+          clearGuides();
           node.removeEventListener("pointermove", onMove);
           node.removeEventListener("pointerup", onUp);
           scheduleSave();
