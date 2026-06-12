@@ -1,0 +1,260 @@
+---
+// Homepage premier feature for Easel. The stage renders a stylized mock of
+// the real demo board (Midnight Bakery moodboard) — the same board the agent
+// worked in three live sessions, including the vision session where it saw a
+// clipped title and fixed it. Honest rule: the stage mirrors a real board.
+const STICKIES = [
+  { tone: "yellow", text: "warm light through the window at 2am" },
+  { tone: "pink", text: "copper pots, worn wood counters" },
+  { tone: "blue", text: "flour dust in the air, blue night outside" },
+];
+---
+<section class="easel-feature" id="easel-feature">
+  <div class="container-page">
+    <div class="easf-grid">
+      <div class="easf-copy reveal">
+        <p class="eyebrow">Premier · just shipped</p>
+        <h2 class="editorial text-balance">
+          A canvas the agent<br/>
+          can <em>see</em>.
+        </h2>
+        <p class="prose-truffle easf-lede">
+          <em>Easel</em> is a shared canvas at <code>/easel/</code>. Drop in
+          images, scatter stickies, then ask the agent &mdash; it works the
+          board live in front of you: arranging, grouping, generating images,
+          and screenshotting the canvas to judge its own layout with real eyes.
+        </p>
+
+        <ul class="easf-points">
+          <li><span class="dot" aria-hidden="true"></span><span>The agent doesn't just read coordinates &mdash; it <em>looks</em>. It caught a clipped title no coordinate math could reveal, and widened the box.</span></li>
+          <li><span class="dot" aria-hidden="true"></span><span>Every move goes through the same API your browser uses, so each change lands on your screen as it happens.</span></li>
+          <li><span class="dot" aria-hidden="true"></span><span>Publish a board and the <em>gallery</em> shows it live &mdash; previews are the board itself, not a stale thumbnail.</span></li>
+        </ul>
+
+        <div class="easf-actions">
+          <a class="btn btn-primary" href="/easel/">
+            Open a <em>board</em><span aria-hidden="true" style="margin-left:0.3rem">→</span>
+          </a>
+          <a class="btn btn-ghost" href="/easel/gallery/">Browse the gallery</a>
+        </div>
+      </div>
+
+      <div class="easf-stage reveal" style="transition-delay:120ms">
+        <div class="easf-stage-frame">
+          <div class="easf-board" role="img" aria-label="A moodboard: a title, three atmosphere stickies, and a green note the agent left after looking at the board">
+            <div class="easf-board-title">Midnight Bakery &mdash; brand moodboard</div>
+            <div class="easf-group">
+              <span class="easf-group-label">Atmosphere</span>
+              <div class="easf-stickies">
+                {STICKIES.map((s) => (
+                  <div class={`easf-sticky easf-sticky-${s.tone}`}>{s.text}</div>
+                ))}
+              </div>
+            </div>
+            <div class="easf-sticky easf-sticky-green easf-observation">
+              Observed: the title was clipped &mdash; widened it so the full line shows.
+            </div>
+          </div>
+
+          <div class="easf-stage-meta">
+            <span class="easf-stage-dot" aria-hidden="true"></span>
+            <span class="easf-stage-text">
+              <em>working the board</em> &middot; think → look → move → say
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .easel-feature {
+    padding-block: clamp(4rem, 8vw, 6.5rem);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    background:
+      radial-gradient(
+        1200px 480px at 80% -10%,
+        color-mix(in oklab, var(--accent) 10%, transparent),
+        transparent 70%
+      ),
+      var(--surface);
+  }
+
+  .easf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: center;
+  }
+
+  .easf-copy .eyebrow {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--accent) 40%, var(--border) 60%);
+    color: var(--accent);
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .easf-copy h2 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    line-height: 1.05;
+  }
+  .easf-copy h2 em { color: var(--accent); }
+
+  .easf-lede { max-width: 540px; margin: 0 0 1.5rem; }
+  .easf-lede code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.35em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .easf-points {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 540px;
+  }
+  .easf-points li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    color: var(--content-2);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .easf-points .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--accent);
+    flex-shrink: 0;
+    transform: translateY(-2px);
+  }
+  .easf-points em { font-style: italic; color: var(--content); }
+
+  .easf-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .easf-actions .btn-primary em { font-style: italic; }
+
+  .easf-stage { width: 100%; }
+  .easf-stage-frame {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+    padding: 1.1rem 1.1rem 0.8rem;
+    box-shadow: 0 28px 60px -36px color-mix(in oklab, var(--content) 22%, transparent);
+  }
+
+  .easf-board {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background:
+      radial-gradient(color-mix(in oklab, var(--content) 7%, transparent) 1px, transparent 1px) 0 0 / 18px 18px,
+      var(--surface);
+    padding: 1.1rem 1.1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .easf-board-title {
+    font-family: var(--font-serif);
+    font-size: clamp(1.1rem, 2vw, 1.45rem);
+    color: var(--content);
+    line-height: 1.15;
+  }
+
+  .easf-group {
+    border: 1px solid color-mix(in oklab, var(--content) 22%, var(--border));
+    border-radius: 10px;
+    padding: 1rem 0.7rem 0.7rem;
+    position: relative;
+  }
+  .easf-group-label {
+    position: absolute;
+    top: -0.55rem;
+    left: 0.7rem;
+    padding: 0 0.4rem;
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--content-2);
+  }
+  .easf-stickies {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .easf-sticky {
+    border-radius: 6px;
+    padding: 0.55rem 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: rgba(26, 26, 26, 0.85);
+    box-shadow: 0 2px 6px -2px rgba(26, 26, 26, 0.25);
+    min-width: 0;
+  }
+  .easf-sticky-yellow { background: #fdf0b8; }
+  .easf-sticky-pink { background: #fadcdc; }
+  .easf-sticky-blue { background: #d8e4fb; }
+  .easf-sticky-green { background: #e2efd2; }
+
+  .easf-observation {
+    max-width: 75%;
+    margin-left: 12%;
+    transform: rotate(-0.6deg);
+  }
+
+  .easf-stage-meta {
+    margin-top: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.4rem 0.2rem;
+    border-top: 1px dashed color-mix(in oklab, var(--border) 80%, transparent);
+    color: var(--content-2);
+    font-size: 0.8125rem;
+    font-family: var(--font-mono);
+  }
+  .easf-stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 22%, transparent);
+    animation: easf-pulse 1.6s ease-in-out infinite;
+  }
+  .easf-stage-text em {
+    font-style: italic;
+    color: var(--accent);
+    font-family: var(--font-serif);
+  }
+
+  @keyframes easf-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.7; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .easf-stage-dot { animation: none; }
+  }
+
+  @media (max-width: 880px) {
+    .easf-grid { grid-template-columns: 1fr; gap: 2.25rem; }
+    .easf-stage-frame { max-width: 460px; margin-inline: auto; }
+    .easf-stickies { grid-template-columns: 1fr 1fr; }
+    .easf-observation { max-width: 100%; margin-left: 0; }
+  }
+</style>
