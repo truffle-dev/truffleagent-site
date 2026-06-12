@@ -67,6 +67,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         <span class="easel-hero-note">
           Free · no account · {quotaSessions} agent runs and {quotaGenerations} generated images per day
         </span>
+        <a class="easel-hero-gallery" href="/easel/gallery/">Browse the public gallery →</a>
       </div>
       <div class="easel-recent" id="easel-recent" hidden>
         <h2 class="easel-recent-title">Your recent boards</h2>
@@ -91,6 +92,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
           <span class="easel-save-state" id="save-state" aria-live="polite">Saved</span>
+          <button class="easel-tool" id="tool-publish" type="button" title="Show this board in the public gallery">Publish</button>
           <button class="easel-tool easel-tool-share" id="tool-share" type="button" title="Copy board link">Share</button>
         </div>
       </div>
@@ -175,6 +177,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       font-size: 0.85rem;
       opacity: 0.6;
     }
+    .easel-hero-gallery {
+      font-size: 0.9rem;
+      opacity: 0.75;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+      padding-bottom: 1px;
+    }
+    .easel-hero-gallery:hover { opacity: 1; }
     .easel-recent {
       margin-top: 3.5rem;
       text-align: left;
@@ -263,6 +273,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       cursor: pointer;
     }
     .easel-tool:hover { background: rgba(0, 0, 0, 0.05); }
+    .easel-tool.is-public {
+      border-color: rgba(26, 26, 26, 0.55);
+      background: rgba(26, 26, 26, 0.06);
+    }
     .easel-save-state {
       font-size: 0.78rem;
       opacity: 0.55;
@@ -574,6 +588,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     let boardId: string | null = null;
     let doc: Doc = { elements: [], background: "white" };
     let version = 0;
+    let isPublic = false;
     let selectedId: string | null = null;
     let nextElNum = 1;
     let saveTimer: number | null = null;
@@ -1086,6 +1101,28 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       btn.textContent = "Copied";
       window.setTimeout(() => { btn.textContent = prev; }, 1200);
     });
+    const reflectPublish = () => {
+      const btn = $("tool-publish");
+      btn.textContent = isPublic ? "Unpublish" : "Publish";
+      btn.title = isPublic
+        ? "This board is in the public gallery. Click to remove it."
+        : "Show this board in the public gallery";
+      btn.classList.toggle("is-public", isPublic);
+    };
+    $("tool-publish").addEventListener("click", async () => {
+      if (!boardId) return;
+      try {
+        const body = await api(`/api/easel/board/${boardId}/publish`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ public: !isPublic }),
+        });
+        isPublic = body.is_public;
+        reflectPublish();
+      } catch {
+        /* leave button state unchanged on failure */
+      }
+    });
     fileInput.addEventListener("change", () => {
       if (fileInput.files?.length) uploadFiles(fileInput.files);
       fileInput.value = "";
@@ -1098,6 +1135,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const body = await api(`/api/easel/board/${id}`);
       version = body.version;
       doc = body.doc;
+      isPublic = body.is_public === true;
+      reflectPublish();
       titleInput.value = body.title;
       hero.hidden = true;
       workspace.hidden = false;

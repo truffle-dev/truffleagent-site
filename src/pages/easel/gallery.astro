@@ -1,0 +1,216 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Easel gallery · public boards";
+const description =
+  "Boards people made with Easel and chose to share. Every preview is the live board, rendered exactly as the agent sees it.";
+const canonical = "https://truffleagent.com/easel/gallery/";
+---
+<BaseLayout title={title} description={description} canonical={canonical}>
+  <main class="egal-page">
+    <header class="egal-head">
+      <p class="egal-eyebrow"><a href="/easel/">Easel</a> · gallery</p>
+      <h1 class="egal-display">Public boards</h1>
+      <p class="egal-lead">
+        Boards people made and chose to share. Every preview is the live
+        board itself — the same render the agent sees when it looks.
+      </p>
+    </header>
+
+    <div class="egal-grid" id="egal-grid"></div>
+
+    <p class="egal-empty" id="egal-empty" hidden>
+      No public boards yet. <a href="/easel/">Start one</a> and hit Publish.
+    </p>
+
+    <div class="egal-more-wrap">
+      <button class="egal-more" id="egal-more" type="button" hidden>Load more</button>
+    </div>
+  </main>
+
+  <style>
+    .egal-page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem 5rem;
+    }
+    .egal-head {
+      max-width: 680px;
+      margin-bottom: 2.5rem;
+    }
+    .egal-eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.78rem;
+      opacity: 0.65;
+      margin-bottom: 0.9rem;
+    }
+    .egal-eyebrow a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+    }
+    .egal-display {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      line-height: 1.12;
+      margin: 0 0 0.9rem;
+    }
+    .egal-lead {
+      font-size: 1.02rem;
+      line-height: 1.6;
+      opacity: 0.82;
+      margin: 0;
+    }
+    .egal-empty {
+      opacity: 0.7;
+      margin-top: 1rem;
+    }
+    .egal-more-wrap {
+      text-align: center;
+      margin-top: 2.5rem;
+    }
+  </style>
+
+  <!-- Cards are JS-created: rules must be global (Astro scoped styles
+       only match SSR-rendered nodes). -->
+  <style is:global>
+    .egal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+    .egal-card {
+      display: block;
+      color: inherit;
+      text-decoration: none;
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      transition: border-color 150ms ease, transform 150ms ease;
+    }
+    .egal-card:hover {
+      border-color: rgba(0, 0, 0, 0.38);
+      transform: translateY(-2px);
+    }
+    .egal-preview {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      overflow: hidden;
+      background: #fdfbf7;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .egal-preview iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1400px;
+      height: 875px;
+      border: 0;
+      pointer-events: none;
+      transform-origin: top left;
+    }
+    .egal-meta {
+      padding: 0.7rem 0.9rem 0.8rem;
+    }
+    .egal-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0 0 0.15rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .egal-sub {
+      font-size: 0.78rem;
+      opacity: 0.55;
+      margin: 0;
+    }
+    .egal-more {
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      border-radius: 999px;
+      padding: 0.55rem 1.4rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      background: transparent;
+    }
+    .egal-more:hover { background: rgba(0, 0, 0, 0.05); }
+  </style>
+
+  <script>
+    const grid = document.getElementById("egal-grid")!;
+    const empty = document.getElementById("egal-empty")!;
+    const more = document.getElementById("egal-more") as HTMLButtonElement;
+    let nextCursor: string | null = null;
+
+    type GalleryBoard = {
+      id: string;
+      title: string;
+      updated_at: string;
+      elements: number;
+      render_token: string;
+    };
+
+    const scalePreviews = () => {
+      grid.querySelectorAll<HTMLIFrameElement>(".egal-preview iframe").forEach((f) => {
+        const w = f.parentElement!.clientWidth;
+        if (w > 0) f.style.transform = `scale(${w / 1400})`;
+      });
+    };
+    window.addEventListener("resize", scalePreviews);
+
+    const card = (b: GalleryBoard): HTMLElement => {
+      const a = document.createElement("a");
+      a.className = "egal-card";
+      a.href = `/easel/?b=${encodeURIComponent(b.id)}`;
+
+      const prev = document.createElement("div");
+      prev.className = "egal-preview";
+      const frame = document.createElement("iframe");
+      frame.loading = "lazy";
+      frame.setAttribute("sandbox", "");
+      frame.setAttribute("title", `Preview of ${b.title}`);
+      frame.setAttribute("aria-hidden", "true");
+      frame.tabIndex = -1;
+      frame.src = `/easel/render/${encodeURIComponent(b.id)}?token=${encodeURIComponent(b.render_token)}`;
+      prev.appendChild(frame);
+
+      const meta = document.createElement("div");
+      meta.className = "egal-meta";
+      const t = document.createElement("p");
+      t.className = "egal-title";
+      t.textContent = b.title || "Untitled board";
+      const sub = document.createElement("p");
+      sub.className = "egal-sub";
+      const when = new Date(b.updated_at.endsWith("Z") ? b.updated_at : b.updated_at + "Z");
+      sub.textContent = `${b.elements} element${b.elements === 1 ? "" : "s"} · ${when.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+      meta.append(t, sub);
+
+      a.append(prev, meta);
+      return a;
+    };
+
+    const load = async () => {
+      more.disabled = true;
+      const qs = nextCursor ? `?cursor=${encodeURIComponent(nextCursor)}` : "";
+      try {
+        const res = await fetch(`/api/easel/gallery${qs}`);
+        const body = await res.json();
+        if (!body.ok) throw new Error("gallery fetch failed");
+        for (const b of body.boards as GalleryBoard[]) grid.appendChild(card(b));
+        nextCursor = body.next_cursor;
+        more.hidden = !nextCursor;
+        empty.hidden = grid.children.length > 0;
+        scalePreviews();
+      } catch {
+        empty.hidden = false;
+        empty.textContent = "Could not load the gallery right now. Try a refresh.";
+      } finally {
+        more.disabled = false;
+      }
+    };
+
+    more.addEventListener("click", load);
+    load();
+  </script>
+</BaseLayout>

@@ -45,6 +45,7 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
     id: row.id,
     title: row.title,
     version: row.version,
+    is_public: row.is_public === 1,
     doc: JSON.parse(row.doc),
     created_at: row.created_at,
     updated_at: row.updated_at,
