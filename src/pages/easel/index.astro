@@ -116,6 +116,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo (or <kbd>Ctrl</kbd>+<kbd>Y</kbd>)</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Save now</dd>
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
+            <dt>Arrow keys</dt><dd>Nudge selection 1 unit (<kbd>Shift</kbd> for 10)</dd>
             <dt><kbd>Alt</kbd> + drag</dt><dd>Move without snapping</dd>
             <dt>Double-click</dt><dd>Edit text, sticky, or frame label</dd>
             <dt>Scroll / pinch</dt><dd>Zoom · drag empty space to pan</dd>
@@ -1110,6 +1111,22 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       // Never hijack browser shortcuts (Ctrl+R reload, Ctrl+F find,
       // Ctrl+T new tab, Ctrl+U view source…); single letters only.
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      // Arrow keys nudge the selected element 1 world unit (10 with Shift).
+      const nudges: Record<string, [number, number]> = {
+        ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+      };
+      if (nudges[ev.key] && selectedId) {
+        const el = doc.elements.find((e) => e.id === selectedId);
+        if (el) {
+          ev.preventDefault();
+          const step = ev.shiftKey ? 10 : 1;
+          el.x += nudges[ev.key][0] * step;
+          el.y += nudges[ev.key][1] * step;
+          renderEl(el);
+          scheduleSave();
+        }
+        return;
+      }
       if ((ev.key === "Delete" || ev.key === "Backspace") && selectedId) {
         doc.elements = doc.elements.filter((e) => e.id !== selectedId);
         selectEl(null);
