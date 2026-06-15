@@ -120,7 +120,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Alt</kbd> + drag</dt><dd>Move without snapping</dd>
             <dt>Double-click</dt><dd>Edit text, sticky, or frame label</dd>
             <dt>Scroll / pinch</dt><dd>Zoom · drag empty space to pan</dd>
-            <dt><kbd>?</kbd></dt><dd>Toggle this panel · <kbd>Esc</kbd> closes</dd>
+            <dt><kbd>Esc</kbd></dt><dd>Deselect (closes this panel first)</dd>
+            <dt><kbd>?</kbd></dt><dd>Toggle this panel</dd>
           </dl>
         </div>
       </div>
@@ -1138,7 +1139,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       else if (ev.key.toLowerCase() === "u") fileInput.click();
       else if (ev.key.toLowerCase() === "f") zoomToFit();
       else if (ev.key === "?") keysOverlay.hidden = !keysOverlay.hidden;
-      else if (ev.key === "Escape" && !keysOverlay.hidden) keysOverlay.hidden = true;
+      else if (ev.key === "Escape") {
+        // Esc closes the help overlay first; otherwise it deselects.
+        if (!keysOverlay.hidden) keysOverlay.hidden = true;
+        else if (selectedId) selectEl(null);
+      }
     });
 
     // ---------- creation ----------
