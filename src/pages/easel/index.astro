@@ -119,7 +119,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
             <dt>Arrow keys</dt><dd>Nudge selection 1 unit (<kbd>Shift</kbd> for 10)</dd>
             <dt><kbd>Alt</kbd> + drag</dt><dd>Move without snapping</dd>
-            <dt>Double-click</dt><dd>Edit text, sticky, or frame label</dd>
+            <dt>Double-click</dt><dd>Empty canvas: new sticky. On an element: edit text or label</dd>
             <dt>Scroll / pinch</dt><dd>Zoom · drag empty space to pan</dd>
             <dt><kbd>Esc</kbd></dt><dd>Deselect (closes this panel first)</dd>
             <dt><kbd>?</kbd></dt><dd>Toggle this panel</dd>
@@ -1083,6 +1083,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       zoom = next;
       applyView();
     }, { passive: false });
+    // Double-clicking empty canvas drops a sticky at the cursor (Miro/FigJam).
+    // Element dblclick edits in place and is ignored here via the target guard.
+    stage.addEventListener("dblclick", (ev) => {
+      if ((ev.target as HTMLElement).closest("[data-el-id]")) return;
+      addSticky(stagePoint(ev.clientX, ev.clientY));
+    });
 
     document.addEventListener("keydown", (ev) => {
       if (workspace.hidden) return;
@@ -1171,8 +1177,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       addElement({ type: "text", x: c.x - 160, y: c.y - 24, w: 320, h: 48,
         props: { text: "Double-click to edit", size: 28, weight: 600 } });
     };
-    const addSticky = () => {
-      const c = centerPoint();
+    const addSticky = (at?: { x: number; y: number }) => {
+      const c = at ?? centerPoint();
       addElement({ type: "sticky", x: c.x - 90, y: c.y - 90, w: 180, h: 180,
         props: { text: "New note", color: "#fff3a3" } });
     };
