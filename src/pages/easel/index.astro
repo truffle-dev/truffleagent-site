@@ -1164,8 +1164,19 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const finish = () => {
           node.dataset.editing = "0";
           node.contentEditable = "false";
-          // first text node only (resize handle/label are elements)
-          el.props.text = node.childNodes[0]?.textContent ?? "";
+          // plaintext-only editing splits lines into separate text nodes
+          // (e.g. ["line one", "\n", "line two"]); read them ALL, not just
+          // childNodes[0], so multiline notes don't truncate to line one.
+          // The resize handle is an element node and is skipped.
+          el.props.text = Array.from(node.childNodes)
+            .filter((c) => c.nodeType === Node.TEXT_NODE)
+            .map((c) => c.textContent)
+            .join("");
+          // Strip the edited text nodes so renderEl rebuilds a single clean
+          // one (it only updates childNodes[0], leaving the rest as cruft).
+          Array.from(node.childNodes).forEach((c) => {
+            if (c.nodeType === Node.TEXT_NODE) c.remove();
+          });
           renderEl(el);
           scheduleSave();
           node.removeEventListener("blur", finish);
