@@ -811,6 +811,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       list.unshift({ id, title });
       localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 12)));
     };
+    // Reflect the open board's name in the browser tab + bookmark title so
+    // multiple board tabs are distinguishable. Falls back to the static page
+    // title (captured before any board opens) on the landing view.
+    const BASE_DOC_TITLE = document.title;
+    const setDocTitle = (name: string) => {
+      const t = (name || "").trim();
+      document.title = t ? `${t} · Easel` : BASE_DOC_TITLE;
+    };
     const renderRecent = () => {
       const list = loadRecent();
       if (!list.length) return;
@@ -993,7 +1001,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       undoStack = [];
       redoStack = [];
       undoBase = JSON.stringify(doc.elements);
-      if (document.activeElement !== titleInput) titleInput.value = body.title;
+      if (document.activeElement !== titleInput) {
+        titleInput.value = body.title;
+        setDocTitle(body.title);
+      }
       renderDoc(animate);
     };
 
@@ -1685,7 +1696,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (fileInput.files?.length) uploadFiles(fileInput.files);
       fileInput.value = "";
     });
-    titleInput.addEventListener("input", scheduleSave);
+    titleInput.addEventListener("input", () => { setDocTitle(titleInput.value); scheduleSave(); });
 
     // ---------- boot ----------
     const openBoard = async (id: string) => {
@@ -1699,6 +1710,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       isPublic = body.is_public === true;
       reflectPublish();
       titleInput.value = body.title;
+      setDocTitle(body.title);
       hero.hidden = true;
       workspace.hidden = false;
       renderDoc();
