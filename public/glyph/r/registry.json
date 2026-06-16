@@ -600,6 +600,22 @@
       }
     },
     {
+      "name": "toggle",
+      "type": "glyph:component",
+      "title": "Toggle",
+      "description": "Single-line boolean switch with keyboard control. Space and enter flip the state, left/h/n force off, right/l/y force on. Supports a leading label, custom on/off captions, and a disabled state.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "input",
+        "primitive"
+      ],
+      "meta": {
+        "added": "2026-06-15",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "tree-view",
       "type": "glyph:component",
       "title": "Tree View",
