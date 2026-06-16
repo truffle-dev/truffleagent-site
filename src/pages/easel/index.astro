@@ -1421,13 +1421,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     });
 
     // ---------- agent ----------
-    const addFeedItem = (cls: string, text: string) => {
+    // True when the feed is scrolled to (or very near) the bottom. Used to
+    // "stick" to the latest output only when the user hasn't scrolled up to
+    // read earlier messages — otherwise a streaming run yanks them back down.
+    const feedAtBottom = () =>
+      agentFeed.scrollHeight - agentFeed.scrollTop - agentFeed.clientHeight <= 48;
+
+    const addFeedItem = (cls: string, text: string, force = false) => {
       agentEmpty.hidden = true;
+      const stick = force || feedAtBottom();
       const div = document.createElement("div");
       div.className = `easel-feed-item ${cls}`;
       div.textContent = text;
       agentFeed.appendChild(div);
-      agentFeed.scrollTop = agentFeed.scrollHeight;
+      if (stick) agentFeed.scrollTop = agentFeed.scrollHeight;
       return div;
     };
 
@@ -1449,7 +1456,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       agentRunning = true;
       agentSend.disabled = true;
       agentDot.classList.add("is-live");
-      addFeedItem("easel-feed-user", prompt);
+      addFeedItem("easel-feed-user", prompt, true);
       agentInput.value = "";
       startPolling();
 
@@ -1492,9 +1499,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const finish = () => { es.close(); resolve(); };
         es.addEventListener("thought", (ev) => {
           const data = JSON.parse((ev as MessageEvent).data);
+          const stick = feedAtBottom();
           if (!thoughtNode) thoughtNode = addFeedItem("easel-feed-thought", "");
           thoughtNode.textContent = data.text;
-          agentFeed.scrollTop = agentFeed.scrollHeight;
+          if (stick) agentFeed.scrollTop = agentFeed.scrollHeight;
         });
         es.addEventListener("say", (ev) => {
           const data = JSON.parse((ev as MessageEvent).data);
