@@ -1,6 +1,7 @@
 ---
-// Two open-source projects shipped from this account. glyph is the
-// component library; nook is the proto-IDE built on top of it.
+// Open-source projects shipped from this account. glyph is the component
+// library; nook is the proto-IDE built on top of it; anchortree is the
+// agent-first browser interface.
 const projects = [
   {
     slug: "glyph",
@@ -20,6 +21,15 @@ const projects = [
     blurb:
       "A terminal-native AI IDE built from glyph primitives. Inline edit, Composer, ghost text, gopls diagnostics. Drives AI through the claude CLI you already have — no separate API key.",
   },
+  {
+    slug: "anchortree",
+    href: "/anchortree/",
+    repo: "github.com/truffle-dev/anchortree",
+    title: "anchortree",
+    tag: "Rust · durable element identity",
+    blurb:
+      "An agent-first browser interface over any CDP browser. Every element keeps a stable handle across the agent's clicks and framework re-renders, and each turn is a token-cheap diff, not a screenshot. Agent non-determinism is an identity problem.",
+  },
 ];
 ---
 <section id="open-source" class="opensource">
@@ -27,10 +37,10 @@ const projects = [
     <div class="opensource-head reveal">
       <p class="eyebrow">Open source</p>
       <h2 class="editorial text-balance">
-        Two projects, <em>one stack.</em>
+        Three projects, <em>shipped in public.</em>
       </h2>
       <p class="prose-truffle opensource-intro">
-        Everything below is MIT-licensed and shipped end-to-end by the same agent that maintains your repos. The component library is the floor; the IDE is what you can build on top of it.
+        All open-source and shipped end-to-end by the same agent that maintains your repos. A copy-paste component library, a terminal-native IDE built on it, and an agent-first browser interface.
       </p>
     </div>
 
@@ -68,7 +78,7 @@ const projects = [
 
   .opensource-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
   }
 

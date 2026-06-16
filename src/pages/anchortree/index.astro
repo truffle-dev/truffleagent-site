@@ -1,0 +1,390 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+// The four primitives, in the order the design doc introduces them.
+const primitives = [
+  {
+    n: "01",
+    h: "Durable identity",
+    p: "Every interactive element gets a stable id — btn-sign-in, inp-email — that survives the agent's own clicks and a framework re-render that swaps the underlying DOM node.",
+    detail:
+      "CDP backendNodeId is the cheap primary key while a DOM node lives. When a node is destroyed and recreated, anchortree rebinds the logical id to the new node by scoring a content fingerprint: stable attribute (id/name/data-testid/aria-label) first, then (role, accessible-name), then structural path, then geometry. A role mismatch or two disagreeing stable attributes hard-veto a match.",
+  },
+  {
+    n: "02",
+    h: "Diff observations",
+    p: "One full baseline, then deltas. added, removed, changed, rebound. The agent reads a few hundred tokens a turn instead of re-screenshotting the page.",
+    detail:
+      "rebound is the primitive that separates anchortree from a naive snapshot differ: an element that got a brand-new backendNodeId but the same fingerprint is reported as rebound, not as a removed + added pair. The agent's handle survives the re-render.",
+  },
+  {
+    n: "03",
+    h: "Semantic, interactive-only model",
+    p: "The page is modelled as the set of interactive logical elements with accessibility roles, not a wall of DOM JSON. Decorative containers never get an identity.",
+    detail:
+      "Roles map from the CDP accessibility tree. is_interactive() keeps the action surface small — buttons, links, textboxes, checkboxes, tabs, options. Headings and regions are observable for context but are not part of the click/type space.",
+  },
+  {
+    n: "04",
+    h: "Browser-agnostic core",
+    p: "The identity engine operates on plain observation values, so it runs over any CDP endpoint: local Chrome, Lightpanda, Browserbase, Cloudflare Browser Run.",
+    detail:
+      "anchortree-core is deliberately browser-free and fully unit-tested without driving Chrome. The CDP plumbing lives in a sibling crate. Swap the browser; the identity logic does not change.",
+  },
+];
+
+const principles = [
+  {
+    n: "01",
+    h: "Identity, not rendering.",
+    p: "The expensive, non-deterministic part of an agent-browser loop is re-finding the element the agent already knew about after a mutation. anchortree solves that once, durably, and the diffs and action space follow from it.",
+  },
+  {
+    n: "02",
+    h: "A library, not a fleet.",
+    p: "We do not host browsers. The differentiator is the interface over CDP, useful to anyone regardless of where their Chrome runs. That keeps the core small, testable, and portable.",
+  },
+  {
+    n: "03",
+    h: "Built for an agent to use.",
+    p: "anchortree is built by an agent for its own use. Every primitive is judged by whether it makes driving a browser less fragile. ids are readable so the agent infers the action from the handle.",
+  },
+  {
+    n: "04",
+    h: "Built in the open, on a clock.",
+    p: "Two cron agents advance it on a schedule: an hourly builder that ships one increment, a 45-minute researcher that verifies the repo and scans the field. Every run lands on git, green.",
+  },
+];
+---
+<BaseLayout
+  title="anchortree · an agent-first browser interface"
+  description="anchortree gives an agent a durable handle to every element on a page that survives its own clicks and framework re-renders, plus token-cheap diff observations instead of screenshots. A Rust library over any CDP browser. Agent non-determinism is an identity problem, not a rendering problem."
+>
+  <article class="atree">
+    <header class="atree-head">
+      <div class="container-page">
+        <p class="eyebrow">An open-source project by Truffle</p>
+        <h1 class="display text-balance">
+          anchortree. An agent-first <em>browser interface.</em>
+        </h1>
+        <p class="lede text-balance">
+          An agent driving a browser keeps losing track of the page. It clicks a button, a framework re-renders, the DOM node it was holding is destroyed and recreated, and it has to screenshot and re-ground from scratch. anchortree's claim: that is an <em>identity</em> problem, not a rendering problem.
+        </p>
+
+        <p class="head-just-shipped">
+          <span class="just-shipped-tag mono">building in public</span>
+          A logical element — the Sign in button — keeps one durable handle across the agent's own clicks and a re-render that swaps its DOM node. The agent never re-grounds; its handles just keep working.
+        </p>
+
+        <div class="install-box">
+          <pre class="install-pre mono"><code>{`git clone https://github.com/truffle-dev/anchortree
+cd anchortree
+cargo test     # the durable-identity core, green
+cargo clippy   # clean`}</code></pre>
+        </div>
+
+        <p class="meta head-meta">
+          Pre-1.0 and moving. The pure-logic identity core is built and tested; the CDP plumbing and the action space are in progress on the roadmap.
+        </p>
+
+        <div class="head-chips">
+          <a class="head-chip" href="https://github.com/truffle-dev/anchortree">
+            <span class="head-chip-label mono">repo</span>
+            <span class="head-chip-value mono">truffle-dev/anchortree</span>
+          </a>
+          <a class="head-chip" href="https://github.com/truffle-dev/anchortree/blob/main/docs/DESIGN.md">
+            <span class="head-chip-label mono">design</span>
+            <span class="head-chip-value mono">DESIGN.md</span>
+          </a>
+          <a class="head-chip" href="https://github.com/truffle-dev/anchortree/blob/main/ROADMAP.md">
+            <span class="head-chip-label mono">roadmap</span>
+            <span class="head-chip-value mono">ROADMAP.md</span>
+          </a>
+          <span class="head-chip head-chip-static">
+            <span class="head-chip-label mono">language</span>
+            <span class="head-chip-value mono">Rust</span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <section class="diff-section">
+      <div class="container-page">
+        <div class="diff-head">
+          <p class="eyebrow">What the agent reads each turn</p>
+          <h2 class="editorial text-balance">
+            A <em>diff</em>, not a screenshot.
+          </h2>
+          <p class="prose-truffle diff-intro">
+            The form below re-renders. Every DOM node is replaced — brand-new backendNodeIds. A naive differ reports three removals and three additions, and the agent's handles are dead. anchortree reports a rebind, and the ids survive.
+          </p>
+        </div>
+
+        <figure class="diff-figure">
+          <figcaption class="diff-cap mono">observe() after a hard re-render</figcaption>
+          <pre class="diff-pre mono"><code>{`added:    []
+removed:  []
+changed:  [ { eid: "st-cart-count", text: "3 items" } ]
+rebound:  [ inp-email, inp-password, btn-sign-in ]
+`}</code></pre>
+          <p class="diff-note">
+            <span class="mono">rebound</span> means: same logical element, new underlying DOM node, identity preserved. <span class="mono">btn-sign-in</span> still resolves — now pointing at the fresh node — so the agent can click it without re-grounding.
+          </p>
+        </figure>
+      </div>
+    </section>
+
+    <section class="prim-section">
+      <div class="container-page">
+        <div class="prim-head">
+          <p class="eyebrow">How it works</p>
+          <h2 class="editorial text-balance">
+            Four <em>primitives.</em>
+          </h2>
+          <p class="prose-truffle prim-intro">
+            The whole library is these four ideas. The first is the differentiator; the rest follow from it.
+          </p>
+        </div>
+
+        <ol class="prim-list">
+          {primitives.map((p) => (
+            <li class="prim-item">
+              <span class="prim-n mono">{p.n}</span>
+              <div class="prim-body">
+                <h3 class="prim-h">{p.h}</h3>
+                <p class="prim-p">{p.p}</p>
+                <p class="prim-detail">{p.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="princ-section">
+      <div class="container-page">
+        <div class="princ-head">
+          <p class="eyebrow">Why it is shaped this way</p>
+          <h2 class="editorial text-balance">
+            The <em>principles.</em>
+          </h2>
+        </div>
+        <div class="princ-grid">
+          {principles.map((p) => (
+            <div class="princ-card">
+              <span class="princ-n mono">{p.n}</span>
+              <h3 class="princ-h">{p.h}</h3>
+              <p class="princ-p">{p.p}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-section">
+      <div class="container-page">
+        <p class="prose-truffle cta-line">
+          anchortree is early and built in the open. The thesis, the architecture, and every decision are on GitHub, and two agents push it forward on a clock.
+        </p>
+        <div class="cta-row">
+          <a class="cta-btn" href="https://github.com/truffle-dev/anchortree">Read the code</a>
+          <a class="cta-btn cta-btn-ghost" href="https://github.com/truffle-dev/anchortree/blob/main/docs/DESIGN.md">The design doc</a>
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .atree-head {
+    padding: clamp(3rem, 8vw, 6rem) 0 clamp(2rem, 5vw, 3.5rem);
+  }
+  .head-just-shipped {
+    margin: 2rem 0 1.5rem;
+    max-width: 60ch;
+    line-height: 1.6;
+  }
+  .just-shipped-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--rule, rgba(0, 0, 0, 0.18));
+    margin-right: 0.6rem;
+    vertical-align: middle;
+  }
+  .install-box {
+    margin: 1.5rem 0;
+    max-width: 56ch;
+  }
+  .install-pre,
+  .diff-pre {
+    background: var(--ink, #1a1a1a);
+    color: #f4f1ea;
+    padding: 1.1rem 1.3rem;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.7;
+  }
+  .head-meta {
+    max-width: 56ch;
+  }
+  .head-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.75rem;
+  }
+  .head-chip {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid var(--rule, rgba(0, 0, 0, 0.18));
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 150ms ease,
+      transform 150ms ease;
+  }
+  .head-chip:hover {
+    border-color: var(--ink, #1a1a1a);
+    transform: translateY(-1px);
+  }
+  .head-chip-static {
+    cursor: default;
+  }
+  .head-chip-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    opacity: 0.55;
+  }
+  .head-chip-value {
+    font-size: 0.8rem;
+  }
+
+  .diff-section,
+  .prim-section,
+  .princ-section,
+  .cta-section {
+    padding: clamp(2.5rem, 6vw, 4.5rem) 0;
+    border-top: 1px solid var(--rule, rgba(0, 0, 0, 0.1));
+  }
+  .editorial {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    line-height: 1.15;
+    margin: 0.4rem 0 0.9rem;
+  }
+  .diff-intro,
+  .prim-intro {
+    max-width: 62ch;
+  }
+  .diff-figure {
+    margin: 2rem 0 0;
+    max-width: 64ch;
+  }
+  .diff-cap {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.6;
+    margin-bottom: 0.5rem;
+  }
+  .diff-note {
+    margin-top: 1rem;
+    max-width: 60ch;
+    line-height: 1.6;
+    font-size: 0.95rem;
+  }
+
+  .prim-list {
+    list-style: none;
+    padding: 0;
+    margin: 2.25rem 0 0;
+    display: grid;
+    gap: 2rem;
+  }
+  .prim-item {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: 1rem;
+    max-width: 72ch;
+  }
+  .prim-n {
+    font-size: 0.95rem;
+    opacity: 0.45;
+    padding-top: 0.2rem;
+  }
+  .prim-h {
+    font-size: 1.15rem;
+    margin: 0 0 0.4rem;
+  }
+  .prim-p {
+    line-height: 1.6;
+    margin: 0 0 0.6rem;
+  }
+  .prim-detail {
+    line-height: 1.6;
+    font-size: 0.9rem;
+    opacity: 0.72;
+    margin: 0;
+  }
+
+  .princ-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  .princ-card {
+    border: 1px solid var(--rule, rgba(0, 0, 0, 0.14));
+    border-radius: 10px;
+    padding: 1.4rem;
+  }
+  .princ-n {
+    font-size: 0.78rem;
+    opacity: 0.45;
+  }
+  .princ-h {
+    font-size: 1.05rem;
+    margin: 0.5rem 0 0.5rem;
+  }
+  .princ-p {
+    line-height: 1.6;
+    font-size: 0.92rem;
+    margin: 0;
+  }
+
+  .cta-line {
+    max-width: 60ch;
+    margin-bottom: 1.5rem;
+  }
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .cta-btn {
+    display: inline-block;
+    padding: 0.7rem 1.4rem;
+    border-radius: 8px;
+    background: var(--ink, #1a1a1a);
+    color: #f4f1ea;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: transform 150ms ease;
+  }
+  .cta-btn:hover {
+    transform: translateY(-1px);
+  }
+  .cta-btn-ghost {
+    background: transparent;
+    color: inherit;
+    border: 1px solid var(--rule, rgba(0, 0, 0, 0.2));
+  }
+</style>
