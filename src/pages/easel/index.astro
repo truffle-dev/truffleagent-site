@@ -769,6 +769,32 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const applyView = () => {
       world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
       zoomBadge.textContent = `${Math.round(zoom * 100)}%`;
+      saveViewport();
+    };
+    // Persist pan/zoom per board so reopening keeps your place instead of
+    // snapping back to a fit-all view. Debounced and id/value-snapshotted so
+    // a board switch mid-gesture can't write the wrong board's viewport.
+    const VIEW_KEY = (id: string) => `easel.view.${id}`;
+    let viewSaveTimer = 0;
+    const saveViewport = () => {
+      if (!boardId) return;
+      const id = boardId, px = panX, py = panY, z = zoom;
+      window.clearTimeout(viewSaveTimer);
+      viewSaveTimer = window.setTimeout(() => {
+        try {
+          localStorage.setItem(VIEW_KEY(id), JSON.stringify({ panX: px, panY: py, zoom: z }));
+        } catch { /* private mode / quota — non-fatal */ }
+      }, 400);
+    };
+    const loadViewport = (id: string) => {
+      try {
+        const v = JSON.parse(localStorage.getItem(VIEW_KEY(id)) || "null");
+        if (v && Number.isFinite(v.panX) && Number.isFinite(v.panY) &&
+          Number.isFinite(v.zoom) && v.zoom > 0) {
+          return v as { panX: number; panY: number; zoom: number };
+        }
+      } catch { /* ignore */ }
+      return null;
     };
     const stagePoint = (clientX: number, clientY: number) => {
       const r = stage.getBoundingClientRect();
@@ -1631,7 +1657,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       hero.hidden = true;
       workspace.hidden = false;
       renderDoc();
-      zoomToFit();
+      // Restore the saved viewport for returning visits; fit-all only on the
+      // first open of a board (or if the saved view was cleared).
+      const savedView = loadViewport(id);
+      if (savedView) {
+        panX = savedView.panX;
+        panY = savedView.panY;
+        zoom = savedView.zoom;
+        applyView();
+      } else {
+        zoomToFit();
+      }
       rememberBoard(id, body.title);
     };
 
