@@ -106,6 +106,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <p class="easel-empty-hint-sub">Double-click to drop a note, drag in an image, or ask the agent below to build the board for you.</p>
         </div>
         <div class="easel-drop-hint" id="drop-hint" hidden>Drop images to add them to the board</div>
+        <div class="easel-swatches" id="swatches" role="group" aria-label="Sticky color" hidden>
+          <button class="easel-swatch" type="button" data-color="#fff3a3" title="Yellow" aria-label="Yellow" style="background:#fff3a3"></button>
+          <button class="easel-swatch" type="button" data-color="#ffd1a3" title="Peach" aria-label="Peach" style="background:#ffd1a3"></button>
+          <button class="easel-swatch" type="button" data-color="#ffc9d4" title="Pink" aria-label="Pink" style="background:#ffc9d4"></button>
+          <button class="easel-swatch" type="button" data-color="#d4c5ff" title="Purple" aria-label="Purple" style="background:#d4c5ff"></button>
+          <button class="easel-swatch" type="button" data-color="#bcdcff" title="Blue" aria-label="Blue" style="background:#bcdcff"></button>
+          <button class="easel-swatch" type="button" data-color="#c7f0c2" title="Green" aria-label="Green" style="background:#c7f0c2"></button>
+        </div>
         <button class="easel-zoom-badge" id="zoom-badge" type="button" title="Reset zoom to 100%">100%</button>
         <div class="easel-keys" id="keys-overlay" role="dialog" aria-label="Keyboard shortcuts" hidden>
           <h2 class="easel-keys-title">Keyboard shortcuts</h2>
@@ -379,6 +387,36 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: rgba(253, 251, 247, 0.85);
       pointer-events: none;
       z-index: 5;
+    }
+    /* Sticky color palette: a fixed bar at the top of the stage, shown only
+       while a sticky is selected. Fixed position (not anchored to the element)
+       avoids pan/zoom math; the stage is always light paper in both themes. */
+    .easel-swatches {
+      position: absolute;
+      top: 0.9rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0.4rem;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+      z-index: 6;
+    }
+    .easel-swatch {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+    }
+    .easel-swatch:hover { transform: scale(1.12); }
+    .easel-swatch.is-active {
+      border-color: rgba(0, 0, 0, 0.55);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(0, 0, 0, 0.4);
     }
     .easel-zoom-badge {
       position: absolute;
@@ -692,6 +730,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const stage = $("stage");
     const world = $("world");
     const emptyHint = $("empty-hint");
+    const swatches = $("swatches");
     const dropHint = $("drop-hint");
     const keysOverlay = $("keys-overlay");
     const zoomBadge = $("zoom-badge");
@@ -1021,6 +1060,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       selectedId = id;
       world.querySelectorAll<HTMLElement>("[data-el-id]").forEach((n) => {
         n.classList.toggle("is-selected", n.dataset.elId === id);
+      });
+      reflectSwatches();
+    };
+
+    // The color palette is meaningful only for stickies; show it on selection
+    // and mark the swatch matching the current color.
+    const reflectSwatches = () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      const isSticky = !!el && el.type === "sticky";
+      swatches.hidden = !isSticky;
+      if (!isSticky) return;
+      const cur = String(el!.props.color || "#fff3a3").toLowerCase();
+      swatches.querySelectorAll<HTMLButtonElement>(".easel-swatch").forEach((b) => {
+        b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === cur);
       });
     };
 
@@ -1492,6 +1545,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       panY = cy - ((cy - panY) / zoom) * 1;
       zoom = 1;
       applyView();
+    });
+    // Keep clicks on the palette from reaching the stage, which would
+    // deselect the sticky (and start a pan) before the recolor click fires.
+    swatches.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    // Recolor the selected sticky from the palette.
+    swatches.addEventListener("click", (ev) => {
+      const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>(".easel-swatch");
+      if (!btn || !selectedId) return;
+      const el = getEl(selectedId);
+      if (!el || el.type !== "sticky") return;
+      el.props.color = btn.dataset.color;
+      renderEl(el);
+      reflectSwatches();
+      scheduleSave();
     });
     $("tool-keys").addEventListener("click", () => { keysOverlay.hidden = !keysOverlay.hidden; });
     $("tool-share").addEventListener("click", async () => {
