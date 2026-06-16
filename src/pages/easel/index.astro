@@ -1624,12 +1624,39 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       scheduleSave();
     });
     $("tool-keys").addEventListener("click", () => { keysOverlay.hidden = !keysOverlay.hidden; });
+    // Copy with a fallback: the async Clipboard API throws when the document
+    // isn't focused (NotAllowedError) or is missing in some embedded webviews,
+    // which used to fail the Share click silently. Fall back to a hidden
+    // textarea + execCommand so the link still copies, and report failure.
+    const copyText = async (text: string): Promise<boolean> => {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch { /* fall through to the legacy path */ }
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.top = "-1000px";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        ta.remove();
+        return ok;
+      } catch {
+        return false;
+      }
+    };
     $("tool-share").addEventListener("click", async () => {
       if (!boardId) return;
-      await navigator.clipboard.writeText(`${location.origin}/easel/?b=${boardId}`);
       const btn = $("tool-share");
       const prev = btn.textContent;
-      btn.textContent = "Copied";
+      const ok = await copyText(`${location.origin}/easel/?b=${boardId}`);
+      btn.textContent = ok ? "Copied" : "Copy failed";
       window.setTimeout(() => { btn.textContent = prev; }, 1200);
     });
     const reflectPublish = () => {
