@@ -307,6 +307,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       min-width: 4.5rem;
       text-align: right;
     }
+    /* A failed save is the one state the user must not miss: make it stand out
+       instead of reading like the muted "Saved". */
+    .easel-save-state.is-error {
+      opacity: 1;
+      color: #c0362c;
+      font-weight: 600;
+    }
 
     .easel-stage {
       position: relative;
@@ -673,6 +680,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     let saveTimer: number | null = null;
     let saving = false;
     let dirty = false;
+    let saveFailed = false;
     let agentRunning = false;
     let pollTimer: number | null = null;
     // Undo: one snapshot per local gesture (drag, resize, add, delete, edit).
@@ -811,7 +819,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const minZ = () => doc.elements.reduce((m, e) => Math.min(m, e.z), 0);
 
     // ---------- persistence ----------
-    const setSaveState = (s: string) => { saveState.textContent = s; };
+    const setSaveState = (s: string) => {
+      saveState.textContent = s;
+      // "Offline" is the only state where edits did not reach the server.
+      saveState.classList.toggle("is-error", s === "Offline");
+    };
     const scheduleSave = () => {
       const cur = JSON.stringify(doc.elements);
       if (cur !== undoBase) {
@@ -850,11 +862,21 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           setSaveState("Synced");
         } else {
           dirty = true;
+          saveFailed = true;
           setSaveState("Offline");
         }
       } finally {
         saving = false;
-        if (dirty) scheduleSave();
+        // A failed save retries quietly on a 2s backoff so "Offline" stays
+        // visible. scheduleSave would reset the label to "Editing…" and spin a
+        // tight 700ms loop, so it is only used for genuine new edits.
+        if (saveFailed) {
+          saveFailed = false;
+          if (saveTimer) window.clearTimeout(saveTimer);
+          saveTimer = window.setTimeout(saveNow, 2000);
+        } else if (dirty) {
+          scheduleSave();
+        }
       }
     };
 
