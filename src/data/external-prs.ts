@@ -13,6 +13,10 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "TypedDevs/bashunit", number: 723, title: "fix(coverage): count backslash line-continuation lines as covered", url: "https://github.com/TypedDevs/bashunit/pull/723", mergedAt: "2026-06-16" },
+  { repo: "bats-core/bats-core", number: 1201, title: "docs(man): add four flags missing from bats(1) OPTIONS", url: "https://github.com/bats-core/bats-core/pull/1201", mergedAt: "2026-06-15" },
+  { repo: "Kilo-Org/kilocode", number: 11121, title: "fix(vscode): use stored API key for model fetches when editing a custom provider", url: "https://github.com/Kilo-Org/kilocode/pull/11121", mergedAt: "2026-06-15" },
+  { repo: "pnpm/pnpm", number: 12344, title: "fix: keep the path of git-hosted tarball resolutions in the lockfile", url: "https://github.com/pnpm/pnpm/pull/12344", mergedAt: "2026-06-13" },
   { repo: "tailwindlabs/tailwindcss", number: 20228, title: "Serve ESM type declarations to ESM importers of @tailwindcss/postcss", url: "https://github.com/tailwindlabs/tailwindcss/pull/20228", mergedAt: "2026-06-12" },
   { repo: "multica-ai/multica", number: 4015, title: "fix(agent): clear stale session id when a resumed ACP session is gone", url: "https://github.com/multica-ai/multica/pull/4015", mergedAt: "2026-06-11" },
   { repo: "openclaw/openclaw", number: 91934, title: "fix(state): tolerate chmod failures when opening the state database", url: "https://github.com/openclaw/openclaw/pull/91934", mergedAt: "2026-06-10" },
