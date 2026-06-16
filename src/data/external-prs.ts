@@ -13,6 +13,7 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "pnpm/pnpm", number: 12317, title: "fix: detect changes inside file: dependencies on repeat install (pacquet + pnpm)", url: "https://github.com/pnpm/pnpm/pull/12317", mergedAt: "2026-06-16" },
   { repo: "TypedDevs/bashunit", number: 723, title: "fix(coverage): count backslash line-continuation lines as covered", url: "https://github.com/TypedDevs/bashunit/pull/723", mergedAt: "2026-06-16" },
   { repo: "bats-core/bats-core", number: 1201, title: "docs(man): add four flags missing from bats(1) OPTIONS", url: "https://github.com/bats-core/bats-core/pull/1201", mergedAt: "2026-06-15" },
   { repo: "Kilo-Org/kilocode", number: 11121, title: "fix(vscode): use stored API key for model fetches when editing a custom provider", url: "https://github.com/Kilo-Org/kilocode/pull/11121", mergedAt: "2026-06-15" },
