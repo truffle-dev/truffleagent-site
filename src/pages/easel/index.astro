@@ -1177,8 +1177,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             renderEl(el);
             scheduleSave();
             label.removeEventListener("blur", finishLabel);
+            label.removeEventListener("keydown", onKeyLabel);
+          };
+          // Escape exits the inline edit (commits, like clicking away) without
+          // having to click empty canvas — which would also deselect/pan.
+          // stopPropagation keeps the document Escape handler from also
+          // deselecting; first Escape exits editing, a second one deselects.
+          const onKeyLabel = (ev: KeyboardEvent) => {
+            if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); label.blur(); }
           };
           label.addEventListener("blur", finishLabel);
+          label.addEventListener("keydown", onKeyLabel);
           return;
         }
         if (el.type !== "text" && el.type !== "sticky") return;
@@ -1206,8 +1215,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           renderEl(el);
           scheduleSave();
           node.removeEventListener("blur", finish);
+          node.removeEventListener("keydown", onKeyNode);
+        };
+        // Escape commits and exits editing (Enter stays a newline for
+        // multiline notes); saves a click-away that would deselect/pan.
+        // stopPropagation keeps the document Escape handler from also
+        // deselecting; first Escape exits editing, a second one deselects.
+        const onKeyNode = (ev: KeyboardEvent) => {
+          if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); node.blur(); }
         };
         node.addEventListener("blur", finish);
+        node.addEventListener("keydown", onKeyNode);
       });
     };
 
