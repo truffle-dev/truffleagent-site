@@ -403,7 +403,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       position: absolute;
       box-sizing: border-box;
       user-select: none;
+      cursor: grab;
     }
+    .easel-el.is-grabbing { cursor: grabbing; }
     .easel-el.is-agent-moving {
       transition: top 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
                   left 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
@@ -982,6 +984,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const start = stagePoint(ev.clientX, ev.clientY);
         const orig = { x: el.x, y: el.y, w: el.w, h: el.h };
         const ratio = orig.w / Math.max(orig.h, 1);
+        // Body drag shows the closed-hand cursor; resize keeps its corner cursor.
+        if (!resizing) node.classList.add("is-grabbing");
         node.setPointerCapture(ev.pointerId);
 
         const onMove = (mv: PointerEvent) => {
@@ -1006,6 +1010,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         };
         const onUp = () => {
           clearGuides();
+          node.classList.remove("is-grabbing");
           node.removeEventListener("pointermove", onMove);
           node.removeEventListener("pointerup", onUp);
           scheduleSave();
