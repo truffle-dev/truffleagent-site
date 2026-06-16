@@ -151,7 +151,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             id="agent-input"
             rows="2"
             maxlength={maxPrompt}
-            placeholder="Tell the agent what to do with this board…"
+            placeholder="Tell the agent what to do with this board… (Enter to send, Shift+Enter for a new line)"
           ></textarea>
           <button class="easel-btn easel-btn-primary easel-agent-send" id="agent-send" type="submit">
             Run
@@ -1419,6 +1419,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         agentDot.classList.remove("is-live");
         stopPolling();
         refetchBoard(true).catch(() => {});
+      }
+    });
+
+    // Enter sends the prompt; Shift+Enter inserts a newline (standard chat input).
+    // requestSubmit fires the form's submit handler (unlike .submit()); the
+    // isComposing guard keeps IME candidate selection from sending early.
+    agentInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) {
+        ev.preventDefault();
+        agentForm.requestSubmit();
       }
     });
 
