@@ -21,6 +21,22 @@
       }
     },
     {
+      "name": "badge",
+      "type": "glyph:component",
+      "title": "Badge",
+      "description": "Compact status pill. Six semantic variants (Neutral, Primary, Success, Warning, Error, Info) in a filled or outline appearance, with optional uppercase folding. Value-based and stateless: build with chained options and call Render.",
+      "version": "0.1.0",
+      "frame": "bubbletea",
+      "categories": [
+        "display",
+        "primitive"
+      ],
+      "meta": {
+        "added": "2026-06-16",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "breadcrumb",
       "type": "glyph:component",
       "title": "Breadcrumb",
