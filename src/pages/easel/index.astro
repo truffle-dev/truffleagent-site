@@ -102,7 +102,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       <div class="easel-stage" id="stage">
         <div class="easel-world" id="world"></div>
         <div class="easel-drop-hint" id="drop-hint" hidden>Drop images to add them to the board</div>
-        <div class="easel-zoom-badge" id="zoom-badge">100%</div>
+        <button class="easel-zoom-badge" id="zoom-badge" type="button" title="Reset zoom to 100%">100%</button>
         <div class="easel-keys" id="keys-overlay" role="dialog" aria-label="Keyboard shortcuts" hidden>
           <h2 class="easel-keys-title">Keyboard shortcuts</h2>
           <dl class="easel-keys-list">
@@ -350,7 +350,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: rgba(0, 0, 0, 0.07);
       z-index: 4;
       user-select: none;
+      border: 0;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
     }
+    .easel-zoom-badge:hover { background: rgba(0, 0, 0, 0.13); }
     .easel-keys {
       position: absolute;
       right: 0.9rem;
@@ -1402,6 +1407,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     $("tool-frame").addEventListener("click", addFrame);
     $("tool-upload").addEventListener("click", () => fileInput.click());
     $("tool-zoom-fit").addEventListener("click", zoomToFit);
+    // Clicking the zoom badge resets to 100%, anchored on the stage center
+    // (same zoom-around-a-point math as the wheel handler) so the view stays put.
+    zoomBadge.addEventListener("click", () => {
+      const r = stage.getBoundingClientRect();
+      const cx = r.width / 2, cy = r.height / 2;
+      panX = cx - ((cx - panX) / zoom) * 1;
+      panY = cy - ((cy - panY) / zoom) * 1;
+      zoom = 1;
+      applyView();
+    });
     $("tool-keys").addEventListener("click", () => { keysOverlay.hidden = !keysOverlay.hidden; });
     $("tool-share").addEventListener("click", async () => {
       if (!boardId) return;
