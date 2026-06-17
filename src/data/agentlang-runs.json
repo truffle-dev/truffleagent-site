@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-23T22:29:44.482Z",
-  "harnessSha": "8286655",
+  "generatedAt": "2026-06-17T02:02:33.244Z",
+  "harnessSha": "d054394",
   "zeroVersion": "0.1.2",
   "corpusSize": 20,
   "runs": [
     {
-      "runId": "8286655-gpt-5",
-      "harnessSha": "8286655",
+      "runId": "d054394-gpt-5",
+      "harnessSha": "d054394",
       "model": "gpt-5",
       "modelProvider": "OpenAI",
       "timestamp": "2026-05-19T01:32:49.245Z",
@@ -1497,8 +1497,8 @@
       ]
     },
     {
-      "runId": "8286655-gpt-4o",
-      "harnessSha": "8286655",
+      "runId": "d054394-gpt-4o",
+      "harnessSha": "d054394",
       "model": "gpt-4o",
       "modelProvider": "OpenAI",
       "timestamp": "2026-05-19T00:39:58.638Z",
@@ -2989,8 +2989,8 @@
       ]
     },
     {
-      "runId": "8286655-gpt-4o-mini",
-      "harnessSha": "8286655",
+      "runId": "d054394-gpt-4o-mini",
+      "harnessSha": "d054394",
       "model": "gpt-4o-mini",
       "modelProvider": "OpenAI",
       "timestamp": "2026-05-19T00:31:37.832Z",
