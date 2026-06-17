@@ -145,7 +145,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         <div class="easel-agent-head">
           <span class="easel-agent-dot" id="agent-dot"></span>
           <span class="easel-agent-name">Agent</span>
-          <button class="easel-agent-collapse" id="agent-collapse" type="button" aria-label="Collapse agent panel">–</button>
+          <button class="easel-agent-collapse" id="agent-collapse" type="button" aria-label="Collapse agent panel" aria-expanded="true">–</button>
         </div>
         <div class="easel-agent-feed" id="agent-feed">
           <p class="easel-agent-empty" id="agent-empty">
@@ -1641,7 +1641,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       });
 
     $("agent-collapse").addEventListener("click", () => {
-      $("agent-dock").classList.toggle("is-collapsed");
+      // Reflect the toggled state on the button: collapsed shows "+" (expand),
+      // expanded shows "–" (collapse). Without this the button stayed "–" after
+      // collapsing, giving no hint it reopens the panel.
+      const collapsed = $("agent-dock").classList.toggle("is-collapsed");
+      const btn = $("agent-collapse");
+      btn.textContent = collapsed ? "+" : "–";
+      btn.setAttribute("aria-label", collapsed ? "Expand agent panel" : "Collapse agent panel");
+      btn.setAttribute("aria-expanded", String(!collapsed));
     });
 
     // ---------- toolbar ----------
