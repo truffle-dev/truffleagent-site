@@ -143,7 +143,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       <!-- Agent dock -->
       <aside class="easel-agent" id="agent-dock">
         <div class="easel-agent-head">
-          <span class="easel-agent-dot" id="agent-dot"></span>
+          <span class="easel-agent-dot" id="agent-dot" role="status" title="Agent idle"><span class="easel-sr-only" id="agent-status-text">Agent idle</span></span>
           <span class="easel-agent-name">Agent</span>
           <button class="easel-agent-collapse" id="agent-collapse" type="button" aria-label="Collapse agent panel" aria-expanded="true">–</button>
         </div>
@@ -619,6 +619,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: #9aa0a6;
       flex: none;
     }
+    /* Visually-hidden status text inside the dot. role="status" on the dot makes
+       it a live region; toggling this text announces "Agent working"/"Agent idle"
+       to assistive tech without disturbing the 9px visual. */
+    .easel-sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
     .easel-agent-dot.is-live {
       background: #2fb344;
       animation: easel-pulse 1.4s ease-in-out infinite;
@@ -757,6 +771,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const agentInput = $<HTMLTextAreaElement>("agent-input");
     const agentSend = $<HTMLButtonElement>("agent-send");
     const agentDot = $("agent-dot");
+    const agentStatusText = $("agent-status-text");
+    // Single chokepoint for the agent activity dot: toggles the pulse and updates
+    // the announced status text + hover tooltip so the state is legible to both
+    // sighted and assistive-tech users.
+    const setAgentLive = (live: boolean) => {
+      agentDot.classList.toggle("is-live", live);
+      const label = live ? "Agent working" : "Agent idle";
+      agentStatusText.textContent = label;
+      agentDot.title = label;
+    };
 
     let boardId: string | null = null;
     let doc: Doc = { elements: [], background: "white" };
@@ -1638,7 +1662,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 
       agentRunning = true;
       agentSend.disabled = true;
-      agentDot.classList.add("is-live");
+      setAgentLive(true);
       addFeedItem("easel-feed-user", prompt, true);
       agentInput.value = "";
       autoGrowInput();
@@ -1660,7 +1684,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       } finally {
         agentRunning = false;
         agentSend.disabled = false;
-        agentDot.classList.remove("is-live");
+        setAgentLive(false);
         stopPolling();
         refetchBoard(true).catch(() => {});
       }
