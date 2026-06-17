@@ -353,6 +353,23 @@
       }
     },
     {
+      "name": "multi-select",
+      "type": "glyph:component",
+      "title": "Multi-Select",
+      "description": "Bounded multi-choice list with checkbox rows, optional typeahead filter, and a selection that survives filtering. The picker for \"zero or more of these\": files to stage, tags to attach, scopes to grant.",
+      "version": "0.2.0",
+      "frame": "bubbletea",
+      "categories": [
+        "form",
+        "input",
+        "navigation"
+      ],
+      "meta": {
+        "added": "2026-06-17",
+        "frame": "bubbletea"
+      }
+    },
+    {
       "name": "notification-toast",
       "type": "glyph:component",
       "title": "Notification Toast",
