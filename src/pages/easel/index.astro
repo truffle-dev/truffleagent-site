@@ -754,6 +754,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     let boardId: string | null = null;
     let doc: Doc = { elements: [], background: "white" };
     let version = 0;
+    // Last non-empty title the server accepted. The board PUT keeps the stored
+    // title when an empty one is sent (COALESCE), so blanking the input must not
+    // be treated as a real rename client-side — we restore from this on blur.
+    let currentTitle = "";
     let isPublic = false;
     let selectedId: string | null = null;
     let nextElNum = 1;
@@ -971,7 +975,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         });
         version = body.version;
         setSaveState("Saved");
-        rememberBoard(boardId, titleInput.value);
+        // A blank input is a no-op rename server-side, so never store it in the
+        // recent list (it would show the raw id); fall back to the kept title.
+        if (titleInput.value.trim()) currentTitle = titleInput.value.trim();
+        rememberBoard(boardId, currentTitle);
       } catch (err: any) {
         if (err.status === 409) {
           // Agent (or another tab) moved the board forward; refetch and merge
@@ -1008,6 +1015,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       undoStack = [];
       redoStack = [];
       undoBase = JSON.stringify(doc.elements);
+      currentTitle = body.title;
       if (document.activeElement !== titleInput) {
         titleInput.value = body.title;
         setDocTitle(body.title);
@@ -1704,6 +1712,15 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       fileInput.value = "";
     });
     titleInput.addEventListener("input", () => { setDocTitle(titleInput.value); scheduleSave(); });
+    // Leaving the title blank reads as "no title"; the server keeps the old one
+    // (COALESCE), so on blur restore the input + tab title to that kept value
+    // instead of stranding the user on an empty field.
+    titleInput.addEventListener("blur", () => {
+      if (!titleInput.value.trim() && currentTitle) {
+        titleInput.value = currentTitle;
+        setDocTitle(currentTitle);
+      }
+    });
 
     // ---------- boot ----------
     const openBoard = async (id: string) => {
@@ -1716,6 +1733,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       undoBase = JSON.stringify(doc.elements);
       isPublic = body.is_public === true;
       reflectPublish();
+      currentTitle = body.title;
       titleInput.value = body.title;
       setDocTitle(body.title);
       hero.hidden = true;
