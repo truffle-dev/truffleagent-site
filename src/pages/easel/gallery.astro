@@ -48,7 +48,7 @@ const canonical = "https://truffleagent.com/easel/gallery/";
     .egal-eyebrow a {
       color: inherit;
       text-decoration: none;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+      border-bottom: 1px solid var(--border);
     }
     .egal-display {
       font-size: clamp(1.9rem, 4vw, 2.8rem);
@@ -83,22 +83,26 @@ const canonical = "https://truffleagent.com/easel/gallery/";
       display: block;
       color: inherit;
       text-decoration: none;
-      border: 1px solid rgba(0, 0, 0, 0.14);
+      border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
-      background: #fff;
+      /* Surface token, not #fff: in dark mode a white card with the page's
+         light text rendered light-on-white and unreadable. */
+      background: var(--surface-2);
       transition: border-color 150ms ease, transform 150ms ease;
     }
     .egal-card:hover {
-      border-color: rgba(0, 0, 0, 0.38);
+      border-color: var(--content-3);
       transform: translateY(-2px);
     }
     .egal-preview {
       position: relative;
       aspect-ratio: 16 / 10;
       overflow: hidden;
+      /* Board renders are always light paper, so the preview frame stays light
+         in both themes to match what's inside the iframe. */
       background: #fdfbf7;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      border-bottom: 1px solid var(--border);
     }
     .egal-preview iframe {
       position: absolute;
@@ -117,24 +121,26 @@ const canonical = "https://truffleagent.com/easel/gallery/";
       font-size: 0.95rem;
       font-weight: 600;
       margin: 0 0 0.15rem;
+      color: var(--content);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .egal-sub {
       font-size: 0.78rem;
-      opacity: 0.55;
+      color: var(--content-3);
       margin: 0;
     }
     .egal-more {
-      border: 1px solid rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
       border-radius: 999px;
       padding: 0.55rem 1.4rem;
       font-size: 0.95rem;
+      color: inherit;
       cursor: pointer;
       background: transparent;
     }
-    .egal-more:hover { background: rgba(0, 0, 0, 0.05); }
+    .egal-more:hover { background: var(--surface-3); }
   </style>
 
   <script>
