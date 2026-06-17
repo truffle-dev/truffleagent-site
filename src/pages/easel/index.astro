@@ -1314,6 +1314,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const typing = tag === "input" || tag === "textarea" ||
         (document.activeElement as HTMLElement)?.isContentEditable;
       if (typing) return;
+      // The shortcuts overlay is a modal: while it's open only ? (toggle) and
+      // Escape (close) act. Without this, single-letter shortcuts (t/s/r/u/f),
+      // arrows, Delete and undo all still fired and mutated the board behind
+      // the open dialog.
+      if (!keysOverlay.hidden) {
+        if (ev.key === "Escape" || ev.key === "?") {
+          ev.preventDefault();
+          keysOverlay.hidden = true;
+        }
+        return;
+      }
       // Ctrl/Cmd+S: people hit it out of habit — flush the pending save
       // instead of opening the browser's save dialog.
       if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "s") {
