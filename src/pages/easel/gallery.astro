@@ -141,6 +141,37 @@ const canonical = "https://truffleagent.com/easel/gallery/";
       background: transparent;
     }
     .egal-more:hover { background: var(--surface-3); }
+
+    /* Loading skeletons fill the grid during the initial fetch (which mints a
+       render token per board server-side) so the page is never a blank slab.
+       The shimmer reuses surface tokens, never a hardcoded colour. */
+    .egal-skeleton:hover { transform: none; border-color: var(--border); }
+    .egal-skeleton-box {
+      background: linear-gradient(
+        90deg,
+        var(--surface-2) 25%,
+        var(--surface-3) 37%,
+        var(--surface-2) 63%
+      );
+      background-size: 200% 100%;
+      animation: egal-shimmer 1.4s ease-in-out infinite;
+    }
+    .egal-skeleton .egal-preview {
+      border-bottom-color: var(--border);
+    }
+    .egal-skel-line {
+      height: 0.8rem;
+      border-radius: 4px;
+      margin-bottom: 0.45rem;
+    }
+    .egal-skel-line-sm { width: 55%; margin-bottom: 0; }
+    @keyframes egal-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .egal-skeleton-box { animation: none; }
+    }
   </style>
 
   <script>
@@ -196,19 +227,44 @@ const canonical = "https://truffleagent.com/easel/gallery/";
       return a;
     };
 
+    const skeleton = (): HTMLElement => {
+      const d = document.createElement("div");
+      d.className = "egal-card egal-skeleton";
+      d.setAttribute("aria-hidden", "true");
+      const prev = document.createElement("div");
+      prev.className = "egal-preview egal-skeleton-box";
+      const meta = document.createElement("div");
+      meta.className = "egal-meta";
+      const l1 = document.createElement("div");
+      l1.className = "egal-skel-line egal-skeleton-box";
+      const l2 = document.createElement("div");
+      l2.className = "egal-skel-line egal-skel-line-sm egal-skeleton-box";
+      meta.append(l1, l2);
+      d.append(prev, meta);
+      return d;
+    };
+    const clearSkeletons = () =>
+      grid.querySelectorAll(".egal-skeleton").forEach((n) => n.remove());
+
     const load = async () => {
       more.disabled = true;
+      // First fetch only: paint shimmer placeholders so the grid is not a blank
+      // slab while the server mints a render token per board.
+      const initial = nextCursor === null && grid.children.length === 0;
+      if (initial) for (let i = 0; i < 6; i++) grid.appendChild(skeleton());
       const qs = nextCursor ? `?cursor=${encodeURIComponent(nextCursor)}` : "";
       try {
         const res = await fetch(`/api/easel/gallery${qs}`);
         const body = await res.json();
         if (!body.ok) throw new Error("gallery fetch failed");
+        clearSkeletons();
         for (const b of body.boards as GalleryBoard[]) grid.appendChild(card(b));
         nextCursor = body.next_cursor;
         more.hidden = !nextCursor;
         empty.hidden = grid.children.length > 0;
         scalePreviews();
       } catch {
+        clearSkeletons();
         empty.hidden = false;
         empty.textContent = "Could not load the gallery right now. Try a refresh.";
       } finally {
