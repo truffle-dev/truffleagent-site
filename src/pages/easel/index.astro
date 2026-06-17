@@ -69,6 +69,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         </span>
         <a class="easel-hero-gallery" href="/easel/gallery/">Browse the public gallery →</a>
       </div>
+      <p class="easel-hero-error" id="easel-load-error" role="alert" hidden></p>
       <div class="easel-recent" id="easel-recent" hidden>
         <h2 class="easel-recent-title">Your recent boards</h2>
         <ul class="easel-recent-list" id="easel-recent-list"></ul>
@@ -221,6 +222,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       padding-bottom: 1px;
     }
     .easel-hero-gallery:hover { opacity: 1; }
+    .easel-hero-error {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #c0362c;
+      font-weight: 600;
+    }
     .easel-recent {
       margin-top: 3.5rem;
       text-align: left;
@@ -1742,7 +1749,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const b = params.get("b");
     if (b && /^el_[a-z0-9]{8,22}$/.test(b)) {
       openBoard(b).catch(() => {
+        // A shared link to a deleted or wrong board used to dump the user on
+        // the landing view with no explanation. Surface why and drop the bad
+        // ?b= from the URL so a refresh doesn't retry it.
         history.replaceState(null, "", "/easel/");
+        const note = $("easel-load-error");
+        note.textContent = "That board couldn't be opened — it may have been deleted, or the link is wrong. Start a new board below.";
+        note.hidden = false;
         renderRecent();
       });
     } else {
