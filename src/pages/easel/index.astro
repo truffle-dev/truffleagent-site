@@ -944,15 +944,28 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       // "Offline" is the only state where edits did not reach the server.
       saveState.classList.toggle("is-error", s === "Offline");
     };
-    const scheduleSave = () => {
+    // Rapid same-kind edits (arrow-key nudges) should collapse into one undo
+    // step, not one per keypress. A caller passes a coalesce key; while the
+    // same key keeps arriving within the window, the change folds into the
+    // current checkpoint instead of pushing a new one. The first edit of a run
+    // still pushes, so undo returns to the pre-gesture state.
+    let coalesceKey = "";
+    let coalesceUntil = 0;
+    const scheduleSave = (coalesce = "") => {
+      const now = Date.now();
+      const fold = !!coalesce && coalesce === coalesceKey && now < coalesceUntil;
+      coalesceKey = coalesce;
+      coalesceUntil = coalesce ? now + 600 : 0;
       const cur = JSON.stringify(doc.elements);
       if (cur !== undoBase) {
-        undoStack.push(undoBase);
-        if (undoStack.length > 50) undoStack.shift();
+        if (!fold) {
+          undoStack.push(undoBase);
+          if (undoStack.length > 50) undoStack.shift();
+          // A fresh edit invalidates the redo branch. Undo/redo themselves
+          // land here with cur === undoBase, so they never clear it.
+          redoStack = [];
+        }
         undoBase = cur;
-        // A fresh edit invalidates the redo branch. Undo/redo themselves
-        // land here with cur === undoBase, so they never clear it.
-        redoStack = [];
       }
       dirty = true;
       // Adds/deletes flow through here without a full renderDoc, so keep the
@@ -1342,7 +1355,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           el.x += nudges[ev.key][0] * step;
           el.y += nudges[ev.key][1] * step;
           renderEl(el);
-          scheduleSave();
+          // Coalesce a burst of arrow nudges into a single undo step.
+          scheduleSave(`nudge:${selectedId}`);
         }
         return;
       }
