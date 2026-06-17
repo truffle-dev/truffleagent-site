@@ -1465,8 +1465,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const uploadFiles = async (files: FileList | File[], at?: { x: number; y: number }) => {
       if (!boardId) return;
       let offset = 0;
+      let uploaded = 0, skipped = 0;
       for (const file of Array.from(files)) {
-        if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) continue;
+        if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { skipped++; continue; }
         try {
           setSaveState("Uploading…");
           const res = await fetch(`/api/easel/upload?board=${boardId}`, {
@@ -1486,10 +1487,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             props: { src: body.src, natural_w: dims.w, natural_h: dims.h },
           });
           offset += 28;
+          uploaded++;
         } catch (err: any) {
           setSaveState(err?.message?.includes("quota") ? "Upload quota hit" : "Upload failed");
         }
       }
+      // Dropping an unsupported file (PDF, HEIC, text…) used to do nothing at all
+      // — no element, no message. Say why when nothing landed on the board.
+      if (!uploaded && skipped) setSaveState("Only PNG, JPG, WebP or GIF");
     };
     const imageDims = (file: File): Promise<{ w: number; h: number }> =>
       new Promise((resolve) => {
