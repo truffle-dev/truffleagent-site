@@ -774,6 +774,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     let saveFailed = false;
     let agentRunning = false;
     let pollTimer: number | null = null;
+    // True only while a save has failed and edits are sitting unsent ("Offline").
+    // Used by the beforeunload guard so a transient in-flight save never warns.
+    let unsynced = false;
     // Undo: one snapshot per local gesture (drag, resize, add, delete, edit).
     // undoBase holds the serialized elements at the last checkpoint; the
     // stack holds prior states. Cleared whenever the server doc replaces
@@ -950,6 +953,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       saveState.textContent = s;
       // "Offline" is the only state where edits did not reach the server.
       saveState.classList.toggle("is-error", s === "Offline");
+      unsynced = s === "Offline";
     };
     // Rapid same-kind edits (arrow-key nudges) should collapse into one undo
     // step, not one per keypress. A caller passes a coalesce key; while the
@@ -1660,6 +1664,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         stopPolling();
         refetchBoard(true).catch(() => {});
       }
+    });
+
+    // Warn before leaving only when something would actually be lost: a live
+    // agent run (abandoning a session the user is paying for and watching) or
+    // edits stuck offline after a failed save. Normal editing autosaves within
+    // ~1s, so transient dirty state never triggers the prompt.
+    window.addEventListener("beforeunload", (ev) => {
+      if (!agentRunning && !unsynced) return;
+      ev.preventDefault();
+      ev.returnValue = "";
     });
 
     // Grow the prompt box with its content (up to the CSS max-height, then it
