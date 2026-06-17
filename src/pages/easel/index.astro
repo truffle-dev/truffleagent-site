@@ -1276,7 +1276,38 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     };
 
     // ---------- stage interaction (pan, zoom, deselect, delete) ----------
+    // Touch: the canvas sets touch-action:none so the browser does no native
+    // panning or zooming. Mouse uses the per-gesture closure below; touch is
+    // handled separately because it needs the multi-pointer state for pinch —
+    // one finger pans, two fingers pinch-zoom. Without this, touch devices
+    // could not zoom at all (wheel never fires on touch) even though the help
+    // overlay advertises pinch, and a second finger spawned a competing pan.
+    const touches = new Map<number, { x: number; y: number }>();
+    let pinchPrev: { dist: number; mx: number; my: number } | null = null;
+    const touchDist = () => {
+      const [a, b] = [...touches.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    const touchMid = () => {
+      const [a, b] = [...touches.values()];
+      const r = stage.getBoundingClientRect();
+      return { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top };
+    };
+
     stage.addEventListener("pointerdown", (ev) => {
+      if (ev.pointerType === "touch") {
+        touches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+        // setPointerCapture throws on a synthetic pointer id (tests); harmless
+        // to guard and it never throws for a real touch.
+        try { stage.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+        if (touches.size === 1) {
+          selectEl(null);
+          stage.classList.add("is-panning");
+        } else if (touches.size === 2) {
+          pinchPrev = { dist: touchDist(), ...touchMid() };
+        }
+        return;
+      }
       if (ev.button !== 0 && ev.button !== 1) return;
       selectEl(null);
       stage.classList.add("is-panning");
@@ -1295,6 +1326,36 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       stage.addEventListener("pointermove", onMove);
       stage.addEventListener("pointerup", onUp);
     });
+
+    stage.addEventListener("pointermove", (ev) => {
+      if (ev.pointerType !== "touch" || !touches.has(ev.pointerId)) return;
+      const prev = touches.get(ev.pointerId)!;
+      touches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (touches.size === 1) {
+        panX += ev.clientX - prev.x;
+        panY += ev.clientY - prev.y;
+        applyView();
+      } else if (touches.size >= 2 && pinchPrev) {
+        const dist = touchDist();
+        const mid = touchMid();
+        const next = Math.min(4, Math.max(0.1, zoom * (dist / Math.max(pinchPrev.dist, 1))));
+        // Zoom around the pinch midpoint, then follow a two-finger drag of it.
+        panX = mid.x - ((mid.x - panX) / zoom) * next + (mid.x - pinchPrev.mx);
+        panY = mid.y - ((mid.y - panY) / zoom) * next + (mid.y - pinchPrev.my);
+        zoom = next;
+        applyView();
+        pinchPrev = { dist, mx: mid.x, my: mid.y };
+      }
+    });
+
+    const endTouch = (ev: PointerEvent) => {
+      if (ev.pointerType !== "touch" || !touches.has(ev.pointerId)) return;
+      touches.delete(ev.pointerId);
+      if (touches.size < 2) pinchPrev = null;
+      if (touches.size === 0) stage.classList.remove("is-panning");
+    };
+    stage.addEventListener("pointerup", endTouch);
+    stage.addEventListener("pointercancel", endTouch);
 
     stage.addEventListener("wheel", (ev) => {
       ev.preventDefault();
