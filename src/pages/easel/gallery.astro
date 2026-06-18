@@ -283,12 +283,23 @@ const canonical = "https://truffleagent.com/easel/gallery/";
         for (const b of body.boards as GalleryBoard[]) grid.appendChild(card(b));
         nextCursor = body.next_cursor;
         more.hidden = !nextCursor;
+        more.textContent = "Load more";
         empty.hidden = grid.children.length > 0;
         scalePreviews();
       } catch {
         clearSkeletons();
-        empty.hidden = false;
-        empty.textContent = "Could not load the gallery right now. Try a refresh.";
+        if (grid.children.length === 0) {
+          // Initial load failed with nothing on screen: the empty-state slot
+          // doubles as the error message.
+          empty.hidden = false;
+          empty.textContent = "Could not load the gallery right now. Try a refresh.";
+        } else {
+          // A "Load more" page failed but earlier cards are still visible — don't
+          // claim the whole gallery is gone. Keep the grid and turn the button
+          // into a retry (nextCursor is unchanged, so a click re-runs this page).
+          more.hidden = false;
+          more.textContent = "Couldn't load more — retry";
+        }
       } finally {
         more.disabled = false;
       }
