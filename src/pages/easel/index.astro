@@ -1710,6 +1710,21 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (pollTimer) { window.clearInterval(pollTimer); pollTimer = null; }
     };
 
+    // A backgrounded tab can't show live updates, so the 1Hz reconcile poll is
+    // pure wasted network while hidden — pause it on tab-hide and resume with an
+    // immediate catch-up refetch when the tab returns, but only if the agent run
+    // is still live. The SSE stream stays connected in the background, so no
+    // agent events are missed; the catch-up refetch reconciles any board doc
+    // changes that landed while the poll was paused.
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        if (agentRunning) stopPolling();
+      } else if (agentRunning) {
+        refetchBoard(true).catch(() => {});
+        startPolling();
+      }
+    });
+
     agentForm.addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const prompt = agentInput.value.trim();
