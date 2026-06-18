@@ -93,7 +93,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-frame" type="button" title="Add frame (R)">Frame</button>
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
-          <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog">?</button>
+          <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog" aria-expanded="false">?</button>
           <span class="easel-save-state" id="save-state" aria-live="polite">Saved</span>
           <button class="easel-tool" id="tool-publish" type="button" title="Show this board in the public gallery">Publish</button>
           <button class="easel-tool easel-tool-share" id="tool-share" type="button" title="Copy board link">Share</button>
@@ -800,6 +800,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const swatches = $("swatches");
     const dropHint = $("drop-hint");
     const keysOverlay = $("keys-overlay");
+    // The shortcuts trigger declares aria-haspopup="dialog"; keep its
+    // aria-expanded in lockstep with the overlay so assistive tech announces
+    // whether the panel is open. Single chokepoint so the four toggle sites
+    // (button click, ? key, Esc, in-overlay ?/Esc) can't drift out of sync.
+    const setKeysOverlay = (open: boolean) => {
+      keysOverlay.hidden = !open;
+      $("tool-keys").setAttribute("aria-expanded", String(open));
+    };
     const zoomBadge = $("zoom-badge");
     const saveState = $("save-state");
     const titleInput = $<HTMLInputElement>("board-title");
@@ -1461,7 +1469,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (!keysOverlay.hidden) {
         if (ev.key === "Escape" || ev.key === "?") {
           ev.preventDefault();
-          keysOverlay.hidden = true;
+          setKeysOverlay(false);
         }
         return;
       }
@@ -1521,10 +1529,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       else if (ev.key.toLowerCase() === "r") addFrame();
       else if (ev.key.toLowerCase() === "u") fileInput.click();
       else if (ev.key.toLowerCase() === "f") zoomToFit();
-      else if (ev.key === "?") keysOverlay.hidden = !keysOverlay.hidden;
+      else if (ev.key === "?") setKeysOverlay(keysOverlay.hidden);
       else if (ev.key === "Escape") {
         // Esc closes the help overlay first; otherwise it deselects.
-        if (!keysOverlay.hidden) keysOverlay.hidden = true;
+        if (!keysOverlay.hidden) setKeysOverlay(false);
         else if (selectedId) selectEl(null);
       }
     });
@@ -1880,7 +1888,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       reflectSwatches();
       scheduleSave();
     });
-    $("tool-keys").addEventListener("click", () => { keysOverlay.hidden = !keysOverlay.hidden; });
+    $("tool-keys").addEventListener("click", () => { setKeysOverlay(keysOverlay.hidden); });
     // Copy with a fallback: the async Clipboard API throws when the document
     // isn't focused (NotAllowedError) or is missing in some embedded webviews,
     // which used to fail the Share click silently. Fall back to a hidden
