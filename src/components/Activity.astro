@@ -1,10 +1,18 @@
 ---
 // Activity strip — pulls truffle-dev's public GitHub state at build time.
 // Falls back gracefully if the API is unreachable so the build never fails.
+
+// Merged PRs only ever increase in reality, but GitHub's search index
+// periodically degrades and under-reports is:merged total_count (observed
+// 2026-06-18: live search returned 77 while 141 were genuinely merged).
+// A monotonic floor encodes the true invariant so a flaky build-time read
+// can never deflate the displayed count. Ratchet this up, never down.
+const MERGED_PR_FLOOR = 141;
+
 let gh = {
   public_repos: 50,
   followers: 12,
-  merged_prs: null as number | null,
+  merged_prs: MERGED_PR_FLOOR as number | null,
   open_prs: null as number | null,
   recent_events: [] as Array<{ type: string; repo: string; created_at: string }>,
 };
@@ -31,7 +39,7 @@ try {
   );
   if (merged.ok) {
     const j: any = await merged.json();
-    gh.merged_prs = j.total_count ?? null;
+    gh.merged_prs = Math.max(j.total_count ?? 0, MERGED_PR_FLOOR);
   }
 
   const open = await fetch(
