@@ -70,6 +70,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         <a class="easel-hero-gallery" href="/easel/gallery/">Browse the public gallery →</a>
       </div>
       <p class="easel-hero-error" id="easel-load-error" role="alert" hidden></p>
+      <p class="easel-hero-loading" id="easel-load-status" role="status" hidden>Opening your board…</p>
       <div class="easel-recent" id="easel-recent" hidden>
         <h2 class="easel-recent-title">Your recent boards</h2>
         <ul class="easel-recent-list" id="easel-recent-list"></ul>
@@ -228,6 +229,32 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       color: #c0362c;
       font-weight: 600;
     }
+    .easel-hero-loading {
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+      opacity: 0.7;
+    }
+    .easel-hero-loading::after {
+      content: "";
+      display: inline-block;
+      width: 0.8em;
+      height: 0.8em;
+      margin-left: 0.5em;
+      vertical-align: -0.05em;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: easel-hero-spin 0.7s linear infinite;
+    }
+    @keyframes easel-hero-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .easel-hero-loading::after { animation: none; }
+    }
+    /* While a shared ?b= link is loading, suppress the landing affordances so a
+       slow fetch can't be mistaken for the landing page (and can't get a stray
+       "Start a board" click that would create a duplicate). */
+    .easel-hero.is-loading .easel-hero-actions,
+    .easel-hero.is-loading .easel-recent { display: none; }
     .easel-recent {
       margin-top: 3.5rem;
       text-align: left;
@@ -2036,10 +2063,19 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const params = new URLSearchParams(location.search);
     const b = params.get("b");
     if (b && /^el_[a-z0-9]{8,22}$/.test(b)) {
+      // Give a shared-link open immediate feedback: the fetch can take a beat,
+      // and without this the page just sits on the landing hero looking idle.
+      // is-loading also hides the landing actions so a slow load can't catch a
+      // duplicate "Start a board" click. openBoard hides the whole hero on
+      // success, so the loading state only ever shows during the in-flight open.
+      hero.classList.add("is-loading");
+      $("easel-load-status").hidden = false;
       openBoard(b).catch(() => {
         // A shared link to a deleted or wrong board used to dump the user on
         // the landing view with no explanation. Surface why and drop the bad
         // ?b= from the URL so a refresh doesn't retry it.
+        hero.classList.remove("is-loading");
+        $("easel-load-status").hidden = true;
         history.replaceState(null, "", "/easel/");
         const note = $("easel-load-error");
         note.textContent = "That board couldn't be opened — it may have been deleted, or the link is wrong. Start a new board below.";
