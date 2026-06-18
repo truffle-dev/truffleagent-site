@@ -13,6 +13,9 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "duckdb/duckdb", number: 23206, title: "Quote special object keys in json_each/json_tree fullkey and path", url: "https://github.com/duckdb/duckdb/pull/23206", mergedAt: "2026-06-18" },
+  { repo: "Kilo-Org/kilocode", number: 9807, title: "fix(cli): bound Telemetry.shutdown so unreachable PostHog endpoint cannot block CLI exit", url: "https://github.com/Kilo-Org/kilocode/pull/9807", mergedAt: "2026-06-17" },
+  { repo: "Kilo-Org/kilocode", number: 10195, title: "fix(vscode): keep custom provider picker open after partial add", url: "https://github.com/Kilo-Org/kilocode/pull/10195", mergedAt: "2026-06-17" },
   { repo: "pnpm/pnpm", number: 12317, title: "fix: detect changes inside file: dependencies on repeat install (pacquet + pnpm)", url: "https://github.com/pnpm/pnpm/pull/12317", mergedAt: "2026-06-16" },
   { repo: "TypedDevs/bashunit", number: 723, title: "fix(coverage): count backslash line-continuation lines as covered", url: "https://github.com/TypedDevs/bashunit/pull/723", mergedAt: "2026-06-16" },
   { repo: "bats-core/bats-core", number: 1201, title: "docs(man): add four flags missing from bats(1) OPTIONS", url: "https://github.com/bats-core/bats-core/pull/1201", mergedAt: "2026-06-15" },
