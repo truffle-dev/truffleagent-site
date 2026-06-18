@@ -55,6 +55,52 @@ const principles = [
     p: "Two cron agents advance it on a schedule: an hourly builder that ships one increment, a 45-minute researcher that verifies the repo and scans the field. Every run lands on git, green.",
   },
 ];
+
+// The differentiation matrix. The 2026 field is converging on durable element
+// identity; the open question is WHERE it lives. Each row is sourced from the
+// named project's own code, not from marketing copy.
+const field = [
+  {
+    approach: "Re-mint each step",
+    example: "Playwright ariaSnapshot · Playwright-MCP · agent-browser @eN",
+    note: "A fresh per-snapshot ref. Stable within one snapshot, invalidated the moment the page changes. Cheapest, least durable.",
+    agentHandle: false,
+    rebinds: false,
+    noMutation: true,
+    verdict: false,
+  },
+  {
+    approach: "Internal durable hash",
+    example: "browser-use compute_stable_hash",
+    note: "A genuine stable hash (EXACT / STABLE / XPATH / AX_NAME). But it is cache and diff state: the LLM still acts on a fresh per-step highlight_index, not the durable id.",
+    agentHandle: false,
+    rebinds: null,
+    noMutation: true,
+    verdict: null,
+  },
+  {
+    approach: "Page-injected attribute",
+    example: "Skyvern unique_id",
+    note: "setAttribute writes a durable id onto the live node. Durable within one DOM — but the page can read or strip it, and a re-render that swaps the node mints a brand-new id, so the handle changes silently.",
+    agentHandle: true,
+    rebinds: false,
+    noMutation: false,
+    verdict: false,
+  },
+  {
+    approach: "Host-side handle + fingerprint rebind",
+    example: "anchortree",
+    note: "The durable handle is the agent's contract, held host-side at zero page mutation. A content fingerprint rebinds it onto a replaced node, and every handle carries an explicit {changed | rebound | added} verdict.",
+    agentHandle: true,
+    rebinds: true,
+    noMutation: true,
+    verdict: true,
+    self: true,
+  },
+];
+
+const mark = (v: boolean | null) =>
+  v === true ? "yes" : v === false ? "no" : "internal";
 ---
 <BaseLayout
   title="anchortree · an agent-first browser interface"
@@ -161,6 +207,65 @@ rebound:  [ inp-email, inp-password, btn-sign-in ]
             </li>
           ))}
         </ol>
+      </div>
+    </section>
+
+    <section class="field-section">
+      <div class="container-page">
+        <div class="field-head">
+          <p class="eyebrow">Where anchortree sits in the field</p>
+          <h2 class="editorial text-balance">
+            Four places to put <em>identity.</em>
+          </h2>
+          <p class="prose-truffle field-intro">
+            The 2026 agent-browser field is converging on durable element identity. The open question is not <em>whether</em> to have it — browser-use already ships a real stable hash — it is <em>where the identity lives</em>. Each row below is read from the named project's own source.
+          </p>
+        </div>
+
+        <div class="field-table-wrap">
+          <table class="field-table">
+            <thead>
+              <tr>
+                <th scope="col" class="field-th-approach">Approach</th>
+                <th scope="col">Identity is the agent's handle</th>
+                <th scope="col">Rebinds on node replacement</th>
+                <th scope="col">Leaves the page untouched</th>
+                <th scope="col">Per-handle diff verdict</th>
+              </tr>
+            </thead>
+            <tbody>
+              {field.map((f) => (
+                <tr class={f.self ? "field-row-self" : ""}>
+                  <th scope="row" class="field-rowhead">
+                    <span class="field-approach">{f.approach}</span>
+                    <span class="field-example mono">{f.example}</span>
+                  </th>
+                  <td><span class="field-mark" data-v={String(f.agentHandle)}>{mark(f.agentHandle)}</span></td>
+                  <td><span class="field-mark" data-v={String(f.rebinds)}>{mark(f.rebinds)}</span></td>
+                  <td><span class="field-mark" data-v={String(f.noMutation)}>{mark(f.noMutation)}</span></td>
+                  <td><span class="field-mark" data-v={String(f.verdict)}>{mark(f.verdict)}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <ol class="field-notes">
+          {field.map((f) => (
+            <li class={f.self ? "field-note-self" : ""}>
+              <span class="field-note-name">{f.approach}</span>
+              <span class="field-note-eg mono">{f.example}</span>
+              <span class="field-note-body">{f.note}</span>
+            </li>
+          ))}
+        </ol>
+
+        <div class="field-moat">
+          <h3 class="field-moat-h">Why CDP, and when that changes</h3>
+          <p class="prose-truffle">
+            The rebind leans on the full accessibility tree — <span class="mono">Accessibility.getFullAXTree</span> plus per-node layout. WebDriver-BiDi, the cross-browser transport, does not expose the AX tree yet: Puppeteer 25.1.0 lists accessibility-tree access among the CDP capabilities BiDi still lacks. So anchortree speaks CDP today, and the core sits behind a transport-neutral <span class="mono">ObservationSource</span> trait that never sees a CDP type — so a BiDi backend is an additive adapter, not a rewrite, the day BiDi grows an AX-tree equivalent.
+          </p>
+        </div>
       </div>
     </section>
 
@@ -273,6 +378,7 @@ rebound:  [ inp-email, inp-password, btn-sign-in ]
 
   .diff-section,
   .prim-section,
+  .field-section,
   .princ-section,
   .cta-section {
     padding: clamp(2.5rem, 6vw, 4.5rem) 0;
@@ -336,6 +442,120 @@ rebound:  [ inp-email, inp-password, btn-sign-in ]
     font-size: 0.9rem;
     opacity: 0.72;
     margin: 0;
+  }
+
+  .field-intro {
+    max-width: 64ch;
+  }
+  .field-table-wrap {
+    margin: 2.25rem 0 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .field-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 680px;
+    font-size: 0.88rem;
+  }
+  .field-table thead th {
+    text-align: left;
+    vertical-align: bottom;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.6;
+    padding: 0 0.9rem 0.7rem;
+    border-bottom: 1px solid var(--rule, rgba(0, 0, 0, 0.22));
+  }
+  .field-th-approach {
+    width: 30%;
+  }
+  .field-table tbody tr {
+    border-bottom: 1px solid var(--rule, rgba(0, 0, 0, 0.1));
+  }
+  .field-rowhead {
+    text-align: left;
+    font-weight: 400;
+    padding: 0.95rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .field-approach {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .field-example {
+    font-size: 0.72rem;
+    opacity: 0.6;
+  }
+  .field-table td {
+    padding: 0.95rem 0.9rem;
+    vertical-align: middle;
+  }
+  .field-mark {
+    font-size: 0.82rem;
+  }
+  .field-mark[data-v="true"] {
+    font-weight: 600;
+  }
+  .field-mark[data-v="false"] {
+    opacity: 0.4;
+  }
+  .field-mark[data-v="null"] {
+    opacity: 0.62;
+    font-style: italic;
+  }
+  .field-row-self {
+    background: var(--paper-tint, rgba(0, 0, 0, 0.035));
+  }
+  .field-row-self .field-approach {
+    font-weight: 700;
+  }
+  .field-row-self .field-mark[data-v="true"] {
+    font-weight: 700;
+  }
+
+  .field-notes {
+    list-style: none;
+    padding: 0;
+    margin: 1.75rem 0 0;
+    display: grid;
+    gap: 1rem;
+    max-width: 74ch;
+  }
+  .field-notes li {
+    line-height: 1.55;
+    font-size: 0.9rem;
+  }
+  .field-note-name {
+    font-weight: 600;
+  }
+  .field-note-eg {
+    font-size: 0.72rem;
+    opacity: 0.6;
+    margin-left: 0.5rem;
+  }
+  .field-note-body {
+    display: block;
+    margin-top: 0.2rem;
+    opacity: 0.82;
+  }
+  .field-note-self .field-note-body {
+    opacity: 1;
+  }
+
+  .field-moat {
+    margin-top: 2.5rem;
+    max-width: 64ch;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule, rgba(0, 0, 0, 0.1));
+  }
+  .field-moat-h {
+    font-size: 1.05rem;
+    margin: 0 0 0.6rem;
   }
 
   .princ-grid {
