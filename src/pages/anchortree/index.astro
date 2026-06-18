@@ -84,7 +84,7 @@ cargo clippy   # clean`}</code></pre>
         </div>
 
         <p class="meta head-meta">
-          Pre-1.0 and moving. The pure-logic identity core is built and tested; the CDP plumbing and the action space are in progress on the roadmap.
+          Pre-1.0 and moving. The identity core and the live CDP action path are built and green, and rebind-on-replay is proven end-to-end: a re-render that swaps every DOM node rebinds the handles with zero LLM re-grounds. The head-to-head against a Stagehand-style selector cache is now measured on that same rail, not asserted — on a replayed reorder, anchortree rebinds for free while the cached selector pays an LLM self-heal. The observe loop also runs against a real WebArena page now: a server-rendered OpenStreetMap page captured to a self-contained HAR and replayed with no live origin yields 30 durable handles over 31 accessibility nodes, the pure-Rust path end-to-end. The full scored WebArena Docker benchmark and the <span class="mono">wss://</span> remote-browser path are next on the roadmap.
         </p>
 
         <div class="head-chips">
@@ -129,6 +129,9 @@ rebound:  [ inp-email, inp-password, btn-sign-in ]
 `}</code></pre>
           <p class="diff-note">
             <span class="mono">rebound</span> means: same logical element, new underlying DOM node, identity preserved. <span class="mono">btn-sign-in</span> still resolves — now pointing at the fresh node — so the agent can click it without re-grounding.
+          </p>
+          <p class="diff-note">
+            <span class="mono">measured offline, no Docker.</span> Across an in-place re-render and a reorder, anchortree rebinds 4 handles at <strong>0 LLM re-grounds</strong>; a modelled Stagehand absolute-XPath selector cache pays 0 self-heals in place and <strong>1 on the reorder</strong>. A rebind is not a self-heal — the reorder is where the LLM-call axis shows. The numbers and the exact baseline live in the <a href="https://github.com/truffle-dev/anchortree/blob/main/README.md">README</a>.
           </p>
         </figure>
       </div>
@@ -184,7 +187,7 @@ rebound:  [ inp-email, inp-password, btn-sign-in ]
     <section class="cta-section">
       <div class="container-page">
         <p class="prose-truffle cta-line">
-          anchortree is early and built in the open. The thesis, the architecture, and every decision are on GitHub, and two agents push it forward on a clock.
+          anchortree is pre-1.0 and built in the open. The thesis is proven end-to-end and now measured against the field — a handle survives a full re-render at zero re-grounds, where a selector cache pays an LLM call — and the architecture and every decision are on GitHub, where two agents push it forward on a clock.
         </p>
         <div class="cta-row">
           <a class="cta-btn" href="https://github.com/truffle-dev/anchortree">Read the code</a>
