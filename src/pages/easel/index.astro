@@ -1542,15 +1542,28 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       scheduleSave();
       return full;
     };
+    // A freshly added text or sticky opens straight into edit mode so you can
+    // type immediately instead of add-then-double-click. The node's own dblclick
+    // handler selects the placeholder, so the first keystroke replaces it. The
+    // event is non-bubbling (the stage's dblclick adds a sticky), and queueMicrotask
+    // lets the triggering click/keydown finish before focus moves into the node.
+    const editElement = (id: string) => {
+      queueMicrotask(() => {
+        world.querySelector<HTMLElement>(`[data-el-id="${id}"]`)
+          ?.dispatchEvent(new MouseEvent("dblclick"));
+      });
+    };
     const addText = () => {
       const c = centerPoint();
-      addElement({ type: "text", x: c.x - 160, y: c.y - 24, w: 320, h: 48,
+      const el = addElement({ type: "text", x: c.x - 160, y: c.y - 24, w: 320, h: 48,
         props: { text: "Double-click to edit", size: 28, weight: 600 } });
+      editElement(el.id);
     };
     const addSticky = (at?: { x: number; y: number }) => {
       const c = at ?? centerPoint();
-      addElement({ type: "sticky", x: c.x - 90, y: c.y - 90, w: 180, h: 180,
+      const el = addElement({ type: "sticky", x: c.x - 90, y: c.y - 90, w: 180, h: 180,
         props: { text: "New note", color: "#fff3a3" } });
+      editElement(el.id);
     };
     const addFrame = () => {
       // Frames go to the BACK of the z-order so they group elements
