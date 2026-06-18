@@ -1998,14 +1998,32 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       rememberBoard(id, body.title);
     };
 
-    $("new-board-btn").addEventListener("click", async () => {
-      const body = await api(`/api/easel/board`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      history.replaceState(null, "", `/easel/?b=${body.id}`);
-      await openBoard(body.id);
+    const newBoardBtn = $<HTMLButtonElement>("new-board-btn");
+    newBoardBtn.addEventListener("click", async () => {
+      // The primary CTA used to swallow a rejected create (flaky network, server
+      // hiccup, daily quota): the button just sat there and the rejection died
+      // in the console. Worse, a double-click fired two POSTs and created two
+      // boards. Disable while in flight, and on failure reuse the load-error
+      // note (the same affordance the bad-?b= path uses) and re-enable.
+      if (newBoardBtn.disabled) return;
+      newBoardBtn.disabled = true;
+      const note = $("easel-load-error");
+      note.hidden = true;
+      try {
+        const body = await api(`/api/easel/board`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        history.replaceState(null, "", `/easel/?b=${body.id}`);
+        await openBoard(body.id);
+        // On success openBoard hides the hero (and this button with it), so the
+        // disabled state never shows; no need to re-enable.
+      } catch (err: any) {
+        note.textContent = `Couldn't start a board: ${err.message}. Please try again.`;
+        note.hidden = false;
+        newBoardBtn.disabled = false;
+      }
     });
 
     const params = new URLSearchParams(location.search);
