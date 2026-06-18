@@ -1567,10 +1567,15 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         props: { text: "Double-click to edit", size: 28, weight: 600 } });
       editElement(el.id);
     };
+    // Remember the last sticky color the user chose from the palette so the next
+    // sticky inherits it, instead of snapping back to yellow every time. Most
+    // canvas tools (Miro/FigJam) keep the last-used color; picking blue, then
+    // adding another note, should give you blue. Updated by the swatch handler.
+    let lastStickyColor = "#fff3a3";
     const addSticky = (at?: { x: number; y: number }) => {
       const c = at ?? centerPoint();
       const el = addElement({ type: "sticky", x: c.x - 90, y: c.y - 90, w: 180, h: 180,
-        props: { text: "New note", color: "#fff3a3" } });
+        props: { text: "New note", color: lastStickyColor } });
       editElement(el.id);
     };
     const addFrame = () => {
@@ -1884,6 +1889,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const el = getEl(selectedId);
       if (!el || el.type !== "sticky") return;
       el.props.color = btn.dataset.color;
+      // Carry the choice forward as the default for the next new sticky.
+      if (btn.dataset.color) lastStickyColor = btn.dataset.color;
       renderEl(el);
       reflectSwatches();
       scheduleSave();
