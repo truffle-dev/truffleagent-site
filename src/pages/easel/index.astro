@@ -333,6 +333,26 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       color: #c0362c;
       font-weight: 600;
     }
+    /* On a phone the topbar is one non-wrapping flex row, so the tools group
+       (Publish/Share live at its right end) overflowed off-screen with no page
+       scroll to chase it — unreachable on touch, even though pan/pinch makes
+       mobile a real surface. Below 640px the title row wraps above a full-width
+       tools strip that scrolls horizontally, keeping every button reachable. */
+    @media (max-width: 640px) {
+      .easel-topbar { flex-wrap: wrap; row-gap: 0.4rem; }
+      .easel-title-input { width: auto; flex: 1 1 8rem; min-width: 0; }
+      .easel-topbar-tools {
+        margin-left: 0;
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+      }
+      .easel-topbar-tools::-webkit-scrollbar { display: none; }
+      .easel-tool, .easel-save-state { flex: 0 0 auto; }
+    }
 
     .easel-stage {
       position: relative;
