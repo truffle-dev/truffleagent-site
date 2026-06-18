@@ -196,6 +196,27 @@ const canonical = "https://truffleagent.com/easel/gallery/";
     };
     window.addEventListener("resize", scalePreviews);
 
+    // Relative time reads "fresh" better than a bare date on a showcase grid.
+    // Falls back to an absolute date past a week (with year if not this year);
+    // the exact local timestamp rides along as a hover title.
+    const relTime = (iso: string): { label: string; exact: string } => {
+      const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+      const exact = d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+      const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+      let label: string;
+      if (mins < 1) label = "just now";
+      else if (mins < 60) label = `${mins}m ago`;
+      else if (mins < 1440) label = `${Math.floor(mins / 60)}h ago`;
+      else if (mins < 10080) label = `${Math.floor(mins / 1440)}d ago`;
+      else
+        label = d.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          ...(d.getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}),
+        });
+      return { label, exact };
+    };
+
     const card = (b: GalleryBoard): HTMLElement => {
       const a = document.createElement("a");
       a.className = "egal-card";
@@ -219,8 +240,9 @@ const canonical = "https://truffleagent.com/easel/gallery/";
       t.textContent = b.title || "Untitled board";
       const sub = document.createElement("p");
       sub.className = "egal-sub";
-      const when = new Date(b.updated_at.endsWith("Z") ? b.updated_at : b.updated_at + "Z");
-      sub.textContent = `${b.elements} element${b.elements === 1 ? "" : "s"} · ${when.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+      const { label, exact } = relTime(b.updated_at);
+      sub.textContent = `${b.elements} element${b.elements === 1 ? "" : "s"} · ${label}`;
+      sub.title = exact;
       meta.append(t, sub);
 
       a.append(prev, meta);
