@@ -1907,7 +1907,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         isPublic = body.is_public;
         reflectPublish();
       } catch {
-        /* leave button state unchanged on failure */
+        // A silent failure here is dangerous: publish toggles whether the board
+        // is in the public gallery, so the user must not be left guessing. Mirror
+        // the Share button: flash the outcome, then restore the true (unchanged)
+        // state via reflectPublish().
+        const btn = $("tool-publish");
+        btn.textContent = "Failed";
+        window.setTimeout(reflectPublish, 1200);
       }
     });
     fileInput.addEventListener("change", () => {
