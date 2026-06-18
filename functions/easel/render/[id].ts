@@ -129,6 +129,21 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
   .el-image img {
     width: 100%; height: 100%; object-fit: cover; display: block;
     border-radius: 6px; box-shadow: 0 1px 6px rgba(0,0,0,0.14);
+    position: relative;
+  }
+  /* CSS-only broken-image fallback. This render is screenshotted by the agent
+     and embedded in a script-less sandboxed iframe on the gallery, so there is
+     no JS onerror to lean on. Pseudo-elements on an <img> are painted only when
+     the image fails to load, so a since-deleted source degrades to a paper
+     placeholder instead of the browser's broken-image glyph. */
+  .el-image img::before {
+    content: ""; position: absolute; inset: 0;
+    background: #fdfbf7; border: 1.5px dashed rgba(0,0,0,0.22); border-radius: 6px;
+  }
+  .el-image img::after {
+    content: "image unavailable"; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(0,0,0,0.45); font-size: 13px;
   }
   .el-text { line-height: 1.25; padding: 4px 6px; white-space: pre-wrap; word-break: break-word; overflow: hidden; }
   .el-sticky {
