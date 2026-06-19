@@ -182,7 +182,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt><dd>Undo</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo (or <kbd>Ctrl</kbd>+<kbd>Y</kbd>)</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Save now</dd>
-            <dt><kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>Duplicate the selected element</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>Duplicate the selection</dd>
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
             <dt>Arrow keys</dt><dd>Nudge selection 1 unit (<kbd>Shift</kbd> for 10)</dd>
             <dt>Drag empty</dt><dd>Marquee-select elements (<kbd>Shift</kbd> adds to selection)</dd>
@@ -2414,8 +2414,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         redo();
         return;
       }
-      // Ctrl/Cmd+D: duplicate the selected element just off itself.
-      if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "d" && selectedId) {
+      // Ctrl/Cmd+D: duplicate the whole selection just off itself.
+      if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "d" && selectedBoxes().length) {
         ev.preventDefault();
         duplicateSelected();
         return;
@@ -2708,20 +2708,49 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       setConnectMode(false);
     };
     const duplicateSelected = () => {
-      if (!selectedId) return;
-      const src = doc.elements.find((e) => e.id === selectedId);
-      if (!src) return;
+      // Duplicate the whole selection: every selected box plus any connector
+      // whose BOTH endpoints are in the set (so internal wiring survives the
+      // copy, re-pointed at the clones). Lone-endpoint connectors are dropped.
+      const boxes = selectedBoxes();
+      if (!boxes.length) return;
+      const srcIds = new Set(boxes.map((b) => b.id));
+      const conns = doc.elements.filter(
+        (e) => e.type === "connector" &&
+          srcIds.has(String(e.props?.from)) && srcIds.has(String(e.props?.to)),
+      );
       // Frames stay at the back; everything else lands on top, like a fresh add.
-      const clone: El = {
-        ...src,
-        id: `e${nextElNum++}`,
-        x: src.x + 16, y: src.y + 16,
-        z: src.type === "frame" ? minZ() - 1 : maxZ() + 1,
-        props: { ...src.props },
-      };
-      doc.elements.push(clone);
-      renderEl(clone);
-      selectEl(clone.id);
+      let zTop = maxZ(), zBot = minZ();
+      const idMap: Record<string, string> = {};
+      const cloneBoxIds: string[] = [];
+      const fresh: El[] = [];
+      for (const src of [...boxes].sort((a, b) => a.z - b.z)) {
+        const nid = `e${nextElNum++}`;
+        idMap[src.id] = nid;
+        cloneBoxIds.push(nid);
+        const clone: El = {
+          ...src,
+          id: nid,
+          x: src.x + 24, y: src.y + 24,
+          z: src.type === "frame" ? --zBot : ++zTop,
+          props: { ...src.props },
+        };
+        doc.elements.push(clone);
+        fresh.push(clone);
+      }
+      for (const c of conns) {
+        const from = idMap[String(c.props?.from)];
+        const to = idMap[String(c.props?.to)];
+        if (!from || !to) continue;
+        const clone: El = {
+          ...c,
+          id: `e${nextElNum++}`,
+          props: { ...c.props, from, to },
+        };
+        doc.elements.push(clone);
+      }
+      for (const el of fresh) renderEl(el);
+      drawConnectors();
+      setSelection(cloneBoxIds);
       scheduleSave();
     };
 
