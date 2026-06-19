@@ -152,6 +152,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt>Drag empty</dt><dd>Marquee-select elements (<kbd>Shift</kbd> adds to selection)</dd>
             <dt><kbd>Shift</kbd> + click</dt><dd>Add or remove an element from the selection</dd>
             <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd></dt><dd>Select every element</dd>
+            <dt>Drag group corner</dt><dd>Resize a multi-selection as a unit (<kbd>Shift</kbd> keeps aspect)</dd>
             <dt><kbd>Alt</kbd> + drag</dt><dd>Move without snapping</dd>
             <dt>Double-click</dt><dd>Empty canvas: new sticky. On an element: edit text or label</dd>
             <dt>Scroll / pinch</dt><dd>Zoom · <kbd>Space</kbd> or middle-mouse drag to pan</dd>
@@ -589,6 +590,27 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: rgba(36, 70, 200, 0.08);
       pointer-events: none;
       z-index: 6;
+    }
+    /* Group bounding box, drawn in #world (so it pans/zooms with the board)
+       around a 2+ multi-selection. The box itself passes clicks through; only
+       its bottom-right handle is interactive and scales the whole group. */
+    .easel-groupbox {
+      position: absolute;
+      border: 2px dashed #2446c8;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    .easel-groupbox-handle {
+      position: absolute;
+      right: -7px;
+      bottom: -7px;
+      width: 13px;
+      height: 13px;
+      border: 2px solid #2446c8;
+      border-radius: 3px;
+      background: #fff;
+      pointer-events: auto;
+      cursor: nwse-resize;
     }
     .easel-zoom-badge {
       position: absolute;
@@ -1567,6 +1589,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       });
       reflectSwatches();
       updateAlignbar();
+      drawGroupBox();
     };
     const setSelection = (ids: string[]) => {
       selectedIds.clear();
@@ -1591,6 +1614,77 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         b.disabled = boxes.length < 3;
       });
     };
+
+    // ---------- group bounding box + resize-as-unit ----------
+    // A dashed box around a 2+ multi-selection with a single bottom-right handle.
+    // It lives in #world so it pans and zooms with the board; the box passes
+    // clicks through and only the handle is interactive. Dragging the handle
+    // scales every member's position and size proportionally about the group's
+    // top-left anchor (free by default, Shift = uniform / aspect-locked).
+    const groupBox = document.createElement("div");
+    groupBox.className = "easel-groupbox";
+    groupBox.hidden = true;
+    const groupHandle = document.createElement("div");
+    groupHandle.className = "easel-groupbox-handle";
+    groupBox.appendChild(groupHandle);
+    world.appendChild(groupBox);
+
+    const groupBounds = () => {
+      const boxes = selectedBoxes();
+      if (boxes.length < 2) return null;
+      const minL = Math.min(...boxes.map((e) => e.x));
+      const minT = Math.min(...boxes.map((e) => e.y));
+      const maxR = Math.max(...boxes.map((e) => e.x + e.w));
+      const maxB = Math.max(...boxes.map((e) => e.y + e.h));
+      return { boxes, minL, minT, w: maxR - minL, h: maxB - minT };
+    };
+    const drawGroupBox = () => {
+      const b = groupBounds();
+      if (!b) { groupBox.hidden = true; return; }
+      groupBox.hidden = false;
+      groupBox.style.left = `${b.minL}px`;
+      groupBox.style.top = `${b.minT}px`;
+      groupBox.style.width = `${b.w}px`;
+      groupBox.style.height = `${b.h}px`;
+    };
+
+    groupHandle.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      ev.stopPropagation();
+      const b = groupBounds();
+      if (!b) return;
+      const start = stagePoint(ev.clientX, ev.clientY);
+      const anchor = { x: b.minL, y: b.minT };
+      const W = Math.max(b.w, 1), H = Math.max(b.h, 1);
+      const origins = b.boxes.map((e) => ({ el: e, x: e.x, y: e.y, w: e.w, h: e.h }));
+      // Floor on scale so the smallest member never collapses below 20 units.
+      const minW = Math.min(...origins.map((o) => o.w));
+      const minH = Math.min(...origins.map((o) => o.h));
+      const sxFloor = 20 / minW, syFloor = 20 / minH;
+      groupHandle.setPointerCapture(ev.pointerId);
+      const onMove = (mv: PointerEvent) => {
+        const p = stagePoint(mv.clientX, mv.clientY);
+        let sx = Math.max(sxFloor, (W + (p.x - start.x)) / W);
+        let sy = Math.max(syFloor, (H + (p.y - start.y)) / H);
+        if (mv.shiftKey) { const s = Math.max(sx, sy); sx = s; sy = s; }
+        for (const o of origins) {
+          o.el.x = anchor.x + (o.x - anchor.x) * sx;
+          o.el.y = anchor.y + (o.y - anchor.y) * sy;
+          o.el.w = o.w * sx;
+          o.el.h = o.h * sy;
+          renderEl(o.el);
+        }
+        drawConnectors();
+        drawGroupBox();
+      };
+      const onUp = () => {
+        groupHandle.removeEventListener("pointermove", onMove);
+        groupHandle.removeEventListener("pointerup", onUp);
+        scheduleSave();
+      };
+      groupHandle.addEventListener("pointermove", onMove);
+      groupHandle.addEventListener("pointerup", onUp);
+    });
 
     // The selection-style bar serves stickies (background color) and shapes
     // (fill color + a rect/ellipse kind toggle). Show it on selection of either
@@ -1670,6 +1764,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
               g.el.y = g.y + dy;
               renderEl(g.el);
             }
+            drawGroupBox();
           } else if (mv.altKey) {
             // Alt bypasses snapping for free placement.
             clearGuides();
@@ -2001,6 +2096,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             renderEl(el);
           }
           drawConnectors();
+          drawGroupBox();
           // Coalesce a burst of arrow nudges into a single undo step.
           scheduleSave(`nudge:${[...selectedIds].sort().join(",")}`);
         }
@@ -2195,6 +2291,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         renderEl(el);
       }
       drawConnectors();
+      drawGroupBox();
       scheduleSave();
     };
     const distributeSelected = (axis: "h" | "v") => {
@@ -2218,6 +2315,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         for (const el of boxes) { el.y = cursor; cursor += el.h + gap; renderEl(el); }
       }
       drawConnectors();
+      drawGroupBox();
       scheduleSave();
     };
 
