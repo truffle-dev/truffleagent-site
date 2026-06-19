@@ -94,25 +94,64 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
   const els = doc.elements ?? [];
 
   // Bounding box (with room for frame labels that hang above their frame).
+  // Connectors are excluded: their geometry is derived from the elements they
+  // join (placeholder x/y/w/h of 0 would otherwise drag the box to the origin).
+  const boxEls = els.filter((el) => el.type !== "connector");
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const el of els) {
+  for (const el of boxEls) {
     minX = Math.min(minX, el.x);
     minY = Math.min(minY, el.y - (el.type === "frame" ? 28 : 0));
     maxX = Math.max(maxX, el.x + el.w);
     maxY = Math.max(maxY, el.y + el.h);
   }
-  if (!els.length) { minX = 0; minY = 0; maxX = 800; maxY = 500; }
+  if (!boxEls.length) { minX = 0; minY = 0; maxX = 800; maxY = 500; }
   const stageW = maxX - minX + PAD * 2;
   const stageH = maxY - minY + PAD * 2;
   const scale = Math.min(1, MAX_EDGE / stageW, MAX_EDGE / stageH);
   const outW = Math.ceil(stageW * scale);
   const outH = Math.ceil(stageH * scale);
 
-  const body = els
+  // Shifted box geometry by id, for resolving connector endpoints below.
+  const boxById = new Map<string, { x: number; y: number; w: number; h: number }>();
+  for (const el of boxEls) {
+    boxById.set(el.id, { x: el.x - minX + PAD, y: el.y - minY + PAD, w: el.w, h: el.h });
+  }
+
+  const body = boxEls
     .slice()
     .sort((a, b) => a.z - b.z)
     .map((el) => elementHtml({ ...el, x: el.x - minX + PAD, y: el.y - minY + PAD }))
     .join("\n");
+
+  // Connector overlay: a single SVG at the back of the stage with one line per
+  // connector whose endpoints both resolve. Endpoints are clipped to each box's
+  // border along the centre-to-centre line so the arrow touches the edge, not
+  // the middle. Drawn behind the elements (z-index 0); pointer-events: none.
+  const borderPt = (b: { x: number; y: number; w: number; h: number }, tx: number, ty: number) => {
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    const dx = tx - cx, dy = ty - cy;
+    if (!dx && !dy) return { x: cx, y: cy };
+    const s = 1 / Math.max(Math.abs(dx) / (b.w / 2), Math.abs(dy) / (b.h / 2));
+    return { x: cx + dx * s, y: cy + dy * s };
+  };
+  const lines = els
+    .filter((el) => el.type === "connector")
+    .map((el) => {
+      const p = el.props ?? {};
+      const a = boxById.get(String(p.from));
+      const b = boxById.get(String(p.to));
+      if (!a || !b) return "";
+      const s = borderPt(a, b.x + b.w / 2, b.y + b.h / 2);
+      const e = borderPt(b, a.x + a.w / 2, a.y + a.h / 2);
+      const color = safeColor(p.color, "#5b6472");
+      const marker = p.style === "line" ? "" : ` marker-end="url(#arrow)"`;
+      return `<line x1="${s.x.toFixed(1)}" y1="${s.y.toFixed(1)}" x2="${e.x.toFixed(1)}" y2="${e.y.toFixed(1)}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"${marker} />`;
+    })
+    .filter(Boolean)
+    .join("\n");
+  const connectorsSvg = lines
+    ? `<svg width="${stageW}" height="${stageH}" style="position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:0;"><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4.5 L0,9 z" fill="context-stroke"></path></marker></defs>${lines}</svg>`
+    : "";
 
   const html = `<!doctype html>
 <html lang="en"><head>
@@ -171,6 +210,7 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
   }
 </style>
 </head><body><div id="stage">
+${connectorsSvg}
 ${body}
 </div></body></html>`;
 

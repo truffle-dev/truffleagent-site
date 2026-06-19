@@ -41,7 +41,7 @@ export const newImageId = () => newId("ei");
 
 // ---------- board document ----------
 
-export type EaselElementType = "image" | "text" | "sticky" | "frame" | "shape";
+export type EaselElementType = "image" | "text" | "sticky" | "frame" | "shape" | "connector";
 
 export type EaselElement = {
   id: string;                 // e<n> stable within a board
@@ -58,6 +58,9 @@ export type EaselElement = {
   // sticky:{ text, color }
   // frame: { label, color? }
   // shape: { kind: "rect" | "ellipse", fill?, stroke?, text? }
+  // connector: { from, to (element ids), style?: "arrow" | "line", color? }
+  //   geometry is derived from the two referenced elements; x/y/w/h/z are
+  //   placeholders (0) and the connector is excluded from bounding-box math.
 };
 
 export type EaselDoc = {
@@ -90,7 +93,7 @@ export function validateDoc(doc: unknown): { ok: true; doc: EaselDoc } | { ok: f
     if (typeof el !== "object" || el === null) return { ok: false, reason: "element must be an object" };
     const e = el as Record<string, unknown>;
     if (typeof e.id !== "string" || e.id.length > 16) return { ok: false, reason: "bad element id" };
-    if (!["image", "text", "sticky", "frame", "shape"].includes(e.type as string))
+    if (!["image", "text", "sticky", "frame", "shape", "connector"].includes(e.type as string))
       return { ok: false, reason: `bad element type ${String(e.type)}` };
     for (const k of ["x", "y", "w", "h", "z"]) {
       if (typeof e[k] !== "number" || !Number.isFinite(e[k] as number))
@@ -102,6 +105,9 @@ export function validateDoc(doc: unknown): { ok: true; doc: EaselDoc } | { ok: f
     // image src must be our own proxy path, never an arbitrary URL
     if (e.type === "image" && typeof props.src === "string" && !/^\/i-easel\/img\//.test(props.src))
       return { ok: false, reason: `element ${e.id}: image src must be /i-easel/img/...` };
+    // connectors reference two other elements by id; both must be present.
+    if (e.type === "connector" && (typeof props.from !== "string" || typeof props.to !== "string"))
+      return { ok: false, reason: `element ${e.id}: connector needs string from/to ids` };
     out.push({
       id: e.id as string,
       type: e.type as EaselElementType,

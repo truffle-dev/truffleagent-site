@@ -93,6 +93,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-sticky" type="button" title="Add sticky (S)">Sticky</button>
           <button class="easel-tool" id="tool-frame" type="button" title="Add frame (R)">Frame</button>
           <button class="easel-tool" id="tool-shape" type="button" title="Add shape (H)">Shape</button>
+          <button class="easel-tool" id="tool-connect" type="button" title="Connect two elements with an arrow (C)" aria-pressed="false">Connect</button>
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
           <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog" aria-expanded="false">?</button>
@@ -126,6 +127,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>S</kbd></dt><dd>Add sticky</dd>
             <dt><kbd>R</kbd></dt><dd>Add frame</dd>
             <dt><kbd>H</kbd></dt><dd>Add shape (rectangle or ellipse)</dd>
+            <dt><kbd>C</kbd></dt><dd>Connect two elements with an arrow</dd>
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
             <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste an image from the clipboard</dd>
@@ -350,6 +352,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       border-color: rgba(26, 26, 26, 0.55);
       background: rgba(26, 26, 26, 0.06);
     }
+    /* Connect mode is a sticky tool state (unlike the one-shot add buttons), so
+       give the Connect button a pressed look while it is armed. */
+    .easel-tool.is-active {
+      border-color: rgba(36, 70, 200, 0.6);
+      background: rgba(36, 70, 200, 0.1);
+      color: #2446c8;
+    }
     .easel-save-state {
       font-size: 0.78rem;
       opacity: 0.55;
@@ -395,6 +404,29 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         #fdfbf7;
     }
     .easel-stage.is-panning { cursor: grabbing; }
+    /* Connect mode: the whole stage takes a crosshair and every element invites
+       a click. The armed source element gets a dashed ring so the user knows
+       which end the next click will wire to. */
+    .easel-stage.is-connecting { cursor: crosshair; }
+    .easel-stage.is-connecting .easel-el { cursor: crosshair; }
+    .easel-el.is-connect-src {
+      outline: 2px dashed #2446c8;
+      outline-offset: 3px;
+    }
+    /* Connector layer: a single SVG that holds every arrow, pinned to the world
+       origin so its line coordinates are world units (it pans/zooms with the
+       board). It sits behind the elements and never eats pointer events; the
+       arrows live in the gaps between boxes, so being underneath is invisible. */
+    .easel-connectors {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 0;
+      height: 0;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 0;
+    }
     .easel-world {
       position: absolute;
       top: 0;
@@ -839,7 +871,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 
     type El = {
       id: string;
-      type: "image" | "text" | "sticky" | "frame" | "shape";
+      type: "image" | "text" | "sticky" | "frame" | "shape" | "connector";
       x: number; y: number; w: number; h: number; z: number;
       rotation?: number;
       props: Record<string, any>;
@@ -896,6 +928,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     let currentTitle = "";
     let isPublic = false;
     let selectedId: string | null = null;
+    // Connect mode: while armed, clicking elements wires an arrow between them.
+    // connectFrom holds the first-picked element id until the second click.
+    let connectMode = false;
+    let connectFrom: string | null = null;
     let nextElNum = 1;
     let saveTimer: number | null = null;
     let saving = false;
@@ -1027,6 +1063,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     };
 
     const renderEl = (el: El, animate = false) => {
+      // Connectors are not box nodes; they live in the SVG layer. Any call that
+      // lands here (e.g. a move that touches a connector) just redraws the layer.
+      if (el.type === "connector") { drawConnectors(); return; }
       const node = elNode(el);
       if (animate) {
         node.classList.add("is-agent-moving");
@@ -1071,12 +1110,81 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       node.classList.toggle("is-selected", selectedId === el.id);
     };
 
+    // ---------- connectors ----------
+    // A single SVG layer inside #world holds every connector arrow. Because
+    // #world is the transformed coordinate space the elements live in, the line
+    // coordinates are plain world units and pan/zoom for free. Lazily created.
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    let connectorLayer: SVGSVGElement | null = null;
+    const ensureConnectorLayer = (): SVGSVGElement => {
+      if (connectorLayer && connectorLayer.isConnected) return connectorLayer;
+      const svg = document.createElementNS(SVG_NS, "svg");
+      svg.setAttribute("class", "easel-connectors");
+      const defs = document.createElementNS(SVG_NS, "defs");
+      const marker = document.createElementNS(SVG_NS, "marker");
+      marker.setAttribute("id", "easel-arrow");
+      marker.setAttribute("markerWidth", "9");
+      marker.setAttribute("markerHeight", "9");
+      marker.setAttribute("refX", "7.5");
+      marker.setAttribute("refY", "4.5");
+      marker.setAttribute("orient", "auto");
+      marker.setAttribute("markerUnits", "userSpaceOnUse");
+      const head = document.createElementNS(SVG_NS, "path");
+      head.setAttribute("d", "M0,0 L9,4.5 L0,9 z");
+      head.setAttribute("fill", "context-stroke");
+      marker.appendChild(head);
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+      // First child of #world so it paints behind the element nodes.
+      world.insertBefore(svg, world.firstChild);
+      connectorLayer = svg;
+      return svg;
+    };
+    // Clip a point to a box border along the line from the box centre toward
+    // (tx,ty) so an arrow lands on the edge instead of the middle.
+    const borderPt = (b: El, tx: number, ty: number) => {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      const dx = tx - cx, dy = ty - cy;
+      if (!dx && !dy) return { x: cx, y: cy };
+      const s = 1 / Math.max(Math.abs(dx) / (b.w / 2), Math.abs(dy) / (b.h / 2));
+      return { x: cx + dx * s, y: cy + dy * s };
+    };
+    const drawConnectors = () => {
+      const conns = doc.elements.filter((e) => e.type === "connector");
+      if (!conns.length) {
+        // Nothing to draw — drop the layer entirely so an empty board is clean.
+        if (connectorLayer) { connectorLayer.remove(); connectorLayer = null; }
+        return;
+      }
+      const svg = ensureConnectorLayer();
+      // Rebuild the lines (cheap: a board has few connectors), keep <defs>.
+      svg.querySelectorAll("line").forEach((n) => n.remove());
+      for (const c of conns) {
+        const a = getEl(String(c.props.from));
+        const b = getEl(String(c.props.to));
+        if (!a || !b || a.type === "connector" || b.type === "connector") continue;
+        const s = borderPt(a, b.x + b.w / 2, b.y + b.h / 2);
+        const e = borderPt(b, a.x + a.w / 2, a.y + a.h / 2);
+        const line = document.createElementNS(SVG_NS, "line");
+        line.setAttribute("x1", s.x.toFixed(1));
+        line.setAttribute("y1", s.y.toFixed(1));
+        line.setAttribute("x2", e.x.toFixed(1));
+        line.setAttribute("y2", e.y.toFixed(1));
+        line.setAttribute("stroke", String(c.props.color || "#5b6472"));
+        line.setAttribute("stroke-width", "2.5");
+        line.setAttribute("stroke-linecap", "round");
+        if (c.props.style !== "line") line.setAttribute("marker-end", "url(#easel-arrow)");
+        svg.appendChild(line);
+      }
+    };
+
     const renderDoc = (animate = false) => {
       const ids = new Set(doc.elements.map((e) => e.id));
       world.querySelectorAll<HTMLElement>("[data-el-id]").forEach((n) => {
         if (!ids.has(n.dataset.elId!)) n.remove();
       });
-      for (const el of doc.elements) renderEl(el, animate);
+      for (const el of doc.elements) if (el.type !== "connector") renderEl(el, animate);
+      drawConnectors();
       // Onboarding hint lives and dies with the empty-board state.
       emptyHint.hidden = doc.elements.length > 0;
       // track next element number
@@ -1244,7 +1352,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       let bx: Snap | null = null;
       let by: Snap | null = null;
       for (const o of doc.elements) {
-        if (o.id === el.id) continue;
+        if (o.id === el.id || o.type === "connector") continue;
         const oxs = [o.x, o.x + o.w / 2, o.x + o.w];
         const oys = [o.y, o.y + o.h / 2, o.y + o.h];
         const exs = [nx, nx + el.w / 2, nx + el.w];
@@ -1310,6 +1418,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const id = node.dataset.elId!;
         const el = getEl(id);
         if (!el) return;
+        // In connect mode a click wires an arrow instead of selecting/dragging.
+        if (connectMode) { handleConnectPick(id); return; }
         selectEl(id);
         // Frames live at the back so they never cover the elements inside
         // them; everything else comes to the front on grab.
@@ -1345,6 +1455,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             el.y = s.y;
           }
           renderEl(el);
+          // Re-route any arrows attached to this box as it moves/resizes.
+          drawConnectors();
         };
         const onUp = () => {
           clearGuides();
@@ -1454,6 +1566,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     };
 
     stage.addEventListener("pointerdown", (ev) => {
+      // A click on empty canvas while armed cancels connect mode (the source
+      // pick, if any, is dropped). Element clicks call stopPropagation, so they
+      // never reach here.
+      if (connectMode) { setConnectMode(false); return; }
       if (ev.pointerType === "touch") {
         touches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
         // setPointerCapture throws on a synthetic pointer id (tests); harmless
@@ -1593,13 +1709,19 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           el.x += nudges[ev.key][0] * step;
           el.y += nudges[ev.key][1] * step;
           renderEl(el);
+          drawConnectors();
           // Coalesce a burst of arrow nudges into a single undo step.
           scheduleSave(`nudge:${selectedId}`);
         }
         return;
       }
       if ((ev.key === "Delete" || ev.key === "Backspace") && selectedId) {
-        doc.elements = doc.elements.filter((e) => e.id !== selectedId);
+        const delId = selectedId;
+        // Drop the element and any connector that referenced it, so no arrow is
+        // left dangling to a box that no longer exists.
+        doc.elements = doc.elements.filter((e) =>
+          e.id !== delId &&
+          !(e.type === "connector" && (e.props.from === delId || e.props.to === delId)));
         selectEl(null);
         renderDoc();
         scheduleSave();
@@ -1607,12 +1729,15 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       else if (ev.key.toLowerCase() === "s") addSticky();
       else if (ev.key.toLowerCase() === "r") addFrame();
       else if (ev.key.toLowerCase() === "h") addShape();
+      else if (ev.key.toLowerCase() === "c") setConnectMode(!connectMode);
       else if (ev.key.toLowerCase() === "u") fileInput.click();
       else if (ev.key.toLowerCase() === "f") zoomToFit();
       else if (ev.key === "?") setKeysOverlay(keysOverlay.hidden);
       else if (ev.key === "Escape") {
-        // Esc closes the help overlay first; otherwise it deselects.
+        // Esc closes the help overlay first, then cancels connect mode, then
+        // deselects — one concern unwound per press.
         if (!keysOverlay.hidden) setKeysOverlay(false);
+        else if (connectMode) setConnectMode(false);
         else if (selectedId) selectEl(null);
       }
     });
@@ -1680,6 +1805,54 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       addElement({ type: "shape", x: c.x - 90, y: c.y - 60, w: 180, h: 120,
         props: { kind: "rect", fill: "#bcdcff", stroke: "#3a4a8c", text: "" } });
     };
+    // ---------- connect mode ----------
+    // Wire an arrow between two existing elements. The connector stores only the
+    // two ids + style; its geometry is derived on every draw, so it re-routes
+    // automatically when either endpoint moves.
+    const addConnector = (fromId: string, toId: string) => {
+      if (fromId === toId) return;
+      const a = getEl(fromId), b = getEl(toId);
+      if (!a || !b || a.type === "connector" || b.type === "connector") return;
+      // Skip a duplicate arrow between the same unordered pair.
+      const dup = doc.elements.some((e) => e.type === "connector" &&
+        ((e.props.from === fromId && e.props.to === toId) ||
+         (e.props.from === toId && e.props.to === fromId)));
+      if (dup) return;
+      doc.elements.push({
+        type: "connector", id: `e${nextElNum++}`, x: 0, y: 0, w: 0, h: 0, z: 0,
+        props: { from: fromId, to: toId, style: "arrow", color: "#5b6472" },
+      });
+      drawConnectors();
+      scheduleSave();
+    };
+    const markConnectSrc = (id: string | null) => {
+      world.querySelectorAll<HTMLElement>("[data-el-id]").forEach((n) => {
+        n.classList.toggle("is-connect-src", n.dataset.elId === id);
+      });
+    };
+    const setConnectMode = (on: boolean) => {
+      connectMode = on;
+      connectFrom = null;
+      markConnectSrc(null);
+      stage.classList.toggle("is-connecting", on);
+      const btn = $("tool-connect");
+      btn.classList.toggle("is-active", on);
+      btn.setAttribute("aria-pressed", String(on));
+      if (on) selectEl(null); // hide the style bar; connect mode is its own state
+    };
+    // Called from an element's pointerdown while connect mode is armed: first
+    // click picks the source, second click wires the arrow and exits the mode.
+    const handleConnectPick = (id: string) => {
+      const el = getEl(id);
+      if (!el || el.type === "connector") return;
+      if (!connectFrom) {
+        connectFrom = id;
+        markConnectSrc(id);
+        return;
+      }
+      addConnector(connectFrom, id);
+      setConnectMode(false);
+    };
     const duplicateSelected = () => {
       if (!selectedId) return;
       const src = doc.elements.find((e) => e.id === selectedId);
@@ -1699,9 +1872,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     };
 
     const zoomToFit = () => {
-      if (!doc.elements.length) { panX = 0; panY = 0; zoom = 1; applyView(); return; }
-      const xs = doc.elements.map((e) => e.x), ys = doc.elements.map((e) => e.y);
-      const xe = doc.elements.map((e) => e.x + e.w), ye = doc.elements.map((e) => e.y + e.h);
+      // Connectors have placeholder 0-geometry; fit to the real boxes only.
+      const boxes = doc.elements.filter((e) => e.type !== "connector");
+      if (!boxes.length) { panX = 0; panY = 0; zoom = 1; applyView(); return; }
+      const xs = boxes.map((e) => e.x), ys = boxes.map((e) => e.y);
+      const xe = boxes.map((e) => e.x + e.w), ye = boxes.map((e) => e.y + e.h);
       const minX = Math.min(...xs), minY = Math.min(...ys);
       const maxX = Math.max(...xe), maxY = Math.max(...ye);
       const r = stage.getBoundingClientRect();
@@ -1956,6 +2131,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     $("tool-sticky").addEventListener("click", addSticky);
     $("tool-frame").addEventListener("click", addFrame);
     $("tool-shape").addEventListener("click", () => addShape());
+    $("tool-connect").addEventListener("click", () => setConnectMode(!connectMode));
     $("tool-upload").addEventListener("click", () => fileInput.click());
     $("tool-zoom-fit").addEventListener("click", zoomToFit);
     // Clicking the zoom badge resets to 100%, anchored on the stage center
