@@ -167,6 +167,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-align-btn" type="button" data-dist="h" title="Distribute horizontal spacing" aria-label="Distribute horizontal spacing"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 3v10M8 3v10M14 3v10" /></svg></button>
           <button class="easel-align-btn" type="button" data-dist="v" title="Distribute vertical spacing" aria-label="Distribute vertical spacing"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2h10M3 8h10M3 14h10" /></svg></button>
         </div>
+        <div class="easel-connbar" id="connbar" role="group" aria-label="Connector style" hidden>
+          <button class="easel-conn-style" id="conn-style" type="button" title="Toggle arrowhead">Line</button>
+          <span class="easel-align-sep"></span>
+          <button class="easel-conn-color" type="button" data-color="#5b6472" title="Gray" aria-label="Gray" style="background:#5b6472"></button>
+          <button class="easel-conn-color" type="button" data-color="#1a1a1a" title="Black" aria-label="Black" style="background:#1a1a1a"></button>
+          <button class="easel-conn-color" type="button" data-color="#e0564f" title="Red" aria-label="Red" style="background:#e0564f"></button>
+          <button class="easel-conn-color" type="button" data-color="#2f6fed" title="Blue" aria-label="Blue" style="background:#2f6fed"></button>
+          <button class="easel-conn-color" type="button" data-color="#3fa45b" title="Green" aria-label="Green" style="background:#3fa45b"></button>
+          <span class="easel-align-sep"></span>
+          <button class="easel-conn-del" id="conn-del" type="button" title="Delete connector" aria-label="Delete connector"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3 4h10M6 4V2.6h4V4M5 4l.6 9h4.8L11 4" /></svg></button>
+        </div>
         <button class="easel-zoom-badge" id="zoom-badge" type="button" title="Reset zoom to 100%">100%</button>
         <div class="easel-keys" id="keys-overlay" role="dialog" aria-label="Keyboard shortcuts" hidden>
           <h2 class="easel-keys-title">Keyboard shortcuts</h2>
@@ -186,6 +197,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring forward / send backward</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring to front / send to back</dd>
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
+            <dt>Click an arrow</dt><dd>Select a connector to recolour, flip arrow/line, or <kbd>Delete</kbd></dd>
             <dt>Arrow keys</dt><dd>Nudge selection 1 unit (<kbd>Shift</kbd> for 10)</dd>
             <dt>Drag empty</dt><dd>Pan the canvas · <kbd>Shift</kbd>+drag to marquee-select</dd>
             <dt><kbd>Shift</kbd> + click</dt><dd>Add or remove an element from the selection</dd>
@@ -682,6 +694,78 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       height: 18px;
       background: rgba(0, 0, 0, 0.14);
       margin: 0 0.2rem;
+    }
+    /* Connector style bar: same top-center pill, shown only while a single
+       connector (arrow/line) is selected. A connector selection clears any box
+       selection, so this never collides with the swatch or align pills. */
+    .easel-connbar {
+      position: absolute;
+      top: 0.9rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+      z-index: 6;
+    }
+    .easel-conn-color {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+    }
+    .easel-conn-color:hover { transform: scale(1.12); }
+    .easel-conn-color.is-active {
+      border-color: rgba(0, 0, 0, 0.55);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(0, 0, 0, 0.4);
+    }
+    .easel-conn-style {
+      padding: 0 0.55rem;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      background: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+    .easel-conn-style:hover { background: #f1f0ec; }
+    .easel-conn-del {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: #b3261e;
+      cursor: pointer;
+    }
+    .easel-conn-del:hover { background: rgba(179, 38, 30, 0.12); }
+    .easel-conn-del svg path {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    /* The wide invisible hit target that makes a thin connector clickable, plus
+       the selected-connector highlight (CSS stroke-width + a glow; the line's
+       own colour and arrowhead are kept so it stays recognisable while picked). */
+    .easel-conn-hit { cursor: pointer; }
+    .easel-conn.is-selected {
+      stroke-width: 4px;
+      filter: drop-shadow(0 0 2.5px rgba(47, 111, 237, 0.95));
     }
     /* Marquee selection rectangle, drawn in stage screen-space while a
        Shift+left-drag sweeps empty canvas. Never eats pointer events. */
@@ -1383,6 +1467,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const swatches = $("swatches");
     const shapeKind = $<HTMLButtonElement>("shape-kind");
     const alignbar = $("alignbar");
+    const connbar = $("connbar");
+    const connStyleBtn = $<HTMLButtonElement>("conn-style");
     const dropHint = $("drop-hint");
     const templatesModal = $("templates-modal");
     const keysOverlay = $("keys-overlay");
@@ -1656,6 +1742,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // coordinates are plain world units and pan/zoom for free. Lazily created.
     const SVG_NS = "http://www.w3.org/2000/svg";
     let connectorLayer: SVGSVGElement | null = null;
+    // Connectors live in the SVG layer with no box node, so a picked connector
+    // gets its own single-selection slot, separate from the box `selectedIds`.
+    let selectedConnectorId: string | null = null;
     const ensureConnectorLayer = (): SVGSVGElement => {
       if (connectorLayer && connectorLayer.isConnected) return connectorLayer;
       const svg = document.createElementNS(SVG_NS, "svg");
@@ -1705,6 +1794,26 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         if (!a || !b || a.type === "connector" || b.type === "connector") continue;
         const s = borderPt(a, b.x + b.w / 2, b.y + b.h / 2);
         const e = borderPt(b, a.x + a.w / 2, a.y + a.h / 2);
+        // A wide transparent line sits under the visible one so a 2.5px stroke
+        // is easy to click. pointer-events:stroke makes only the line itself a
+        // target even though the parent <svg> is pointer-events:none.
+        const hit = document.createElementNS(SVG_NS, "line");
+        hit.setAttribute("x1", s.x.toFixed(1));
+        hit.setAttribute("y1", s.y.toFixed(1));
+        hit.setAttribute("x2", e.x.toFixed(1));
+        hit.setAttribute("y2", e.y.toFixed(1));
+        hit.setAttribute("stroke", "transparent");
+        hit.setAttribute("stroke-width", "16");
+        hit.setAttribute("stroke-linecap", "round");
+        hit.setAttribute("class", "easel-conn-hit");
+        hit.style.pointerEvents = "stroke";
+        hit.dataset.connId = c.id;
+        hit.addEventListener("pointerdown", (ev) => {
+          if (ev.button !== 0) return;
+          ev.stopPropagation();
+          selectConnector(c.id);
+        });
+        svg.appendChild(hit);
         const line = document.createElementNS(SVG_NS, "line");
         line.setAttribute("x1", s.x.toFixed(1));
         line.setAttribute("y1", s.y.toFixed(1));
@@ -1713,6 +1822,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         line.setAttribute("stroke", String(c.props.color || "#5b6472"));
         line.setAttribute("stroke-width", "2.5");
         line.setAttribute("stroke-linecap", "round");
+        line.setAttribute("class", c.id === selectedConnectorId ? "easel-conn is-selected" : "easel-conn");
         if (c.props.style !== "line") line.setAttribute("marker-end", "url(#easel-arrow)");
         svg.appendChild(line);
       }
@@ -1931,6 +2041,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       world.querySelectorAll<HTMLElement>("[data-el-id]").forEach((n) => {
         n.classList.toggle("is-selected", selectedIds.has(n.dataset.elId!));
       });
+      // A box selection and a connector selection are mutually exclusive — any
+      // change to the box set drops a picked connector (and its style bar).
+      if (selectedConnectorId !== null) { selectedConnectorId = null; drawConnectors(); }
+      connbar.hidden = true;
       reflectSwatches();
       updateAlignbar();
       drawGroupBox();
@@ -1946,6 +2060,41 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       refreshSelectionUI();
     };
     const selectEl = (id: string | null) => setSelection(id ? [id] : []);
+
+    // ---------- connector selection ----------
+    // Human parity with the agent's remove_elements / update_elements: a picked
+    // connector shows a top-center style bar (colour, arrow/line, delete) and
+    // responds to the Delete key. Connectors carry no box node, so this lives in
+    // its own slot rather than the box selection set.
+    const reflectConnbar = () => {
+      const c = selectedConnectorId ? getEl(selectedConnectorId) : null;
+      if (!c || c.type !== "connector") { connbar.hidden = true; return; }
+      connbar.hidden = false;
+      const cur = String(c.props.color || "#5b6472").toLowerCase();
+      connbar.querySelectorAll<HTMLButtonElement>(".easel-conn-color").forEach((b) => {
+        b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === cur);
+      });
+      // Label shows the style a click switches TO.
+      connStyleBtn.textContent = c.props.style === "line" ? "Arrow" : "Line";
+    };
+    const selectConnector = (id: string) => {
+      setSelection([]); // refreshSelectionUI clears any prior connector pick too
+      selectedConnectorId = id;
+      drawConnectors(); // apply the is-selected highlight
+      reflectConnbar();
+    };
+    const clearConnectorSelection = () => {
+      if (selectedConnectorId === null) return;
+      selectedConnectorId = null;
+      connbar.hidden = true;
+      drawConnectors();
+    };
+    const deleteConnector = (id: string) => {
+      clearConnectorSelection();
+      doc.elements = doc.elements.filter((e) => e.id !== id);
+      drawConnectors();
+      scheduleSave();
+    };
 
     // Box elements (everything except connectors) are the targets for the
     // align/distribute bar. Show the bar at 2+, enable distribute at 3+.
@@ -2476,6 +2625,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         }
         return;
       }
+      if ((ev.key === "Delete" || ev.key === "Backspace") && selectedConnectorId && !selectedIds.size) {
+        ev.preventDefault();
+        deleteConnector(selectedConnectorId);
+        return;
+      }
       if ((ev.key === "Delete" || ev.key === "Backspace") && selectedIds.size) {
         const delIds = new Set(selectedIds);
         // Drop the selected elements and any connector that referenced one of
@@ -2499,6 +2653,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         // deselects — one concern unwound per press.
         if (!keysOverlay.hidden) setKeysOverlay(false);
         else if (connectMode) setConnectMode(false);
+        else if (selectedConnectorId) clearConnectorSelection();
         else if (selectedIds.size) selectEl(null);
       }
     });
@@ -3199,6 +3354,24 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (!btn || btn.disabled) return;
       if (btn.dataset.align) alignSelected(btn.dataset.align as AlignMode);
       else if (btn.dataset.dist) distributeSelected(btn.dataset.dist as "h" | "v");
+    });
+    // Connector style bar: recolour, flip arrow/line, or delete the picked
+    // connector. pointerdown is swallowed so a click here never deselects.
+    connbar.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    connbar.addEventListener("click", (ev) => {
+      const c = selectedConnectorId ? getEl(selectedConnectorId) : null;
+      if (!c) return;
+      const target = ev.target as HTMLElement;
+      const colorBtn = target.closest<HTMLButtonElement>(".easel-conn-color");
+      if (colorBtn && colorBtn.dataset.color) {
+        c.props.color = colorBtn.dataset.color;
+        drawConnectors(); reflectConnbar(); scheduleSave(); return;
+      }
+      if (target.closest("#conn-style")) {
+        c.props.style = c.props.style === "line" ? "arrow" : "line";
+        drawConnectors(); reflectConnbar(); scheduleSave(); return;
+      }
+      if (target.closest("#conn-del")) deleteConnector(c.id);
     });
     $("tool-keys").addEventListener("click", () => { setKeysOverlay(keysOverlay.hidden); });
     // ---------- templates picker wiring ----------
