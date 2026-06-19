@@ -41,7 +41,7 @@ export const newImageId = () => newId("ei");
 
 // ---------- board document ----------
 
-export type EaselElementType = "image" | "text" | "sticky" | "frame";
+export type EaselElementType = "image" | "text" | "sticky" | "frame" | "shape";
 
 export type EaselElement = {
   id: string;                 // e<n> stable within a board
@@ -57,6 +57,7 @@ export type EaselElement = {
   // text:  { text, size, weight?, color?, align? }
   // sticky:{ text, color }
   // frame: { label, color? }
+  // shape: { kind: "rect" | "ellipse", fill?, stroke?, text? }
 };
 
 export type EaselDoc = {
@@ -89,7 +90,7 @@ export function validateDoc(doc: unknown): { ok: true; doc: EaselDoc } | { ok: f
     if (typeof el !== "object" || el === null) return { ok: false, reason: "element must be an object" };
     const e = el as Record<string, unknown>;
     if (typeof e.id !== "string" || e.id.length > 16) return { ok: false, reason: "bad element id" };
-    if (!["image", "text", "sticky", "frame"].includes(e.type as string))
+    if (!["image", "text", "sticky", "frame", "shape"].includes(e.type as string))
       return { ok: false, reason: `bad element type ${String(e.type)}` };
     for (const k of ["x", "y", "w", "h", "z"]) {
       if (typeof e[k] !== "number" || !Number.isFinite(e[k] as number))

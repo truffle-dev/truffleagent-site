@@ -92,6 +92,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-text" type="button" title="Add text (T)">Text</button>
           <button class="easel-tool" id="tool-sticky" type="button" title="Add sticky (S)">Sticky</button>
           <button class="easel-tool" id="tool-frame" type="button" title="Add frame (R)">Frame</button>
+          <button class="easel-tool" id="tool-shape" type="button" title="Add shape (H)">Shape</button>
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
           <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog" aria-expanded="false">?</button>
@@ -108,7 +109,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <p class="easel-empty-hint-sub">Double-click to drop a note, drag in an image, or ask the agent below to build the board for you.</p>
         </div>
         <div class="easel-drop-hint" id="drop-hint" hidden>Drop images to add them to the board</div>
-        <div class="easel-swatches" id="swatches" role="group" aria-label="Sticky color" hidden>
+        <div class="easel-swatches" id="swatches" role="group" aria-label="Selection style" hidden>
+          <button class="easel-shape-kind" id="shape-kind" type="button" title="Switch shape kind" hidden>Ellipse</button>
           <button class="easel-swatch" type="button" data-color="#fff3a3" title="Yellow" aria-label="Yellow" style="background:#fff3a3"></button>
           <button class="easel-swatch" type="button" data-color="#ffd1a3" title="Peach" aria-label="Peach" style="background:#ffd1a3"></button>
           <button class="easel-swatch" type="button" data-color="#ffc9d4" title="Pink" aria-label="Pink" style="background:#ffc9d4"></button>
@@ -123,6 +125,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>T</kbd></dt><dd>Add text</dd>
             <dt><kbd>S</kbd></dt><dd>Add sticky</dd>
             <dt><kbd>R</kbd></dt><dd>Add frame</dd>
+            <dt><kbd>H</kbd></dt><dd>Add shape (rectangle or ellipse)</dd>
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
             <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste an image from the clipboard</dd>
@@ -468,6 +471,19 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       cursor: pointer;
     }
     .easel-swatch:hover { transform: scale(1.12); }
+    .easel-shape-kind {
+      padding: 0 0.55rem;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      background: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      cursor: pointer;
+      margin-right: 0.15rem;
+    }
+    .easel-shape-kind:hover { background: #f1f0ec; }
     .easel-swatch.is-active {
       border-color: rgba(0, 0, 0, 0.55);
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(0, 0, 0, 0.4);
@@ -591,6 +607,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       text-transform: uppercase;
       opacity: 0.7;
       white-space: nowrap;
+    }
+    .easel-el-shape {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      font-size: 15px;
+      line-height: 1.35;
+      font-weight: 600;
+      color: #1a1a1a;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: hidden;
     }
     .easel-el[data-editing="1"] {
       user-select: text;
@@ -809,7 +839,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 
     type El = {
       id: string;
-      type: "image" | "text" | "sticky" | "frame";
+      type: "image" | "text" | "sticky" | "frame" | "shape";
       x: number; y: number; w: number; h: number; z: number;
       rotation?: number;
       props: Record<string, any>;
@@ -825,6 +855,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const world = $("world");
     const emptyHint = $("empty-hint");
     const swatches = $("swatches");
+    const shapeKind = $<HTMLButtonElement>("shape-kind");
     const dropHint = $("drop-hint");
     const keysOverlay = $("keys-overlay");
     // The shortcuts trigger declares aria-haspopup="dialog"; keep its
@@ -1028,6 +1059,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       } else if (el.type === "frame") {
         const label = node.querySelector<HTMLElement>(".easel-frame-label")!;
         label.textContent = String(el.props.label ?? "");
+      } else if (el.type === "shape") {
+        // Optional centered text, same text-node handling as sticky/text.
+        node.childNodes[0]?.nodeType === Node.TEXT_NODE
+          ? (node.childNodes[0].textContent = String(el.props.text ?? ""))
+          : node.insertBefore(document.createTextNode(String(el.props.text ?? "")), node.firstChild);
+        node.style.background = String(el.props.fill || "#bcdcff");
+        node.style.border = `2px solid ${String(el.props.stroke || "#3a4a8c")}`;
+        node.style.borderRadius = el.props.kind === "ellipse" ? "50%" : "10px";
       }
       node.classList.toggle("is-selected", selectedId === el.id);
     };
@@ -1243,17 +1282,23 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       reflectSwatches();
     };
 
-    // The color palette is meaningful only for stickies; show it on selection
+    // The selection-style bar serves stickies (background color) and shapes
+    // (fill color + a rect/ellipse kind toggle). Show it on selection of either
     // and mark the swatch matching the current color.
     const reflectSwatches = () => {
       const el = selectedId ? getEl(selectedId) : null;
       const isSticky = !!el && el.type === "sticky";
-      swatches.hidden = !isSticky;
-      if (!isSticky) return;
-      const cur = String(el!.props.color || "#fff3a3").toLowerCase();
+      const isShape = !!el && el.type === "shape";
+      swatches.hidden = !(isSticky || isShape);
+      shapeKind.hidden = !isShape;
+      if (!isSticky && !isShape) return;
+      // Stickies recolor props.color; shapes recolor props.fill.
+      const cur = String((isSticky ? el!.props.color : el!.props.fill) || (isSticky ? "#fff3a3" : "#bcdcff")).toLowerCase();
       swatches.querySelectorAll<HTMLButtonElement>(".easel-swatch").forEach((b) => {
         b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === cur);
       });
+      // Toggle label shows the kind a click switches TO.
+      if (isShape) shapeKind.textContent = el!.props.kind === "ellipse" ? "Rectangle" : "Ellipse";
     };
 
     const wireElement = (node: HTMLElement) => {
@@ -1343,8 +1388,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           label.addEventListener("keydown", onKeyLabel);
           return;
         }
-        if (el.type !== "text" && el.type !== "sticky") return;
+        if (el.type !== "text" && el.type !== "sticky" && el.type !== "shape") return;
         node.dataset.editing = "1";
+        // Pull the resize handle out of the editable region while editing.
+        // selectAllChildren spans every child, and on a flex container (shapes)
+        // the browser merges typed text INTO the trailing block child — the
+        // handle — which duplicates the label and corrupts the read. With the
+        // handle detached, typed text has nowhere to merge; it is restored on
+        // finish. Harmless for text/sticky, which also gain a cleaner edit.
+        const hadHandle = handle.parentNode === node;
+        if (hadHandle) handle.remove();
         node.contentEditable = "plaintext-only";
         node.focus();
         const sel = window.getSelection();
@@ -1352,19 +1405,18 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const finish = () => {
           node.dataset.editing = "0";
           node.contentEditable = "false";
-          // plaintext-only editing splits lines into separate text nodes
-          // (e.g. ["line one", "\n", "line two"]); read them ALL, not just
-          // childNodes[0], so multiline notes don't truncate to line one.
-          // The resize handle is an element node and is skipped.
-          el.props.text = Array.from(node.childNodes)
-            .filter((c) => c.nodeType === Node.TEXT_NODE)
-            .map((c) => c.textContent)
-            .join("");
-          // Strip the edited text nodes so renderEl rebuilds a single clean
-          // one (it only updates childNodes[0], leaving the rest as cruft).
-          Array.from(node.childNodes).forEach((c) => {
-            if (c.nodeType === Node.TEXT_NODE) c.remove();
-          });
+          // Read the edited text via innerText so it round-trips regardless of
+          // how the browser structured the edit. plaintext-only typing leaves
+          // bare text nodes on block elements (text/sticky), but on the shape's
+          // flex container the browser wraps lines in <div>s; a text-node-only
+          // reader would silently drop shape labels. innerText captures the
+          // rendered text with line breaks in both cases. Trailing blank lines
+          // that contenteditable tends to leave are trimmed.
+          el.props.text = (node.innerText ?? "").replace(/\n+$/, "");
+          // Clear every edit artifact, then restore the resize handle, so
+          // renderEl rebuilds a single clean text node followed by the handle.
+          Array.from(node.childNodes).forEach((c) => c.remove());
+          if (hadHandle) node.appendChild(handle);
           renderEl(el);
           scheduleSave();
           node.removeEventListener("blur", finish);
@@ -1554,6 +1606,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       } else if (ev.key.toLowerCase() === "t") addText();
       else if (ev.key.toLowerCase() === "s") addSticky();
       else if (ev.key.toLowerCase() === "r") addFrame();
+      else if (ev.key.toLowerCase() === "h") addShape();
       else if (ev.key.toLowerCase() === "u") fileInput.click();
       else if (ev.key.toLowerCase() === "f") zoomToFit();
       else if (ev.key === "?") setKeysOverlay(keysOverlay.hidden);
@@ -1618,6 +1671,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       renderEl(full);
       selectEl(full.id);
       scheduleSave();
+    };
+    // Shapes are visual blocks (rect/ellipse) with optional centered text. A new
+    // shape lands as a rectangle; flip it to an ellipse and recolor its fill from
+    // the selection-style bar, or double-click to type a label.
+    const addShape = (at?: { x: number; y: number }) => {
+      const c = at ?? centerPoint();
+      addElement({ type: "shape", x: c.x - 90, y: c.y - 60, w: 180, h: 120,
+        props: { kind: "rect", fill: "#bcdcff", stroke: "#3a4a8c", text: "" } });
     };
     const duplicateSelected = () => {
       if (!selectedId) return;
@@ -1894,6 +1955,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     $("tool-text").addEventListener("click", addText);
     $("tool-sticky").addEventListener("click", addSticky);
     $("tool-frame").addEventListener("click", addFrame);
+    $("tool-shape").addEventListener("click", () => addShape());
     $("tool-upload").addEventListener("click", () => fileInput.click());
     $("tool-zoom-fit").addEventListener("click", zoomToFit);
     // Clicking the zoom badge resets to 100%, anchored on the stage center
@@ -1909,15 +1971,29 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // Keep clicks on the palette from reaching the stage, which would
     // deselect the sticky (and start a pan) before the recolor click fires.
     swatches.addEventListener("pointerdown", (ev) => ev.stopPropagation());
-    // Recolor the selected sticky from the palette.
+    // Recolor the selected sticky (background) or shape (fill) from the palette.
     swatches.addEventListener("click", (ev) => {
       const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>(".easel-swatch");
-      if (!btn || !selectedId) return;
+      if (!btn || !selectedId || !btn.dataset.color) return;
       const el = getEl(selectedId);
-      if (!el || el.type !== "sticky") return;
-      el.props.color = btn.dataset.color;
-      // Carry the choice forward as the default for the next new sticky.
-      if (btn.dataset.color) lastStickyColor = btn.dataset.color;
+      if (!el) return;
+      if (el.type === "sticky") {
+        el.props.color = btn.dataset.color;
+        // Carry the choice forward as the default for the next new sticky.
+        lastStickyColor = btn.dataset.color;
+      } else if (el.type === "shape") {
+        el.props.fill = btn.dataset.color;
+      } else return;
+      renderEl(el);
+      reflectSwatches();
+      scheduleSave();
+    });
+    // Flip the selected shape between rectangle and ellipse.
+    shapeKind.addEventListener("click", () => {
+      if (!selectedId) return;
+      const el = getEl(selectedId);
+      if (!el || el.type !== "shape") return;
+      el.props.kind = el.props.kind === "ellipse" ? "rect" : "ellipse";
       renderEl(el);
       reflectSwatches();
       scheduleSave();

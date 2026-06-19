@@ -61,6 +61,12 @@ function elementHtml(el: EaselElement): string {
     }
     case "frame":
       return `<div class="el el-frame" style="${base}"><span class="frame-label">${esc(p.label)}</span></div>`;
+    case "shape": {
+      const fill = safeColor(p.fill, "#bcdcff");
+      const stroke = safeColor(p.stroke, "#3a4a8c");
+      const radius = p.kind === "ellipse" ? "50%" : "10px";
+      return `<div class="el el-shape" style="${base}background:${fill};border:2px solid ${stroke};border-radius:${radius};">${esc(p.text)}</div>`;
+    }
     default:
       return "";
   }
@@ -152,6 +158,12 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
     white-space: pre-wrap; word-break: break-word; overflow: hidden;
   }
   .el-frame { border: 1.5px solid rgba(0,0,0,0.35); border-radius: 12px; background: rgba(255,255,255,0.35); }
+  .el-shape {
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 10px;
+    font-size: 15px; line-height: 1.35; font-weight: 600; color: #1a1a1a;
+    white-space: pre-wrap; word-break: break-word; overflow: hidden;
+  }
   .frame-label {
     position: absolute; top: -1.6em; left: 0;
     font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
