@@ -99,7 +99,19 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
           <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog" aria-expanded="false">?</button>
           <span class="easel-save-state" id="save-state" aria-live="polite">Saved</span>
-          <button class="easel-tool" id="tool-export" type="button" title="Download as SVG (selection if multiple selected)">Export</button>
+          <div class="easel-export-wrap">
+            <button class="easel-tool" id="tool-export" type="button" title="Download the board (PNG or SVG; selection if 2+ selected)" aria-haspopup="menu" aria-expanded="false">Export</button>
+            <div class="easel-export-menu" id="export-menu" role="menu" hidden>
+              <button class="easel-export-item" id="export-png" type="button" role="menuitem">
+                <span class="easel-export-item-name">PNG image</span>
+                <span class="easel-export-item-sub">Raster, paste anywhere</span>
+              </button>
+              <button class="easel-export-item" id="export-svg" type="button" role="menuitem">
+                <span class="easel-export-item-name">SVG vector</span>
+                <span class="easel-export-item-sub">Scalable, edit in Figma</span>
+              </button>
+            </div>
+          </div>
           <button class="easel-tool" id="tool-publish" type="button" title="Show this board in the public gallery">Publish</button>
           <button class="easel-tool easel-tool-share" id="tool-share" type="button" title="Copy board link">Share</button>
         </div>
@@ -178,7 +190,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd></dt><dd>Select every element</dd>
             <dt>Drag group corner</dt><dd>Resize a multi-selection as a unit (<kbd>Shift</kbd> keeps aspect)</dd>
             <dt><kbd>Alt</kbd> + drag</dt><dd>Move without snapping</dd>
-            <dt>Export</dt><dd>Download the board as SVG (just the selection if 2+ are selected)</dd>
+            <dt>Export</dt><dd>Download the board as PNG or SVG (just the selection if 2+ are selected)</dd>
             <dt>Double-click</dt><dd>Empty canvas: new sticky. On an element: edit text or label</dd>
             <dt>Scroll / pinch</dt><dd>Zoom · <kbd>Space</kbd> or middle-mouse drag to pan</dd>
             <dt><kbd>Esc</kbd></dt><dd>Deselect (closes this panel first)</dd>
@@ -429,6 +441,39 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: rgba(36, 70, 200, 0.1);
       color: #2446c8;
     }
+    /* Export PNG/SVG menu. Trigger lives in the topbar (dark-aware chrome), so the
+       popover uses --ez-* tokens. position:fixed (coords set in JS from the
+       trigger rect) keeps it out of the mobile tools strip's scroll clipping. */
+    .easel-export-wrap { display: inline-flex; }
+    .easel-export-menu {
+      position: fixed;
+      z-index: 40;
+      min-width: 12.5rem;
+      padding: 0.3rem;
+      background: var(--ez-panel);
+      border: 1px solid var(--ez-border);
+      border-radius: 10px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .easel-export-menu[hidden] { display: none; }
+    .easel-export-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      text-align: left;
+      border: none;
+      background: transparent;
+      border-radius: 7px;
+      padding: 0.45rem 0.6rem;
+      cursor: pointer;
+      color: var(--ez-text);
+    }
+    .easel-export-item:hover { background: var(--ez-hover); }
+    .easel-export-item-name { font-size: 0.85rem; font-weight: 600; }
+    .easel-export-item-sub { font-size: 0.72rem; color: var(--ez-muted); }
     .easel-save-state {
       font-size: 0.78rem;
       opacity: 0.55;
@@ -3128,7 +3173,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const s = 1 / Math.max(Math.abs(dx) / (b.w / 2), Math.abs(dy) / (b.h / 2));
       return { x: cx + dx * s, y: cy + dy * s };
     };
-    const buildBoardSvg = (): string | null => {
+    const buildBoardSvg = (imgMap?: Map<string, string>): string | null => {
       const selBoxes = selectedBoxes();
       const useSel = selBoxes.length >= 2;
       const boxEls = useSel ? selBoxes : doc.elements.filter((e) => e.type !== "connector");
@@ -3160,8 +3205,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           const src = typeof p.src === "string" && /^\/i-easel\/img\//.test(p.src) ? p.src : "";
           if (!src) continue;
           const cid = `imgclip-${clipN++}`;
+          // SVG export keeps the remote /i-easel URL (portable, small file). PNG
+          // export passes imgMap with the image already inlined as a data URI, so
+          // the SVG is self-contained and rasterizes without the sandboxed
+          // SVG-in-<img> blocking the external load (and without tainting canvas).
+          const href = imgMap?.get(src) ?? (location.origin + src);
           defs.push(`<clipPath id="${cid}"><rect x="${X}" y="${Y}" width="${Wd}" height="${Ht}" rx="6"/></clipPath>`);
-          body.push(`<image x="${X}" y="${Y}" width="${Wd}" height="${Ht}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${cid})" href="${xmlEsc(location.origin + src)}"/>`);
+          body.push(`<image x="${X}" y="${Y}" width="${Wd}" height="${Ht}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${cid})" href="${xmlEsc(href)}"/>`);
         } else if (el.type === "text") {
           const fontPx = Number(p.size) || 28;
           const weight = Number(p.weight) || 600;
@@ -3228,23 +3278,116 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         `</svg>`,
       ].filter(Boolean).join("\n");
     };
+    const exportBaseName = () => (titleInput.value.trim() || "easel-board")
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "easel-board";
+    const downloadHref = (href: string, filename: string) => {
+      const a = document.createElement("a");
+      a.href = href; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+    };
+    const flashExport = (text: string, ms = 1200) => {
+      const btn = $("tool-export");
+      const prev = btn.dataset.label ?? btn.textContent ?? "Export";
+      btn.dataset.label = prev;
+      btn.textContent = text;
+      window.setTimeout(() => { btn.textContent = prev; delete btn.dataset.label; }, ms);
+    };
     const exportBoard = () => {
       const svg = buildBoardSvg();
-      const btn = $("tool-export");
-      const prev = btn.textContent;
-      if (!svg) { btn.textContent = "Empty board"; window.setTimeout(() => { btn.textContent = prev; }, 1200); return; }
-      const base = (titleInput.value.trim() || "easel-board")
-        .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "easel-board";
+      if (!svg) { flashExport("Empty board"); return; }
       const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = `${base}.svg`;
-      document.body.appendChild(a); a.click(); a.remove();
+      downloadHref(url, `${exportBaseName()}.svg`);
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      btn.textContent = "Exported";
-      window.setTimeout(() => { btn.textContent = prev; }, 1200);
+      flashExport("Exported");
     };
-    $("tool-export").addEventListener("click", exportBoard);
+    // PNG raster export. The board's images live at same-origin /i-easel/img/...
+    // so we fetch each, inline it as a data URI inside the SVG, then draw that
+    // self-contained SVG onto a 2x canvas and download a PNG. Same-origin +
+    // data-URI means the canvas is never tainted, so toDataURL succeeds.
+    const exportPng = async () => {
+      const srcs = new Set<string>();
+      for (const el of doc.elements) {
+        if (el.type !== "image") continue;
+        const s = el.props?.src;
+        if (typeof s === "string" && /^\/i-easel\/img\//.test(s)) srcs.add(s);
+      }
+      try {
+        flashExport("Rendering…", 60000);
+        const imgMap = new Map<string, string>();
+        await Promise.all([...srcs].map(async (s) => {
+          const resp = await fetch(location.origin + s);
+          if (!resp.ok) return;
+          const blob = await resp.blob();
+          const dataUrl = await new Promise<string>((res, rej) => {
+            const fr = new FileReader();
+            fr.onload = () => res(String(fr.result));
+            fr.onerror = () => rej(new Error("read"));
+            fr.readAsDataURL(blob);
+          });
+          imgMap.set(s, dataUrl);
+        }));
+        const svg = buildBoardSvg(imgMap);
+        if (!svg) { flashExport("Empty board"); return; }
+        const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+        const img = new Image();
+        await new Promise<void>((res, rej) => {
+          img.onload = () => res();
+          img.onerror = () => rej(new Error("raster"));
+          img.src = url;
+        });
+        const scale = 2;
+        const w = img.naturalWidth || 1, h = img.naturalHeight || 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { URL.revokeObjectURL(url); flashExport("Export failed", 1500); return; }
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        downloadHref(canvas.toDataURL("image/png"), `${exportBaseName()}.png`);
+        flashExport("Exported");
+      } catch {
+        flashExport("Export failed", 1500);
+      }
+    };
+
+    // Export is a small PNG/SVG menu (fixed-positioned so it never clips inside
+    // the topbar's mobile horizontal-scroll strip). Dismisses on outside click,
+    // Esc, or resize-away.
+    const exportMenu = $("export-menu");
+    let exportMenuOpen = false;
+    const positionExportMenu = () => {
+      const r = $("tool-export").getBoundingClientRect();
+      exportMenu.style.top = `${Math.round(r.bottom + 6)}px`;
+      exportMenu.style.right = `${Math.round(window.innerWidth - r.right)}px`;
+    };
+    const closeExportMenu = () => {
+      if (!exportMenuOpen) return;
+      exportMenuOpen = false;
+      exportMenu.hidden = true;
+      $("tool-export").setAttribute("aria-expanded", "false");
+    };
+    const openExportMenu = () => {
+      exportMenuOpen = true;
+      positionExportMenu();
+      exportMenu.hidden = false;
+      $("tool-export").setAttribute("aria-expanded", "true");
+    };
+    $("tool-export").addEventListener("click", (e) => {
+      e.stopPropagation();
+      exportMenuOpen ? closeExportMenu() : openExportMenu();
+    });
+    document.addEventListener("click", (e) => {
+      if (exportMenuOpen && !exportMenu.contains(e.target as Node)) closeExportMenu();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (exportMenuOpen && e.key === "Escape") { e.stopImmediatePropagation(); e.preventDefault(); closeExportMenu(); }
+    }, true);
+    window.addEventListener("resize", () => { if (exportMenuOpen) positionExportMenu(); });
+    $("export-png").addEventListener("click", () => { closeExportMenu(); void exportPng(); });
+    $("export-svg").addEventListener("click", () => { closeExportMenu(); exportBoard(); });
 
     // Copy with a fallback: the async Clipboard API throws when the document
     // isn't focused (NotAllowedError) or is missing in some embedded webviews,
