@@ -112,6 +112,27 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <p class="easel-empty-hint-sub">Double-click to drop a note, drag in an image, or ask the agent below to build the board for you.</p>
           <button class="easel-empty-hint-cta" id="empty-templates" type="button">Start from a template</button>
         </div>
+        <div class="easel-coach" id="coach" hidden>
+          <div class="easel-coach-head">
+            <span class="easel-coach-title">Get started</span>
+            <span class="easel-coach-count" id="coach-count">0 / 3</span>
+          </div>
+          <ul class="easel-coach-steps">
+            <li class="easel-coach-step" data-step="sticky">
+              <span class="easel-coach-tick" aria-hidden="true"></span>
+              <span class="easel-coach-text">Add a sticky note <kbd>S</kbd></span>
+            </li>
+            <li class="easel-coach-step" data-step="image">
+              <span class="easel-coach-tick" aria-hidden="true"></span>
+              <span class="easel-coach-text">Drag in an image</span>
+            </li>
+            <li class="easel-coach-step" data-step="agent">
+              <span class="easel-coach-tick" aria-hidden="true"></span>
+              <span class="easel-coach-text">Ask the agent to build something</span>
+            </li>
+          </ul>
+          <button class="easel-coach-skip" id="coach-skip" type="button">Skip</button>
+        </div>
         <div class="easel-drop-hint" id="drop-hint" hidden>Drop images to add them to the board</div>
         <div class="easel-swatches" id="swatches" role="group" aria-label="Selection style" hidden>
           <button class="easel-shape-kind" id="shape-kind" type="button" title="Switch shape kind" hidden>Ellipse</button>
@@ -661,6 +682,113 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       cursor: pointer;
     }
     .easel-zoom-badge:hover { background: rgba(0, 0, 0, 0.13); }
+    /* First-run onboarding coach: a small checklist that floats over the light
+       paper stage (just above the zoom badge), teaching the three core moves.
+       Each step ticks itself off as the user does it; once all three are done —
+       or the user clicks Skip — it dismisses forever. Light card / dark ink so
+       it matches the always-light stage in both themes (not the --ez-* chrome). */
+    .easel-coach {
+      position: absolute;
+      left: 0.9rem;
+      bottom: 3rem;
+      z-index: 8;
+      width: 16rem;
+      max-width: calc(100% - 1.8rem);
+      padding: 0.85rem 0.95rem 0.9rem;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.97);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+      color: #1f1d1a;
+      font-size: 0.85rem;
+      animation: easel-coach-in 0.3s var(--ease-out, ease) both;
+    }
+    .easel-coach[hidden] { display: none; }
+    @keyframes easel-coach-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    .easel-coach.is-leaving {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .easel-coach-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 0.6rem;
+    }
+    .easel-coach-title { font-weight: 650; font-size: 0.9rem; }
+    .easel-coach-count {
+      font-size: 0.72rem;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.55;
+    }
+    .easel-coach-steps {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .easel-coach-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      line-height: 1.3;
+    }
+    .easel-coach-tick {
+      flex: none;
+      width: 17px;
+      height: 17px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(0, 0, 0, 0.28);
+      position: relative;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .easel-coach-step.is-done .easel-coach-tick {
+      background: #2f9e44;
+      border-color: #2f9e44;
+    }
+    .easel-coach-step.is-done .easel-coach-tick::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 2px;
+      width: 4px;
+      height: 8px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .easel-coach-text { flex: 1; }
+    .easel-coach-step.is-done .easel-coach-text {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+    .easel-coach-text kbd {
+      font: inherit;
+      font-size: 0.72rem;
+      padding: 0.02rem 0.32rem;
+      border-radius: 5px;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      background: rgba(0, 0, 0, 0.04);
+    }
+    .easel-coach-skip {
+      margin-top: 0.7rem;
+      font: inherit;
+      font-size: 0.78rem;
+      color: inherit;
+      opacity: 0.6;
+      background: none;
+      border: 0;
+      padding: 0.1rem 0;
+      cursor: pointer;
+    }
+    .easel-coach-skip:hover { opacity: 0.9; text-decoration: underline; }
+    @media (max-width: 640px) { .easel-coach { display: none; } }
     .easel-keys {
       position: absolute;
       right: 0.9rem;
@@ -1219,6 +1347,43 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       keysOverlay.hidden = !open;
       $("tool-keys").setAttribute("aria-expanded", String(open));
     };
+    // ---------- first-run onboarding coach ----------
+    // A 3-step checklist that floats over the stage on a visitor's first board,
+    // ticking each step off as they do it: add a sticky, drag in an image, ask
+    // the agent. Completing all three — or clicking Skip — dismisses it forever
+    // via localStorage so it never nags a returning user.
+    const coach = $("coach");
+    const COACH_KEY = "easel.coach.v1";
+    const coachDone = new Set<string>();
+    let coachActive = false;
+    const dismissCoach = () => {
+      if (!coachActive) return;
+      coachActive = false;
+      try { localStorage.setItem(COACH_KEY, "done"); } catch {}
+      coach.classList.add("is-leaving");
+      window.setTimeout(() => { coach.hidden = true; coach.classList.remove("is-leaving"); }, 420);
+    };
+    const coachMark = (step: string) => {
+      if (!coachActive || coachDone.has(step)) return;
+      coachDone.add(step);
+      coach.querySelector(`[data-step="${step}"]`)?.classList.add("is-done");
+      const count = $("coach-count");
+      if (coachDone.size >= 3) {
+        count.textContent = "All set";
+        window.setTimeout(dismissCoach, 1100);
+      } else {
+        count.textContent = `${coachDone.size} / 3`;
+      }
+    };
+    // Surfaced once a board is open (workspace visible), gated on the flag.
+    const initCoach = () => {
+      let seen = "done";
+      try { seen = localStorage.getItem(COACH_KEY) ?? ""; } catch {}
+      if (seen === "done") return;
+      coachActive = true;
+      coach.hidden = false;
+    };
+    $("coach-skip").addEventListener("click", dismissCoach);
     const zoomBadge = $("zoom-badge");
     const saveState = $("save-state");
     const titleInput = $<HTMLInputElement>("board-title");
@@ -2315,6 +2480,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const el = addElement({ type: "sticky", x: c.x - 90, y: c.y - 90, w: 180, h: 180,
         props: { text: "New note", color: lastStickyColor } });
       editElement(el.id);
+      coachMark("sticky");
     };
     const addFrame = () => {
       // Frames go to the BACK of the z-order so they group elements
@@ -2617,6 +2783,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           setSaveState(err?.message?.includes("quota") ? "Upload quota hit" : "Upload failed");
         }
       }
+      if (uploaded) coachMark("image");
       // Dropping an unsupported file (PDF, HEIC, text…) used to do nothing at all
       // — no element, no message. Say why when nothing landed on the board.
       if (!uploaded && skipped) setSaveState("Only PNG, JPG, WebP or GIF");
@@ -2701,6 +2868,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       ev.preventDefault();
       const prompt = agentInput.value.trim();
       if (!prompt || !boardId || agentRunning) return;
+      coachMark("agent");
       // flush pending edits so the agent sees the latest board
       if (dirty) await saveNow();
 
@@ -3185,6 +3353,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         zoomToFit();
       }
       rememberBoard(id, body.title);
+      initCoach();
     };
 
     const newBoardBtn = $<HTMLButtonElement>("new-board-btn");
