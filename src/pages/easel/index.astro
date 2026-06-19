@@ -185,14 +185,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>Duplicate the selection</dd>
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
             <dt>Arrow keys</dt><dd>Nudge selection 1 unit (<kbd>Shift</kbd> for 10)</dd>
-            <dt>Drag empty</dt><dd>Marquee-select elements (<kbd>Shift</kbd> adds to selection)</dd>
+            <dt>Drag empty</dt><dd>Pan the canvas · <kbd>Shift</kbd>+drag to marquee-select</dd>
             <dt><kbd>Shift</kbd> + click</dt><dd>Add or remove an element from the selection</dd>
             <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd></dt><dd>Select every element</dd>
             <dt>Drag group corner</dt><dd>Resize a multi-selection as a unit (<kbd>Shift</kbd> keeps aspect)</dd>
             <dt><kbd>Alt</kbd> + drag</dt><dd>Move without snapping</dd>
             <dt>Export</dt><dd>Download the board as PNG or SVG (just the selection if 2+ are selected)</dd>
             <dt>Double-click</dt><dd>Empty canvas: new sticky. On an element: edit text or label</dd>
-            <dt>Scroll / pinch</dt><dd>Zoom · <kbd>Space</kbd> or middle-mouse drag to pan</dd>
+            <dt>Scroll / drag</dt><dd>Pan the canvas · <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+scroll or pinch to zoom</dd>
             <dt><kbd>Esc</kbd></dt><dd>Deselect (closes this panel first)</dd>
             <dt><kbd>?</kbd></dt><dd>Toggle this panel</dd>
           </dl>
@@ -681,8 +681,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: rgba(0, 0, 0, 0.14);
       margin: 0 0.2rem;
     }
-    /* Marquee selection rectangle, drawn in stage screen-space while a plain
-       left-drag sweeps empty canvas. Never eats pointer events. */
+    /* Marquee selection rectangle, drawn in stage screen-space while a
+       Shift+left-drag sweeps empty canvas. Never eats pointer events. */
     .easel-marquee {
       position: absolute;
       border: 1px solid #2446c8;
@@ -2248,10 +2248,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         return;
       }
       if (ev.button !== 0 && ev.button !== 1) return;
-      // Middle-mouse, or left-mouse with Space held, pans (Figma/tldraw model).
-      // Plain left-drag on empty canvas draws a marquee selection.
-      const panning = ev.button === 1 || spaceHeld;
-      if (!panning) { startMarquee(ev); return; }
+      // Drag-to-move is the default (Miro/FigJam): plain left-drag, middle-mouse,
+      // or Space+left-drag all pan the canvas. Shift+left-drag draws a marquee
+      // selection (additive — shift-click already toggles single elements).
+      const marquee = ev.button === 0 && ev.shiftKey && !spaceHeld;
+      if (marquee) { startMarquee(ev); return; }
       selectEl(null);
       stage.classList.add("is-panning");
       const startX = ev.clientX - panX, startY = ev.clientY - panY;
@@ -2348,14 +2349,27 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 
     stage.addEventListener("wheel", (ev) => {
       ev.preventDefault();
-      const r = stage.getBoundingClientRect();
-      const mx = ev.clientX - r.left, my = ev.clientY - r.top;
-      const factor = ev.deltaY < 0 ? 1.1 : 1 / 1.1;
-      const next = Math.min(4, Math.max(0.1, zoom * factor));
-      // zoom around cursor
-      panX = mx - ((mx - panX) / zoom) * next;
-      panY = my - ((my - panY) / zoom) * next;
-      zoom = next;
+      // Figma/Miro model: plain scroll (and two-finger trackpad swipe) pans the
+      // canvas; Ctrl/Cmd+scroll zooms around the cursor; Shift+scroll pans
+      // horizontally. A trackpad pinch arrives as a Ctrl+wheel event, so it
+      // zooms too. This is the gesture set users reach for to move the board.
+      if (ev.ctrlKey || ev.metaKey) {
+        const r = stage.getBoundingClientRect();
+        const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+        const factor = ev.deltaY < 0 ? 1.1 : 1 / 1.1;
+        const next = Math.min(4, Math.max(0.1, zoom * factor));
+        panX = mx - ((mx - panX) / zoom) * next;
+        panY = my - ((my - panY) / zoom) * next;
+        zoom = next;
+        applyView();
+        return;
+      }
+      // Pan. Shift turns a vertical mouse wheel into horizontal motion;
+      // trackpads already deliver deltaX directly for a sideways swipe.
+      let dx = ev.deltaX, dy = ev.deltaY;
+      if (ev.shiftKey && dx === 0) { dx = dy; dy = 0; }
+      panX -= dx;
+      panY -= dy;
       applyView();
     }, { passive: false });
     // Double-clicking empty canvas drops a sticky at the cursor (Miro/FigJam).
