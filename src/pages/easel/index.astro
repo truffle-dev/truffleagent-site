@@ -198,6 +198,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring to front / send to back</dd>
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
             <dt>Click an arrow</dt><dd>Select a connector to recolour, flip arrow/line, or <kbd>Delete</kbd></dd>
+            <dt>Rotate handle</dt><dd>Drag the knob above a selected element to spin it; hold <kbd>Shift</kbd> to snap to 15&deg;</dd>
             <dt>Arrow keys</dt><dd>Nudge selection 1 unit (<kbd>Shift</kbd> for 10)</dd>
             <dt>Drag empty</dt><dd>Pan the canvas · <kbd>Shift</kbd>+drag to marquee-select</dd>
             <dt><kbd>Shift</kbd> + click</dt><dd>Add or remove an element from the selection</dd>
@@ -1153,6 +1154,40 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       display: none;
     }
     .easel-el.is-selected .easel-resize-handle { display: block; }
+    /* Rotation grip lives in #world (not on the node) so an element's own
+       overflow:hidden never clips it. A zero-size host anchored at the
+       element centre carries the box's rotation; the knob hangs above. */
+    .easel-rotate-host {
+      position: absolute;
+      width: 0;
+      height: 0;
+      transform-origin: 0 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    .easel-rotate-knob {
+      position: absolute;
+      left: -7px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4658e0;
+      border: 2px solid #fdfbf7;
+      pointer-events: auto;
+      cursor: grab;
+    }
+    /* Stem joining the knob down toward the top edge of the box. */
+    .easel-rotate-knob::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 14px;
+      width: 1.5px;
+      height: 14px;
+      margin-left: -0.75px;
+      background: #4658e0;
+    }
+    .easel-rotate-knob:active { cursor: grabbing; }
     .easel-guide {
       position: absolute;
       background: #e0457b;
@@ -2048,6 +2083,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       reflectSwatches();
       updateAlignbar();
       drawGroupBox();
+      drawRotateHandle();
     };
     const setSelection = (ids: string[]) => {
       selectedIds.clear();
@@ -2179,6 +2215,70 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       groupHandle.addEventListener("pointerup", onUp);
     });
 
+    // ---------- rotation grip ----------
+    // Human parity with the agent's update_elements rotation field. A single
+    // selected box gets a knob above its top edge; dragging it spins the
+    // element about its centre (Shift snaps to 15deg). The grip lives in
+    // #world rather than on the node so an element's overflow:hidden never
+    // clips it (the resize handle straddles the corner and survives; a top
+    // knob sits fully outside and would be clipped). The render route already
+    // emits transform:rotate(), so this is free parity end-to-end.
+    const rotateHost = document.createElement("div");
+    rotateHost.className = "easel-rotate-host";
+    rotateHost.hidden = true;
+    const rotateKnob = document.createElement("div");
+    rotateKnob.className = "easel-rotate-knob";
+    rotateHost.appendChild(rotateKnob);
+    world.appendChild(rotateHost);
+
+    const drawRotateHandle = () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      // Only a lone box rotates; a group shows the dashed group box instead.
+      if (!el || el.type === "connector") { rotateHost.hidden = true; return; }
+      rotateHost.hidden = false;
+      // Anchor the zero-size host at the element centre and rotate it with the
+      // box; the knob hangs above the (local) top edge so it tracks rotation.
+      rotateHost.style.left = `${el.x + el.w / 2}px`;
+      rotateHost.style.top = `${el.y + el.h / 2}px`;
+      rotateHost.style.transform = `rotate(${el.rotation || 0}deg)`;
+      rotateKnob.style.top = `${-(el.h / 2 + 26)}px`;
+    };
+
+    rotateKnob.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      ev.stopPropagation();
+      ev.preventDefault();
+      const el = selectedId ? getEl(selectedId) : null;
+      if (!el) return;
+      const cx = el.x + el.w / 2;
+      const cy = el.y + el.h / 2;
+      const startP = stagePoint(ev.clientX, ev.clientY);
+      // Angle is measured centre→pointer in world space, so the knob's own
+      // offset never biases the delta.
+      const startAngle = Math.atan2(startP.y - cy, startP.x - cx);
+      const origRot = el.rotation || 0;
+      rotateKnob.setPointerCapture(ev.pointerId);
+      const onMove = (mv: PointerEvent) => {
+        const p = stagePoint(mv.clientX, mv.clientY);
+        const cur = Math.atan2(p.y - cy, p.x - cx);
+        let deg = origRot + (cur - startAngle) * (180 / Math.PI);
+        if (mv.shiftKey) deg = Math.round(deg / 15) * 15;
+        // Normalise into (-180, 180] to match the agent's rotation range.
+        deg = ((deg + 180) % 360 + 360) % 360 - 180;
+        el.rotation = Math.round(deg);
+        renderEl(el);
+        drawRotateHandle();
+        drawConnectors();
+      };
+      const onUp = () => {
+        rotateKnob.removeEventListener("pointermove", onMove);
+        rotateKnob.removeEventListener("pointerup", onUp);
+        scheduleSave();
+      };
+      rotateKnob.addEventListener("pointermove", onMove);
+      rotateKnob.addEventListener("pointerup", onUp);
+    });
+
     // The selection-style bar serves stickies (background color) and shapes
     // (fill color + a rect/ellipse kind toggle). Show it on selection of either
     // and mark the swatch matching the current color.
@@ -2272,6 +2372,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           }
           // Re-route any arrows attached to a moved/resized box.
           drawConnectors();
+          // Keep the rotation grip glued to a lone box as it moves/resizes.
+          if (!isGroup) drawRotateHandle();
         };
         const onUp = () => {
           clearGuides();
