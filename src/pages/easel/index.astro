@@ -183,6 +183,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo (or <kbd>Ctrl</kbd>+<kbd>Y</kbd>)</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Save now</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>Duplicate the selection</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring forward / send backward</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring to front / send to back</dd>
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
             <dt>Arrow keys</dt><dd>Nudge selection 1 unit (<kbd>Shift</kbd> for 10)</dd>
             <dt>Drag empty</dt><dd>Pan the canvas · <kbd>Shift</kbd>+drag to marquee-select</dd>
@@ -2440,6 +2442,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         setSelection(doc.elements.filter((e) => e.type !== "connector").map((e) => e.id));
         return;
       }
+      // Ctrl/Cmd+] / [ restack: bring forward / send backward; +Shift jumps to
+      // the very front / back. ev.code is layout-safe (Shift turns ] into }).
+      if ((ev.metaKey || ev.ctrlKey) &&
+          (ev.code === "BracketRight" || ev.code === "BracketLeft") &&
+          selectedBoxes().length) {
+        ev.preventDefault();
+        const toFront = ev.code === "BracketRight";
+        restackSelected(ev.shiftKey ? (toFront ? "front" : "back") : (toFront ? "forward" : "backward"));
+        return;
+      }
       // Never hijack browser shortcuts (Ctrl+R reload, Ctrl+F find,
       // Ctrl+T new tab, Ctrl+U view source…); single letters only.
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
@@ -2765,6 +2777,60 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       for (const el of fresh) renderEl(el);
       drawConnectors();
       setSelection(cloneBoxIds);
+      scheduleSave();
+    };
+
+    // ---------- layering (z-order) ----------
+    // Restack the selected boxes. "front"/"back" jump above/below everything
+    // (relative order within the selection preserved); "forward"/"backward"
+    // step past one non-selected neighbour at a time, so a selected block moves
+    // as a unit. Connectors live in their own SVG layer and have no z-order.
+    type RestackOp = "front" | "back" | "forward" | "backward";
+    const applyRestack = (elements: El[], sel: Set<string>, op: RestackOp) => {
+      const boxes = elements.filter((e) => e.type !== "connector");
+      if (op === "front" || op === "back") {
+        const others = boxes.filter((e) => !sel.has(e.id));
+        const picked = boxes.filter((e) => sel.has(e.id)).sort((a, b) => a.z - b.z);
+        if (!picked.length) return;
+        if (op === "front") {
+          const top = others.length ? Math.max(...others.map((e) => e.z)) : 0;
+          picked.forEach((e, i) => { e.z = top + 1 + i; });
+        } else {
+          const bot = others.length ? Math.min(...others.map((e) => e.z)) : 0;
+          picked.forEach((e, i) => { e.z = bot - picked.length + i; });
+        }
+        return;
+      }
+      // forward / backward: swap z with the nearest non-selected neighbour.
+      const ordered = [...boxes].sort((a, b) => a.z - b.z);
+      if (op === "forward") {
+        for (let i = ordered.length - 2; i >= 0; i--) {
+          const cur = ordered[i];
+          if (!sel.has(cur.id)) continue;
+          const above = ordered[i + 1];
+          if (sel.has(above.id)) continue;
+          const z = cur.z; cur.z = above.z; above.z = z;
+          ordered[i] = above; ordered[i + 1] = cur;
+        }
+      } else {
+        for (let i = 1; i < ordered.length; i++) {
+          const cur = ordered[i];
+          if (!sel.has(cur.id)) continue;
+          const below = ordered[i - 1];
+          if (sel.has(below.id)) continue;
+          const z = cur.z; cur.z = below.z; below.z = z;
+          ordered[i] = below; ordered[i - 1] = cur;
+        }
+      }
+    };
+    const restackSelected = (op: RestackOp) => {
+      const boxes = selectedBoxes();
+      if (!boxes.length) return;
+      applyRestack(doc.elements, new Set(boxes.map((b) => b.id)), op);
+      for (const el of doc.elements) {
+        if (el.type === "connector") continue;
+        elNode(el).style.zIndex = String(el.z);
+      }
       scheduleSave();
     };
 
