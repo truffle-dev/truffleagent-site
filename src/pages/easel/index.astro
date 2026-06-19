@@ -861,6 +861,102 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       font-size: 0.9rem;
     }
     .easel-recent-list a:hover { background: rgba(0, 0, 0, 0.04); }
+
+    /* ---------- theming: dark-aware chrome, light paper canvas ----------
+       The paper stage + paper-note elements stay light in BOTH themes (they are
+       physical paper); pin their ink dark so they never inherit the dark-theme
+       near-white text color. The app chrome follows the site theme via --ez-*. */
+
+    /* Paper world: light surface, dark ink, in every theme. */
+    .easel-stage { color: #1f1d1a; }
+
+    /* Chrome tokens — light defaults match the prior hardcoded values. */
+    .easel-page,
+    .easel-workspace {
+      --ez-surface: #fdfbf7;
+      --ez-panel:   #fffdf9;
+      --ez-panel-2: #ffffff;
+      --ez-text:    #1f1d1a;
+      --ez-muted:   rgba(0, 0, 0, 0.55);
+      --ez-border:  rgba(0, 0, 0, 0.12);
+      --ez-hover:   rgba(0, 0, 0, 0.05);
+    }
+    .easel-workspace { background: var(--ez-surface); color: var(--ez-text); }
+    .easel-topbar { background: var(--ez-panel); border-bottom-color: var(--ez-border); color: var(--ez-text); }
+    .easel-tool { border-color: var(--ez-border); color: var(--ez-text); }
+    .easel-tool:hover { background: var(--ez-hover); }
+    .easel-title-input { color: var(--ez-text); }
+    .easel-title-input:hover, .easel-title-input:focus { background: var(--ez-hover); }
+    .easel-agent { background: var(--ez-panel-2); border-color: var(--ez-border); color: var(--ez-text); }
+    .easel-agent-head { border-bottom-color: var(--ez-border); }
+    .easel-agent-form { border-top-color: var(--ez-border); }
+    .easel-agent-input { background: var(--ez-panel-2); color: var(--ez-text); border-color: var(--ez-border); }
+    .easel-feed-thought { background: var(--ez-hover); }
+    .easel-recent-list a { border-color: var(--ez-border); color: var(--ez-text); }
+    .easel-recent-list a:hover { background: var(--ez-hover); }
+    .easel-btn { border-color: var(--ez-border); color: var(--ez-text); }
+
+    /* Dark theme: explicit toggle + system preference (unless forced light).
+       Values mirror the site's dark family from global.css. */
+    [data-theme="dark"] .easel-page,
+    [data-theme="dark"] .easel-workspace {
+      --ez-surface: #0e0c08;
+      --ez-panel:   #181510;
+      --ez-panel-2: #221e16;
+      --ez-text:    #f5efde;
+      --ez-muted:   #a89e83;
+      --ez-border:  #2e2920;
+      --ez-hover:   rgba(245, 239, 222, 0.07);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .easel-page,
+      :root:not([data-theme="light"]) .easel-workspace {
+        --ez-surface: #0e0c08;
+        --ez-panel:   #181510;
+        --ez-panel-2: #221e16;
+        --ez-text:    #f5efde;
+        --ez-muted:   #a89e83;
+        --ez-border:  #2e2920;
+        --ez-hover:   rgba(245, 239, 222, 0.07);
+      }
+    }
+
+    /* Agent feed status chips: the light-tuned saturated text goes low-contrast
+       on the dark panel, so lift text + tint in dark mode. Primary buttons use
+       the site accent so they pop on the dark surface. User bubble gets a border
+       so it separates from the dark panel. */
+    [data-theme="dark"] .easel-feed-tool,
+    :root:not([data-theme="light"]) .easel-feed-tool {
+      background: rgba(129, 139, 219, 0.16);
+      border-color: rgba(129, 139, 219, 0.34);
+      color: #c2c8f2;
+    }
+    [data-theme="dark"] .easel-feed-error,
+    :root:not([data-theme="light"]) .easel-feed-error {
+      background: rgba(224, 90, 90, 0.16);
+      border-color: rgba(224, 90, 90, 0.36);
+      color: #f1b0b0;
+    }
+    [data-theme="dark"] .easel-feed-done,
+    :root:not([data-theme="light"]) .easel-feed-done {
+      background: rgba(47, 179, 68, 0.16);
+      border-color: rgba(47, 179, 68, 0.34);
+    }
+    [data-theme="dark"] .easel-feed-user,
+    :root:not([data-theme="light"]) .easel-feed-user {
+      background: #2a2a38;
+      color: #f5efde;
+    }
+    [data-theme="dark"] .easel-btn-primary,
+    :root:not([data-theme="light"]) .easel-btn-primary {
+      background: var(--accent); color: #14110c; border-color: var(--accent);
+    }
+    [data-theme="dark"] .easel-tool.is-active,
+    :root:not([data-theme="light"]) .easel-tool.is-active {
+      border-color: rgba(129, 139, 219, 0.7);
+      background: rgba(129, 139, 219, 0.16);
+      color: #c2c8f2;
+    }
   </style>
 
   <script>
