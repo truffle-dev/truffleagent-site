@@ -187,7 +187,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <dl class="easel-keys-list">
             <dt><kbd>T</kbd></dt><dd>Add text</dd>
             <dt><kbd>S</kbd></dt><dd>Add sticky</dd>
-            <dt><kbd>R</kbd></dt><dd>Add frame</dd>
+            <dt><kbd>R</kbd></dt><dd>Add frame (drag a frame to move everything inside it)</dd>
             <dt><kbd>H</kbd></dt><dd>Add shape (rectangle or ellipse)</dd>
             <dt><kbd>C</kbd></dt><dd>Connect two elements with an arrow</dd>
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
@@ -2439,6 +2439,19 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // align/distribute bar. Show the bar at 2+, enable distribute at 3+.
     const selectedBoxes = () =>
       [...selectedIds].map(getEl).filter((e): e is NonNullable<typeof e> => !!e && e.type !== "connector");
+    // Elements a frame "contains" — every non-connector whose centre falls inside
+    // the frame's box (the frame itself excluded). This is the FigJam/Miro rule:
+    // a frame is a container, so dragging it carries its contents along. Centre-
+    // inside (rather than full-overlap) keeps the test stable for half-in elements
+    // and naturally captures nested frames and their own contents.
+    const framedElements = (frame: El) => {
+      const l = frame.x, t = frame.y, r = frame.x + frame.w, b = frame.y + frame.h;
+      return doc.elements.filter((e) => {
+        if (e.id === frame.id || e.type === "connector") return false;
+        const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+        return cx >= l && cx <= r && cy >= t && cy <= b;
+      });
+    };
     const updateAlignbar = () => {
       const boxes = selectedBoxes();
       alignbar.hidden = boxes.length < 2;
@@ -2638,6 +2651,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const ratio = orig.w / Math.max(orig.h, 1);
         // Capture every group member's origin so the whole set translates as one.
         const groupOrigins = group.map((g) => ({ el: g, x: g.x, y: g.y }));
+        // Dragging (not resizing) a lone frame carries its contained elements with
+        // it — the frame acts as a container. Captured once at grab so a child that
+        // leaves the box mid-drag still follows; resize never moves the contents.
+        const frameKids = (!isGroup && !resizing && el.type === "frame")
+          ? framedElements(el).map((k) => ({ el: k, x: k.x, y: k.y }))
+          : null;
         // Body drag shows the closed-hand cursor; resize keeps its corner cursor.
         if (!resizing) node.classList.add("is-grabbing");
         node.setPointerCapture(ev.pointerId);
@@ -2672,6 +2691,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             el.x = s.x;
             el.y = s.y;
             renderEl(el);
+          }
+          // Carry a frame's contained elements by the frame's actual delta (which
+          // may differ from the cursor delta after snapping).
+          if (frameKids) {
+            const fdx = el.x - orig.x, fdy = el.y - orig.y;
+            for (const k of frameKids) {
+              k.el.x = k.x + fdx;
+              k.el.y = k.y + fdy;
+              renderEl(k.el);
+            }
           }
           // Re-route any arrows attached to a moved/resized box.
           drawConnectors();
