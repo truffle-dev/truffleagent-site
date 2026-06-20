@@ -159,6 +159,28 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
     const s = 1 / Math.max(Math.abs(dx) / (b.w / 2), Math.abs(dy) / (b.h / 2));
     return { x: cx + dx * s, y: cy + dy * s };
   };
+  // Mirror of the canvas connPathD: straight segment, dominant-axis cubic bezier
+  // ("curved"), or orthogonal two-bend path ("elbow"). Keeps the agent's
+  // screenshot_board vision byte-identical to what a human sees on the canvas.
+  const connPathD = (sx: number, sy: number, ex: number, ey: number, routing: string): string => {
+    const x1 = sx.toFixed(1), y1 = sy.toFixed(1), x2 = ex.toFixed(1), y2 = ey.toFixed(1);
+    const dx = ex - sx, dy = ey - sy;
+    if (routing === "curved") {
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        return `M${x1} ${y1} C${(sx + dx * 0.5).toFixed(1)} ${y1} ${(ex - dx * 0.5).toFixed(1)} ${y2} ${x2} ${y2}`;
+      }
+      return `M${x1} ${y1} C${x1} ${(sy + dy * 0.5).toFixed(1)} ${x2} ${(ey - dy * 0.5).toFixed(1)} ${x2} ${y2}`;
+    }
+    if (routing === "elbow") {
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        const mx = ((sx + ex) / 2).toFixed(1);
+        return `M${x1} ${y1} L${mx} ${y1} L${mx} ${y2} L${x2} ${y2}`;
+      }
+      const my = ((sy + ey) / 2).toFixed(1);
+      return `M${x1} ${y1} L${x1} ${my} L${x2} ${my} L${x2} ${y2}`;
+    }
+    return `M${x1} ${y1} L${x2} ${y2}`;
+  };
   const lineParts: string[] = [];
   const labelParts: string[] = [];
   for (const el of els) {
@@ -171,7 +193,8 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
     const e = borderPt(b, a.x + a.w / 2, a.y + a.h / 2);
     const color = safeColor(p.color, "#5b6472");
     const marker = p.style === "line" ? "" : ` marker-end="url(#arrow)"`;
-    lineParts.push(`<line x1="${s.x.toFixed(1)}" y1="${s.y.toFixed(1)}" x2="${e.x.toFixed(1)}" y2="${e.y.toFixed(1)}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"${marker} />`);
+    const d = connPathD(s.x, s.y, e.x, e.y, String(p.routing || "straight"));
+    lineParts.push(`<path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"${marker} />`);
     // Midpoint label (props.label) painted as an HTML pill above the line so the
     // agent's screenshot_board vision reads the arrow text the same as a human.
     const label = typeof p.label === "string" ? p.label.trim() : "";
