@@ -183,6 +183,15 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-conn-del" id="conn-del" type="button" title="Delete connector" aria-label="Delete connector"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3 4h10M6 4V2.6h4V4M5 4l.6 9h4.8L11 4" /></svg></button>
         </div>
         <button class="easel-zoom-badge" id="zoom-badge" type="button" title="Reset zoom to 100%">100%</button>
+        <div class="easel-minimap" id="minimap" hidden>
+          <button class="easel-minimap-bar" id="minimap-toggle" type="button" aria-expanded="true" title="Collapse minimap">
+            <span>Map</span><span class="easel-minimap-chev" aria-hidden="true">⌄</span>
+          </button>
+          <svg class="easel-minimap-svg" id="minimap-svg" viewBox="0 0 200 140" preserveAspectRatio="none" role="img" aria-label="Board overview, click or drag to move the view">
+            <g id="minimap-els"></g>
+            <rect class="easel-minimap-vp" id="minimap-vp" x="0" y="0" width="0" height="0" rx="2" />
+          </svg>
+        </div>
         <div class="easel-keys" id="keys-overlay" role="dialog" aria-label="Keyboard shortcuts" hidden>
           <h2 class="easel-keys-title">Keyboard shortcuts</h2>
           <dl class="easel-keys-list">
@@ -193,6 +202,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>C</kbd></dt><dd>Connect two elements with an arrow</dd>
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
             <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
+            <dt>Minimap</dt><dd>Click or drag the bottom-left overview to move around a large board</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>C</kbd></dt><dd>Copy the selection</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>X</kbd></dt><dd>Cut the selection</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste copied elements (or an image) from the clipboard</dd>
@@ -867,6 +877,60 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       cursor: pointer;
     }
     .easel-zoom-badge:hover { background: rgba(0, 0, 0, 0.13); }
+    /* Minimap navigator: a corner overview of the whole board with a live
+       viewport rectangle, for jumping around large boards (Miro/FigJam staple).
+       Sits bottom-left above the zoom badge; the stage is always light paper, so
+       it carries its own light palette in both themes. Hidden on an empty board
+       (the onboarding coach owns that corner then) and collapsible to a bar. */
+    .easel-minimap {
+      position: absolute;
+      left: 0.9rem;
+      bottom: 3rem;
+      z-index: 6;
+      width: 200px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      backdrop-filter: blur(2px);
+      user-select: none;
+    }
+    .easel-minimap-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0.25rem 0.5rem;
+      border: 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      background: transparent;
+      font: inherit;
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(0, 0, 0, 0.55);
+      cursor: pointer;
+    }
+    .easel-minimap-bar:hover { color: rgba(0, 0, 0, 0.8); }
+    .easel-minimap-chev { transition: transform var(--motion-base, 150ms) ease; }
+    .easel-minimap.is-collapsed .easel-minimap-svg { display: none; }
+    .easel-minimap.is-collapsed .easel-minimap-bar { border-bottom: 0; }
+    .easel-minimap.is-collapsed .easel-minimap-chev { transform: rotate(180deg); }
+    .easel-minimap-svg {
+      display: block;
+      width: 200px;
+      height: 140px;
+      cursor: pointer;
+      background: #fdfbf7;
+    }
+    .easel-minimap-vp {
+      fill: rgba(47, 111, 237, 0.12);
+      stroke: #2f6fed;
+      stroke-width: 1.2;
+      vector-effect: non-scaling-stroke;
+      pointer-events: none;
+    }
     /* First-run onboarding coach: a small checklist that floats over the light
        paper stage (just above the zoom badge), teaching the three core moves.
        Each step ticks itself off as the user does it; once all three are done —
@@ -1765,6 +1829,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
       zoomBadge.textContent = `${Math.round(zoom * 100)}%`;
       saveViewport();
+      scheduleMinimap();
     };
     // Persist pan/zoom per board so reopening keeps your place instead of
     // snapping back to a fit-all view. Debounced and id/value-snapshotted so
@@ -2317,6 +2382,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const m = /^e(\d+)$/.exec(el.id);
         if (m) nextElNum = Math.max(nextElNum, Number(m[1]) + 1);
       }
+      scheduleMinimap();
     };
 
     const getEl = (id: string) => doc.elements.find((e) => e.id === id);
@@ -2358,6 +2424,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       // onboarding hint in sync with the element count on every local edit.
       emptyHint.hidden = doc.elements.length > 0;
       setSaveState("Editing…");
+      scheduleMinimap();
       if (saveTimer) window.clearTimeout(saveTimer);
       saveTimer = window.setTimeout(saveNow, 700);
     };
@@ -3868,6 +3935,119 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       panY = (r.height - (maxY - minY) * zoom) / 2 - minY * zoom;
       applyView();
     };
+
+    // ---------- minimap navigator ----------
+    // A bottom-left overview of the whole board with a live viewport rectangle.
+    // The mapping (world bbox -> 200x140 viewBox) unions the element bounds with
+    // the current viewport so the indicator never escapes the frame. Rebuilds are
+    // rAF-coalesced: applyView (pan/zoom) and scheduleSave (edits) both poke it,
+    // and the rAF means a drag fires it at most once a frame. The agent navigates
+    // by id, not by pixels, so there is no MCP twin — this is a human affordance.
+    const SVGNS = "http://www.w3.org/2000/svg";
+    const MM_W = 200, MM_H = 140;
+    const minimap = $("minimap");
+    const minimapSvg = $("minimap-svg") as unknown as SVGSVGElement;
+    const minimapEls = $("minimap-els") as unknown as SVGGElement;
+    const minimapVp = $("minimap-vp") as unknown as SVGRectElement;
+    const minimapToggle = $("minimap-toggle");
+    const MM_KEY = "easel.minimap.collapsed";
+    let minimapCollapsed = false;
+    try { minimapCollapsed = localStorage.getItem(MM_KEY) === "1"; } catch { /* ignore */ }
+    // Cached world->minimap transform, set by renderMinimap, read by recenter.
+    let mmMinX = 0, mmMinY = 0, mmScale = 1, mmOffX = 0, mmOffY = 0;
+    const minimapColor = (el: El): string | null => {
+      if (el.type === "frame") return null; // outline only — frames are containers
+      if (el.props?.suggestion) return "#a5b4fc";
+      if (el.type === "sticky") return (el.props?.color as string) || "#ffd966";
+      if (el.type === "shape") return (el.props?.fill as string) || "#dbe2ea";
+      if (el.type === "image") return "#9aa7b8";
+      if (el.type === "draw") return (el.props?.stroke as string) || "#334155";
+      return "#cbd5e1"; // text + fallback
+    };
+    let minimapRaf = 0;
+    const scheduleMinimap = () => {
+      if (minimapRaf) return;
+      minimapRaf = requestAnimationFrame(() => { minimapRaf = 0; renderMinimap(); });
+    };
+    function renderMinimap() {
+      const boxes = doc.elements.filter((e) => e.type !== "connector");
+      if (workspace.hidden || !boxes.length) { minimap.hidden = true; return; }
+      minimap.hidden = false;
+      minimap.classList.toggle("is-collapsed", minimapCollapsed);
+      minimapToggle.setAttribute("aria-expanded", String(!minimapCollapsed));
+      if (minimapCollapsed) return; // bar only; skip the draw work
+      // Union the element bounds with the current viewport rect so the indicator
+      // stays in frame even when the user pans into empty space.
+      const sr = stage.getBoundingClientRect();
+      const vw = sr.width / zoom, vh = sr.height / zoom;
+      const vx = -panX / zoom, vy = -panY / zoom;
+      let minX = Math.min(vx, ...boxes.map((e) => e.x));
+      let minY = Math.min(vy, ...boxes.map((e) => e.y));
+      let maxX = Math.max(vx + vw, ...boxes.map((e) => e.x + e.w));
+      let maxY = Math.max(vy + vh, ...boxes.map((e) => e.y + e.h));
+      const pad = 40;
+      minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+      const bw = Math.max(maxX - minX, 1), bh = Math.max(maxY - minY, 1);
+      const scale = Math.min(MM_W / bw, MM_H / bh);
+      const offX = (MM_W - bw * scale) / 2, offY = (MM_H - bh * scale) / 2;
+      mmMinX = minX; mmMinY = minY; mmScale = scale; mmOffX = offX; mmOffY = offY;
+      // Rebuild the element rects (cheap; boards are small, rAF coalesces drags).
+      const frag = document.createDocumentFragment();
+      for (const el of [...boxes].sort((a, b) => a.z - b.z)) {
+        const r = document.createElementNS(SVGNS, "rect");
+        r.setAttribute("x", String(offX + (el.x - minX) * scale));
+        r.setAttribute("y", String(offY + (el.y - minY) * scale));
+        r.setAttribute("width", String(Math.max(el.w * scale, 1.5)));
+        r.setAttribute("height", String(Math.max(el.h * scale, 1.5)));
+        r.setAttribute("rx", "0.6");
+        const fill = minimapColor(el);
+        if (fill) { r.setAttribute("fill", fill); r.setAttribute("opacity", "0.9"); }
+        else { r.setAttribute("fill", "none"); r.setAttribute("stroke", "#9aa7b8"); r.setAttribute("stroke-width", "0.8"); }
+        frag.appendChild(r);
+      }
+      minimapEls.replaceChildren(frag);
+      // Position the viewport rectangle.
+      minimapVp.setAttribute("x", String(offX + (vx - minX) * scale));
+      minimapVp.setAttribute("y", String(offY + (vy - minY) * scale));
+      minimapVp.setAttribute("width", String(Math.max(vw * scale, 2)));
+      minimapVp.setAttribute("height", String(Math.max(vh * scale, 2)));
+    }
+    // Centre the main view on the world point under a minimap pointer position.
+    const minimapRecenter = (clientX: number, clientY: number) => {
+      const r = minimapSvg.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const vbX = ((clientX - r.left) / r.width) * MM_W;
+      const vbY = ((clientY - r.top) / r.height) * MM_H;
+      const wx = mmMinX + (vbX - mmOffX) / mmScale;
+      const wy = mmMinY + (vbY - mmOffY) / mmScale;
+      const sr = stage.getBoundingClientRect();
+      panX = sr.width / 2 - wx * zoom;
+      panY = sr.height / 2 - wy * zoom;
+      applyView();
+    };
+    let mmDragging = false;
+    // Swallow pointerdown on the panel chrome so it never starts a stage pan.
+    minimap.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    minimapSvg.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      mmDragging = true;
+      try { minimapSvg.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+      minimapRecenter(ev.clientX, ev.clientY);
+    });
+    minimapSvg.addEventListener("pointermove", (ev) => {
+      if (mmDragging) minimapRecenter(ev.clientX, ev.clientY);
+    });
+    const endMmDrag = (ev: PointerEvent) => {
+      mmDragging = false;
+      try { minimapSvg.releasePointerCapture(ev.pointerId); } catch { /* ignore */ }
+    };
+    minimapSvg.addEventListener("pointerup", endMmDrag);
+    minimapSvg.addEventListener("pointercancel", endMmDrag);
+    minimapToggle.addEventListener("click", () => {
+      minimapCollapsed = !minimapCollapsed;
+      try { localStorage.setItem(MM_KEY, minimapCollapsed ? "1" : "0"); } catch { /* ignore */ }
+      renderMinimap();
+    });
 
     // ---------- uploads ----------
     const uploadFiles = async (files: FileList | File[], at?: { x: number; y: number }) => {
