@@ -187,6 +187,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-text-btn" type="button" data-size="up" title="Larger text" aria-label="Larger text">A+</button>
           <button class="easel-text-btn easel-text-bold" id="text-bold" type="button" title="Bold text" aria-label="Bold text" aria-pressed="false">B</button>
           <span class="easel-align-sep"></span>
+          <button class="easel-text-btn easel-text-align" type="button" data-align="left" title="Align text left" aria-label="Align text left" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 4h10M2 8h6M2 12h10" /></svg></button>
+          <button class="easel-text-btn easel-text-align" type="button" data-align="center" title="Align text center" aria-label="Align text center" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 4h10M5 8h6M3 12h10" /></svg></button>
+          <button class="easel-text-btn easel-text-align" type="button" data-align="right" title="Align text right" aria-label="Align text right" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 4h10M8 8h6M4 12h10" /></svg></button>
+          <span class="easel-align-sep"></span>
           <button class="easel-text-color" type="button" data-color="#1a1a1a" title="Black" aria-label="Black text" style="background:#1a1a1a"></button>
           <button class="easel-text-color" type="button" data-color="#5b6472" title="Gray" aria-label="Gray text" style="background:#5b6472"></button>
           <button class="easel-text-color" type="button" data-color="#e0564f" title="Red" aria-label="Red text" style="background:#e0564f"></button>
@@ -214,7 +218,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
             <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
             <dt>Minimap</dt><dd>Click or drag the bottom-left overview to move around a large board</dd>
-            <dt>Text style</dt><dd>Select a text, sticky, or shape to set font size, bold, and colour from the top bar</dd>
+            <dt>Text style</dt><dd>Select a text, sticky, or shape to set font size, bold, alignment, and colour from the top bar</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>C</kbd></dt><dd>Copy the selection</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>X</kbd></dt><dd>Cut the selection</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste copied elements (or an image) from the clipboard</dd>
@@ -869,6 +873,24 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     .easel-text-btn:hover { background: #f1f0ec; }
     .easel-text-bold { font-weight: 800; }
     .easel-text-bold.is-active {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+    .easel-text-align {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      min-width: 24px;
+    }
+    .easel-text-align svg path {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+    }
+    .easel-text-align.is-active {
       background: #1a1a1a;
       color: #fff;
       border-color: #1a1a1a;
@@ -2136,16 +2158,18 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       else if (dir === "down" && SIZE_LADDER[i] >= cur) i--;
       return SIZE_LADDER[Math.max(0, Math.min(SIZE_LADDER.length - 1, i))];
     };
-    // Apply text styling (font size, weight, colour) shared by text/sticky/shape.
-    // The text element keeps its explicit inline defaults (size 28, weight 600,
-    // ink #1a1a1a, align); sticky/shape only override when a prop is present so
-    // their CSS defaults hold (zero regression for existing notes/shapes).
+    // Apply text styling (font size, weight, colour, alignment) shared by
+    // text/sticky/shape. The text element keeps its explicit inline defaults
+    // (size 28, weight 600, ink #1a1a1a, align left); sticky/shape only override
+    // when a prop is present so their CSS defaults hold (zero regression for
+    // existing notes/shapes).
     const applyTextStyle = (node: HTMLElement, el: El) => {
+      const align = typeof el.props.align === "string" ? el.props.align : "";
       if (el.type === "text") {
         node.style.fontSize = `${Number(el.props.size) || 28}px`;
         node.style.fontWeight = String(el.props.weight || 600);
         node.style.color = String(el.props.textColor || el.props.color || "#1a1a1a");
-        node.style.textAlign = String(el.props.align || "left");
+        node.style.textAlign = align || "left";
         return;
       }
       const s = Number(el.props.size);
@@ -2154,6 +2178,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       node.style.fontWeight = w > 0 ? String(w) : "";
       const tc = el.props.textColor;
       node.style.color = typeof tc === "string" && tc ? tc : "";
+      // Sticky is a block (text-align alone). Shape is a centred flex box, so
+      // also map align -> justify-content. Empty align clears both inline styles
+      // so the CSS defaults (left for sticky, centre for shape) hold.
+      node.style.textAlign = align || "";
+      if (el.type === "shape") {
+        node.style.justifyContent =
+          align === "left" ? "flex-start" : align === "right" ? "flex-end" : align === "center" ? "center" : "";
+      }
     };
     const renderEl = (el: El, animate = false) => {
       // Connectors are not box nodes; they live in the SVG layer. Any call that
@@ -2954,6 +2986,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       ).toLowerCase();
       textbar.querySelectorAll<HTMLButtonElement>(".easel-text-color").forEach((b) => {
         b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === cur);
+      });
+      // Effective alignment: shape defaults to centre (CSS), text/sticky to left.
+      const defaultAlign = el!.type === "shape" ? "center" : "left";
+      const curAlign = typeof el!.props.align === "string" && el!.props.align ? el!.props.align : defaultAlign;
+      textbar.querySelectorAll<HTMLButtonElement>(".easel-text-align").forEach((b) => {
+        const on = b.dataset.align === curAlign;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
       });
     };
 
@@ -4454,6 +4494,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (!el || !(el.type === "text" || el.type === "sticky" || el.type === "shape")) return;
       const t = ev.target as HTMLElement;
       const sizeBtn = t.closest<HTMLButtonElement>("[data-size]");
+      const alignBtn = t.closest<HTMLButtonElement>(".easel-text-align");
       const colorBtn = t.closest<HTMLButtonElement>(".easel-text-color");
       if (sizeBtn) {
         const cur = Number(el.props.size) || defaultFontSize(el.type);
@@ -4461,6 +4502,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       } else if (t.closest("#text-bold")) {
         if (Number(el.props.weight) >= 700) delete el.props.weight;
         else el.props.weight = 700;
+      } else if (alignBtn && alignBtn.dataset.align) {
+        // Alignment is a 3-state radio; store only non-default values so the doc
+        // stays clean and existing elements never gain a redundant prop.
+        const val = alignBtn.dataset.align;
+        const defAlign = el.type === "shape" ? "center" : "left";
+        if (val === defAlign) delete el.props.align;
+        else el.props.align = val;
       } else if (colorBtn && colorBtn.dataset.color) {
         el.props.textColor = colorBtn.dataset.color;
       } else return;

@@ -50,6 +50,17 @@ function textStyle(p: Record<string, unknown>): string {
   return s;
 }
 
+// Text alignment, mirroring the canvas applyTextStyle. Returns "" for the
+// default so sticky (block, left) and shape (flex, centre) keep their CSS
+// defaults; a valid prop overrides both text-align and (for the flex shape)
+// justify-content.
+function alignValue(p: Record<string, unknown>): string {
+  return ["left", "center", "right"].includes(String(p.align)) ? String(p.align) : "";
+}
+function justifyFor(align: string): string {
+  return align === "left" ? "flex-start" : align === "right" ? "flex-end" : align === "center" ? "center" : "";
+}
+
 function elementHtml(el: EaselElement): string {
   const rot = el.rotation ? `transform:rotate(${Number(el.rotation)}deg);` : "";
   const base = `left:${Number(el.x)}px;top:${Number(el.y)}px;width:${Number(el.w)}px;height:${Number(el.h)}px;z-index:${Number(el.z)};${rot}`;
@@ -70,13 +81,15 @@ function elementHtml(el: EaselElement): string {
     case "sticky": {
       const isSuggestion = !!p.suggestion;
       const color = safeColor(p.color, isSuggestion ? "#eef1ff" : "#fff3a3");
+      const sa = alignValue(p);
+      const stickyAlign = sa ? `text-align:${sa};` : "";
       if (isSuggestion) {
         // Agent-left advisory note. The render route is read-only (no dismiss ×),
         // but the dashed frame + badge must match the canvas so screenshot_board
         // vision reads it as a suggestion, not a plain note.
-        return `<div class="el el-sticky el-suggestion" style="${base}background:${color};${textStyle(p)}"><span class="suggest-badge">Suggestion</span>${esc(p.text)}</div>`;
+        return `<div class="el el-sticky el-suggestion" style="${base}background:${color};${textStyle(p)}${stickyAlign}"><span class="suggest-badge">Suggestion</span>${esc(p.text)}</div>`;
       }
-      return `<div class="el el-sticky" style="${base}background:${color};${textStyle(p)}">${esc(p.text)}</div>`;
+      return `<div class="el el-sticky" style="${base}background:${color};${textStyle(p)}${stickyAlign}">${esc(p.text)}</div>`;
     }
     case "frame":
       return `<div class="el el-frame" style="${base}"><span class="frame-label">${esc(p.label)}</span></div>`;
@@ -88,14 +101,19 @@ function elementHtml(el: EaselElement): string {
       // not a box. rect/ellipse stay box-styled.
       const poly = p.kind === "diamond" ? "50,2 98,50 50,98 2,50"
         : p.kind === "triangle" ? "50,4 96,96 4,96" : "";
+      // Shape is a centred flex box: a non-default align maps to both
+      // justify-content (the container) and text-align (the label).
+      const sa = alignValue(p);
+      const shapeJustify = sa ? `justify-content:${justifyFor(sa)};` : "";
+      const shapeAlign = sa ? `text-align:${sa};` : "";
       if (poly) {
-        return `<div class="el el-shape" style="${base}">`
+        return `<div class="el el-shape" style="${base}${shapeJustify}">`
           + `<svg class="shape-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible;">`
           + `<polygon points="${poly}" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`
-          + `<span class="shape-label" style="position:relative;z-index:1;${textStyle(p)}">${esc(p.text)}</span></div>`;
+          + `<span class="shape-label" style="position:relative;z-index:1;${textStyle(p)}${shapeAlign}">${esc(p.text)}</span></div>`;
       }
       const radius = p.kind === "ellipse" ? "50%" : "10px";
-      return `<div class="el el-shape" style="${base}background:${fill};border:2px solid ${stroke};border-radius:${radius};${textStyle(p)}">${esc(p.text)}</div>`;
+      return `<div class="el el-shape" style="${base}background:${fill};border:2px solid ${stroke};border-radius:${radius};${textStyle(p)}${shapeJustify}${shapeAlign}">${esc(p.text)}</div>`;
     }
     case "draw": {
       // Freehand polyline. The viewBox is the stroke's drawn box (vbW/vbH,
