@@ -188,7 +188,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>T</kbd></dt><dd>Add text</dd>
             <dt><kbd>S</kbd></dt><dd>Add sticky</dd>
             <dt><kbd>R</kbd></dt><dd>Add frame (drag a frame to move everything inside it)</dd>
-            <dt><kbd>H</kbd></dt><dd>Add shape (rectangle or ellipse)</dd>
+            <dt><kbd>H</kbd></dt><dd>Add shape (toggle kind: rectangle / ellipse / diamond / triangle)</dd>
             <dt><kbd>C</kbd></dt><dd>Connect two elements with an arrow</dd>
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
             <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
@@ -1237,6 +1237,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       overflow: visible;
       pointer-events: none;
     }
+    /* Polygon shapes (diamond/triangle): fill+stroke sit behind the centered
+       text via a negative z-index, so the box stays the gesture/text surface. */
+    .easel-shape-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: visible;
+      pointer-events: none;
+    }
     .easel-el[data-editing="1"] {
       user-select: text;
       cursor: text;
@@ -1801,6 +1812,24 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       return body;
     };
 
+    // ---------- shapes ----------
+    // rect/ellipse are drawn as a styled box (border-radius); diamond/triangle
+    // need a real polygon so fill+stroke follow the silhouette, not the box.
+    // shapePoly returns the polygon points (0..100 box, slightly inset so the
+    // non-scaling 2px stroke isn't clipped by the node's overflow:hidden) or ""
+    // for the box kinds. Mirrored verbatim in functions/easel/render/[id].ts.
+    const SHAPE_KINDS = ["rect", "ellipse", "diamond", "triangle"] as const;
+    const SHAPE_KIND_LABEL: Record<string, string> = {
+      rect: "Rectangle", ellipse: "Ellipse", diamond: "Diamond", triangle: "Triangle",
+    };
+    const shapePoly = (kind: string): string =>
+      kind === "diamond" ? "50,2 98,50 50,98 2,50"
+        : kind === "triangle" ? "50,4 96,96 4,96" : "";
+    const nextShapeKind = (kind: string): string => {
+      const i = SHAPE_KINDS.indexOf(kind as (typeof SHAPE_KINDS)[number]);
+      return SHAPE_KINDS[(i + 1) % SHAPE_KINDS.length];
+    };
+
     // ---------- rendering ----------
     const elNode = (el: El): HTMLElement => {
       let node = world.querySelector<HTMLElement>(`[data-el-id="${el.id}"]`);
@@ -1926,13 +1955,44 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const label = node.querySelector<HTMLElement>(".easel-frame-label")!;
         label.textContent = String(el.props.label ?? "");
       } else if (el.type === "shape") {
-        // Optional centered text, same text-node handling as sticky/text.
+        // Optional centered text, same text-node handling as sticky/text. The
+        // text node stays node.childNodes[0]; any polygon SVG is appended after
+        // it and sits behind via a negative z-index (see .easel-shape-svg CSS).
         node.childNodes[0]?.nodeType === Node.TEXT_NODE
           ? (node.childNodes[0].textContent = String(el.props.text ?? ""))
           : node.insertBefore(document.createTextNode(String(el.props.text ?? "")), node.firstChild);
-        node.style.background = String(el.props.fill || "#bcdcff");
-        node.style.border = `2px solid ${String(el.props.stroke || "#3a4a8c")}`;
-        node.style.borderRadius = el.props.kind === "ellipse" ? "50%" : "10px";
+        const fill = String(el.props.fill || "#bcdcff");
+        const stroke = String(el.props.stroke || "#3a4a8c");
+        const poly = shapePoly(String(el.props.kind || "rect"));
+        if (poly) {
+          // Polygonal shape: clear the box chrome and draw fill+stroke as a
+          // non-scaling-stroke polygon behind the centered text.
+          node.style.background = "transparent";
+          node.style.border = "none";
+          node.style.borderRadius = "0";
+          let svg = node.querySelector<SVGSVGElement>(".easel-shape-svg");
+          if (!svg) {
+            svg = document.createElementNS(SVG_NS, "svg");
+            svg.setAttribute("class", "easel-shape-svg");
+            svg.setAttribute("viewBox", "0 0 100 100");
+            svg.setAttribute("preserveAspectRatio", "none");
+            const pg = document.createElementNS(SVG_NS, "polygon");
+            pg.setAttribute("vector-effect", "non-scaling-stroke");
+            pg.setAttribute("stroke-width", "2");
+            pg.setAttribute("stroke-linejoin", "round");
+            svg.appendChild(pg);
+            node.appendChild(svg);
+          }
+          const pg = svg.querySelector("polygon")!;
+          pg.setAttribute("points", poly);
+          pg.setAttribute("fill", fill);
+          pg.setAttribute("stroke", stroke);
+        } else {
+          node.querySelector(".easel-shape-svg")?.remove();
+          node.style.background = fill;
+          node.style.border = `2px solid ${stroke}`;
+          node.style.borderRadius = el.props.kind === "ellipse" ? "50%" : "10px";
+        }
       } else if (el.type === "draw") {
         const svg = node.querySelector("svg")!;
         const pts = Array.isArray(el.props.points) ? (el.props.points as number[][]) : [];
@@ -2611,7 +2671,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === cur);
       });
       // Toggle label shows the kind a click switches TO.
-      if (isShape) shapeKind.textContent = el!.props.kind === "ellipse" ? "Rectangle" : "Ellipse";
+      if (isShape) shapeKind.textContent = SHAPE_KIND_LABEL[nextShapeKind(String(el!.props.kind || "rect"))];
     };
 
     const wireElement = (node: HTMLElement) => {
@@ -2764,6 +2824,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         // saved note. renderEl re-adds them on finish via applySuggestionChrome.
         node.querySelector(".easel-suggest-badge")?.remove();
         node.querySelector(".easel-suggest-dismiss")?.remove();
+        // A polygon shape's SVG would otherwise be inside the editable region
+        // (and captured by the innerText read). renderEl re-adds it on finish.
+        node.querySelector(".easel-shape-svg")?.remove();
         node.contentEditable = "plaintext-only";
         node.focus();
         const sel = window.getSelection();
@@ -3874,12 +3937,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       reflectSwatches();
       scheduleSave();
     });
-    // Flip the selected shape between rectangle and ellipse.
+    // Cycle the selected shape through rectangle -> ellipse -> diamond -> triangle.
     shapeKind.addEventListener("click", () => {
       if (!selectedId) return;
       const el = getEl(selectedId);
       if (!el || el.type !== "shape") return;
-      el.props.kind = el.props.kind === "ellipse" ? "rect" : "ellipse";
+      el.props.kind = nextShapeKind(String(el.props.kind || "rect"));
       renderEl(el);
       reflectSwatches();
       scheduleSave();
@@ -4056,8 +4119,15 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         } else if (el.type === "shape") {
           const fill = safeColorE(p.fill, "#bcdcff");
           const stroke = safeColorE(p.stroke, "#3a4a8c");
+          const mx = (g.x + g.w / 2).toFixed(1), my = (g.y + g.h / 2).toFixed(1);
+          const x0 = g.x.toFixed(1), y0 = g.y.toFixed(1);
+          const x1 = (g.x + g.w).toFixed(1), y1 = (g.y + g.h).toFixed(1);
           if (p.kind === "ellipse") {
-            body.push(`<ellipse cx="${(g.x + g.w / 2).toFixed(1)}" cy="${(g.y + g.h / 2).toFixed(1)}" rx="${(g.w / 2).toFixed(1)}" ry="${(g.h / 2).toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
+            body.push(`<ellipse cx="${mx}" cy="${my}" rx="${(g.w / 2).toFixed(1)}" ry="${(g.h / 2).toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
+          } else if (p.kind === "diamond") {
+            body.push(`<polygon points="${mx},${y0} ${x1},${my} ${mx},${y1} ${x0},${my}" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>`);
+          } else if (p.kind === "triangle") {
+            body.push(`<polygon points="${mx},${y0} ${x1},${y1} ${x0},${y1}" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>`);
           } else {
             body.push(`<rect x="${X}" y="${Y}" width="${Wd}" height="${Ht}" rx="10" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
           }

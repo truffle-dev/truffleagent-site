@@ -71,6 +71,17 @@ function elementHtml(el: EaselElement): string {
     case "shape": {
       const fill = safeColor(p.fill, "#bcdcff");
       const stroke = safeColor(p.stroke, "#3a4a8c");
+      // diamond/triangle render as a non-scaling-stroke polygon behind the
+      // label (mirrors the canvas) so screenshot_board vision reads the shape,
+      // not a box. rect/ellipse stay box-styled.
+      const poly = p.kind === "diamond" ? "50,2 98,50 50,98 2,50"
+        : p.kind === "triangle" ? "50,4 96,96 4,96" : "";
+      if (poly) {
+        return `<div class="el el-shape" style="${base}">`
+          + `<svg class="shape-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible;">`
+          + `<polygon points="${poly}" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`
+          + `<span class="shape-label" style="position:relative;z-index:1;">${esc(p.text)}</span></div>`;
+      }
       const radius = p.kind === "ellipse" ? "50%" : "10px";
       return `<div class="el el-shape" style="${base}background:${fill};border:2px solid ${stroke};border-radius:${radius};">${esc(p.text)}</div>`;
     }
