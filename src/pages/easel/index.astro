@@ -210,6 +210,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt>Export</dt><dd>Download the board as PNG or SVG (just the selection if 2+ are selected)</dd>
             <dt>Double-click</dt><dd>Empty canvas: new sticky. On an element: edit text or label</dd>
             <dt>Scroll / drag</dt><dd>Pan the canvas · <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+scroll or pinch to zoom</dd>
+            <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>=</kbd>/<kbd>-</kbd>/<kbd>0</kbd></dt><dd>Zoom in / out / reset to 100% from the keyboard</dd>
             <dt><kbd>Esc</kbd></dt><dd>Deselect (closes this panel first)</dd>
             <dt><kbd>?</kbd></dt><dd>Toggle this panel</dd>
           </dl>
@@ -2907,6 +2908,23 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         ev.preventDefault();
         const toFront = ev.code === "BracketRight";
         restackSelected(ev.shiftKey ? (toFront ? "front" : "back") : (toFront ? "forward" : "backward"));
+        return;
+      }
+      // Ctrl/Cmd +/-/0: keyboard zoom around the viewport centre, the gesture
+      // every canvas tool ships alongside scroll/pinch. "=" and "+" zoom in,
+      // "-" zooms out, "0" resets to 100%. Same [0.1, 4] clamp and centre-
+      // anchored pan math as the zoom badge and Ctrl+scroll.
+      if ((ev.metaKey || ev.ctrlKey) &&
+        (ev.key === "=" || ev.key === "+" || ev.key === "-" || ev.key === "0")) {
+        ev.preventDefault();
+        const r = stage.getBoundingClientRect();
+        const cx = r.width / 2, cy = r.height / 2;
+        const next = ev.key === "0" ? 1
+          : Math.min(4, Math.max(0.1, zoom * (ev.key === "-" ? 1 / 1.2 : 1.2)));
+        panX = cx - ((cx - panX) / zoom) * next;
+        panY = cy - ((cy - panY) / zoom) * next;
+        zoom = next;
+        applyView();
         return;
       }
       // Never hijack browser shortcuts (Ctrl+R reload, Ctrl+F find,
