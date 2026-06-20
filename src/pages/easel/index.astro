@@ -96,6 +96,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-shape" type="button" title="Add shape (H)">Shape</button>
           <button class="easel-tool" id="tool-draw" type="button" title="Draw freehand (P)" aria-pressed="false">Draw</button>
           <button class="easel-tool" id="tool-connect" type="button" title="Connect two elements with an arrow (C)" aria-pressed="false">Connect</button>
+          <button class="easel-tool" id="tool-lock" type="button" title="Lock or unlock the selection (Ctrl/Cmd+Shift+L)" aria-pressed="false" hidden>Lock</button>
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
           <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog" aria-expanded="false">?</button>
@@ -200,6 +201,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring forward / send backward</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring to front / send to back</dd>
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
+            <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></dt><dd>Lock or unlock the selection (locked elements can't be moved, resized, edited, or deleted)</dd>
             <dt>Click an arrow</dt><dd>Select a connector to recolour, flip arrow/line, switch routing (straight / curved / elbow), label, or <kbd>Delete</kbd></dd>
             <dt>Rotate handle</dt><dd>Drag the knob above a selected element to spin it; hold <kbd>Shift</kbd> to snap to 15&deg;</dd>
             <dt><kbd>P</kbd> · Draw</dt><dd>Freehand pen: left-drag to paint a stroke; <kbd>Space</kbd>+drag still pans. <kbd>Esc</kbd> exits</dd>
@@ -1196,6 +1198,31 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     .easel-suggest-dismiss:hover {
       background: rgba(91, 107, 245, 0.28);
     }
+    /* Locked elements: a small corner padlock (click to unlock) and no resize
+       handles. Pinned ink so it stays legible on the light paper in any theme. */
+    .easel-lock-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 50%;
+      padding: 0;
+      background: rgba(0, 0, 0, 0.08);
+      color: #1f1d1a;
+      font-size: 11px;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .easel-lock-badge:hover {
+      background: rgba(0, 0, 0, 0.18);
+    }
+    .easel-el.is-locked .easel-resize-handle { display: none !important; }
     .easel-el-frame {
       border: 1.5px solid rgba(0, 0, 0, 0.35);
       border-radius: 12px;
@@ -1915,6 +1942,56 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         xBtn?.remove();
       }
     };
+    // A locked box gets an .is-locked class (CSS hides its resize handles) and a
+    // small corner padlock badge. Clicking the badge unlocks the element; its
+    // pointerdown is swallowed so it never starts a drag/select gesture.
+    const applyLockChrome = (node: HTMLElement, el: El, on: boolean) => {
+      node.classList.toggle("is-locked", on);
+      let badge = node.querySelector<HTMLElement>(".easel-lock-badge");
+      if (on) {
+        if (!badge) {
+          badge = document.createElement("button");
+          badge.className = "easel-lock-badge";
+          (badge as HTMLButtonElement).type = "button";
+          badge.title = "Unlock";
+          badge.setAttribute("aria-label", "Unlock element");
+          badge.textContent = "\u{1f512}";
+          badge.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+          badge.addEventListener("click", (ev) => { ev.stopPropagation(); setElementLock(el.id, false); });
+          node.appendChild(badge);
+        }
+      } else {
+        badge?.remove();
+      }
+    };
+    // Locking is a behavioral prop (props.locked), not a new element type, so it
+    // inherits every gesture path and needs no render-route or validation change.
+    // A locked element still selects and still moves when the AGENT edits it via
+    // update_elements; only human direct-manipulation (drag/resize/rotate/edit/
+    // delete/nudge/align) is blocked. setElementLock flips one element; the
+    // toolbar/shortcut path toggles the whole selection.
+    const setElementLock = (id: string, locked: boolean) => {
+      const el = getEl(id);
+      if (!el || el.type === "connector") return;
+      if (locked) el.props.locked = true; else delete el.props.locked;
+      renderEl(el);
+      refreshSelectionUI();
+      scheduleSave();
+    };
+    const toggleLockSelection = () => {
+      const ids = [...selectedIds].map(getEl)
+        .filter((e): e is NonNullable<typeof e> => !!e && e.type !== "connector");
+      if (!ids.length) return;
+      // If anything in the selection is unlocked, lock everything; only unlock
+      // when the entire selection is already locked.
+      const lock = ids.some((e) => !e.props.locked);
+      for (const e of ids) {
+        if (lock) e.props.locked = true; else delete e.props.locked;
+        renderEl(e);
+      }
+      refreshSelectionUI();
+      scheduleSave();
+    };
 
     const renderEl = (el: El, animate = false) => {
       // Connectors are not box nodes; they live in the SVG layer. Any call that
@@ -2006,6 +2083,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         path.setAttribute("stroke", String(el.props.stroke || "#1f1d1a"));
         path.setAttribute("stroke-width", String(Number(el.props.width) || 3));
       }
+      applyLockChrome(node, el, !!el.props.locked);
       node.classList.toggle("is-selected", selectedIds.has(el.id));
     };
 
@@ -2431,6 +2509,24 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // is selected, so every single-element affordance (swatches, resize, drag
     // snap, dblclick edit, arrow nudge) keeps working unchanged and naturally
     // switches off for a multi-selection.
+    // The topbar Lock button is contextual: hidden with no box selection, and
+    // it reads "Unlock" (active) when the whole selection is already locked.
+    const lockTool = $("tool-lock");
+    const updateLockTool = () => {
+      const boxes = [...selectedIds].map(getEl)
+        .filter((e): e is NonNullable<typeof e> => !!e && e.type !== "connector");
+      if (!boxes.length) {
+        lockTool.hidden = true;
+        lockTool.setAttribute("aria-pressed", "false");
+        lockTool.classList.remove("is-active");
+        return;
+      }
+      lockTool.hidden = false;
+      const allLocked = boxes.every((e) => e.props.locked);
+      lockTool.textContent = allLocked ? "Unlock" : "Lock";
+      lockTool.setAttribute("aria-pressed", allLocked ? "true" : "false");
+      lockTool.classList.toggle("is-active", allLocked);
+    };
     const refreshSelectionUI = () => {
       selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null;
       world.querySelectorAll<HTMLElement>("[data-el-id]").forEach((n) => {
@@ -2442,6 +2538,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       connbar.hidden = true;
       reflectSwatches();
       updateAlignbar();
+      updateLockTool();
       drawGroupBox();
       drawRotateHandle();
     };
@@ -2561,7 +2658,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const start = stagePoint(ev.clientX, ev.clientY);
       const anchor = { x: b.minL, y: b.minT };
       const W = Math.max(b.w, 1), H = Math.max(b.h, 1);
-      const origins = b.boxes.map((e) => ({ el: e, x: e.x, y: e.y, w: e.w, h: e.h }));
+      // Locked members are held at their original geometry through a group scale.
+      const origins = b.boxes.filter((e) => !e.props.locked).map((e) => ({ el: e, x: e.x, y: e.y, w: e.w, h: e.h }));
+      if (!origins.length) return;
       // Floor on scale so the smallest member never collapses below 20 units.
       const minW = Math.min(...origins.map((o) => o.w));
       const minH = Math.min(...origins.map((o) => o.h));
@@ -2609,8 +2708,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 
     const drawRotateHandle = () => {
       const el = selectedId ? getEl(selectedId) : null;
-      // Only a lone box rotates; a group shows the dashed group box instead.
-      if (!el || el.type === "connector") { rotateHost.hidden = true; return; }
+      // Only a lone box rotates; a group shows the dashed group box instead. A
+      // locked element shows no rotate knob.
+      if (!el || el.type === "connector" || el.props.locked) { rotateHost.hidden = true; return; }
       rotateHost.hidden = false;
       // Anchor the zero-size host at the element centre and rotate it with the
       // box; the knob hangs above the (local) top edge so it tracks rotation.
@@ -2697,6 +2797,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const group = selectedBoxes();
         const isGroup = group.length > 1;
 
+        // A locked lone element stays selectable (so the Unlock button/badge
+        // work) but never drags, resizes or z-bumps. In a group, locked members
+        // are simply held back from the move (filtered out of groupOrigins).
+        if (!isGroup && el.props.locked) return;
+
         // Frames live at the back so they never cover the elements inside
         // them; everything else comes to the front on grab. Only bump z for a
         // lone non-frame grab — a group move should preserve relative z-order.
@@ -2710,7 +2815,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const orig = { x: el.x, y: el.y, w: el.w, h: el.h };
         const ratio = orig.w / Math.max(orig.h, 1);
         // Capture every group member's origin so the whole set translates as one.
-        const groupOrigins = group.map((g) => ({ el: g, x: g.x, y: g.y }));
+        // Locked members are excluded so a group drag slides past them.
+        const groupOrigins = group.filter((g) => !g.props.locked).map((g) => ({ el: g, x: g.x, y: g.y }));
         // Dragging (not resizing) a lone frame carries its contained elements with
         // it — the frame acts as a container. Captured once at grab so a child that
         // leaves the box mid-drag still follows; resize never moves the contents.
@@ -2782,6 +2888,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const id = node.dataset.elId!;
         const el = getEl(id);
         if (!el) return;
+        // A locked element cannot be edited in place (label/text editing).
+        if (el.props.locked) return;
         if (el.type === "frame") {
           // Edit the frame's label span, not the frame body.
           const label = node.querySelector<HTMLElement>(".easel-frame-label")!;
@@ -3171,6 +3279,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         restackSelected(ev.shiftKey ? (toFront ? "front" : "back") : (toFront ? "forward" : "backward"));
         return;
       }
+      // Ctrl/Cmd+Shift+L: lock or unlock the current selection. ev.code is
+      // layout-safe (Shift turns "l" into "L").
+      if ((ev.metaKey || ev.ctrlKey) && ev.shiftKey && ev.code === "KeyL" && selectedIds.size) {
+        ev.preventDefault();
+        toggleLockSelection();
+        return;
+      }
       // Ctrl/Cmd +/-/0: keyboard zoom around the viewport centre, the gesture
       // every canvas tool ships alongside scroll/pinch. "=" and "+" zoom in,
       // "-" zooms out, "0" resets to 100%. Same [0.1, 4] clamp and centre-
@@ -3196,7 +3311,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
       };
       if (nudges[ev.key] && selectedIds.size) {
-        const targets = selectedBoxes();
+        // Locked elements stay put under arrow nudges.
+        const targets = selectedBoxes().filter((e) => !e.props.locked);
         if (targets.length) {
           ev.preventDefault();
           const step = ev.shiftKey ? 10 : 1;
@@ -3218,15 +3334,18 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         return;
       }
       if ((ev.key === "Delete" || ev.key === "Backspace") && selectedIds.size) {
-        const delIds = new Set(selectedIds);
-        // Drop the selected elements and any connector that referenced one of
-        // them, so no arrow is left dangling to a box that no longer exists.
-        doc.elements = doc.elements.filter((e) =>
-          !delIds.has(e.id) &&
-          !(e.type === "connector" && (delIds.has(e.props.from) || delIds.has(e.props.to))));
-        selectEl(null);
-        renderDoc();
-        scheduleSave();
+        // Locked elements are protected from deletion; only delete the rest.
+        const delIds = new Set([...selectedIds].filter((id) => !getEl(id)?.props.locked));
+        if (delIds.size) {
+          // Drop the selected elements and any connector that referenced one of
+          // them, so no arrow is left dangling to a box that no longer exists.
+          doc.elements = doc.elements.filter((e) =>
+            !delIds.has(e.id) &&
+            !(e.type === "connector" && (delIds.has(e.props.from) || delIds.has(e.props.to))));
+          selectEl(null);
+          renderDoc();
+          scheduleSave();
+        }
       } else if (ev.key.toLowerCase() === "t") addText();
       else if (ev.key.toLowerCase() === "s") addSticky();
       else if (ev.key.toLowerCase() === "r") addFrame();
@@ -3594,7 +3713,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // spreads the inner elements so the gaps between them are equal.
     type AlignMode = "left" | "hcenter" | "right" | "top" | "vmiddle" | "bottom";
     const alignSelected = (mode: AlignMode) => {
-      const boxes = selectedBoxes();
+      // Locked elements are not moved by align.
+      const boxes = selectedBoxes().filter((e) => !e.props.locked);
       if (boxes.length < 2) return;
       const lefts = boxes.map((e) => e.x);
       const rights = boxes.map((e) => e.x + e.w);
@@ -3617,7 +3737,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       scheduleSave();
     };
     const distributeSelected = (axis: "h" | "v") => {
-      const boxes = selectedBoxes();
+      // Locked elements are not moved by distribute.
+      const boxes = selectedBoxes().filter((e) => !e.props.locked);
       if (boxes.length < 3) return;
       if (axis === "h") {
         boxes.sort((a, b) => a.x - b.x);
@@ -3904,6 +4025,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     $("tool-frame").addEventListener("click", addFrame);
     $("tool-shape").addEventListener("click", () => addShape());
     $("tool-connect").addEventListener("click", () => setConnectMode(!connectMode));
+    $("tool-lock").addEventListener("click", () => toggleLockSelection());
     $("tool-draw").addEventListener("click", () => setDrawMode(!drawMode));
     $("tool-upload").addEventListener("click", () => fileInput.click());
     $("tool-zoom-fit").addEventListener("click", zoomToFit);
