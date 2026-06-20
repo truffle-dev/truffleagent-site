@@ -1112,6 +1112,46 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       word-break: break-word;
       overflow: hidden;
     }
+    .easel-el-sticky.is-suggestion {
+      border: 1.5px dashed #5b6bf5;
+      padding-top: 26px;
+      box-shadow: 0 2px 10px rgba(91, 107, 245, 0.22);
+    }
+    .easel-suggest-badge {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #fff;
+      background: #5b6bf5;
+      padding: 2px 7px;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+    .easel-suggest-dismiss {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 50%;
+      padding: 0;
+      background: rgba(91, 107, 245, 0.14);
+      color: #3a3a8c;
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .easel-suggest-dismiss:hover {
+      background: rgba(91, 107, 245, 0.28);
+    }
     .easel-el-frame {
       border: 1.5px solid rgba(0, 0, 0, 0.35);
       border-radius: 12px;
@@ -1760,6 +1800,48 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       return node;
     };
 
+    // A suggestion is an ordinary sticky carrying props.suggestion. It reads as an
+    // agent-left advisory (dashed indigo frame + "Suggestion" badge) and a human
+    // dismisses it with the corner ×. Kept as a sticky variant, not a new element
+    // type, so it inherits every box gesture and needs no new validation or
+    // render-route type — only chrome layered on top.
+    const dismissSuggestion = (id: string) => {
+      doc.elements = doc.elements.filter((e) =>
+        e.id !== id &&
+        !(e.type === "connector" && (e.props.from === id || e.props.to === id)));
+      if (selectedIds.has(id)) selectEl(null);
+      renderDoc();
+      scheduleSave();
+    };
+    const applySuggestionChrome = (node: HTMLElement, el: El, on: boolean) => {
+      node.classList.toggle("is-suggestion", on);
+      let badge = node.querySelector<HTMLElement>(".easel-suggest-badge");
+      let xBtn = node.querySelector<HTMLElement>(".easel-suggest-dismiss");
+      if (on) {
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "easel-suggest-badge";
+          badge.textContent = "Suggestion";
+          node.appendChild(badge);
+        }
+        if (!xBtn) {
+          xBtn = document.createElement("button");
+          xBtn.className = "easel-suggest-dismiss";
+          (xBtn as HTMLButtonElement).type = "button";
+          xBtn.title = "Dismiss suggestion";
+          xBtn.setAttribute("aria-label", "Dismiss suggestion");
+          xBtn.textContent = "\u00d7";
+          // Keep the × out of the box's drag/select gesture machinery.
+          xBtn.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+          xBtn.addEventListener("click", (ev) => { ev.stopPropagation(); dismissSuggestion(el.id); });
+          node.appendChild(xBtn);
+        }
+      } else {
+        badge?.remove();
+        xBtn?.remove();
+      }
+    };
+
     const renderEl = (el: El, animate = false) => {
       // Connectors are not box nodes; they live in the SVG layer. Any call that
       // lands here (e.g. a move that touches a connector) just redraws the layer.
@@ -1792,7 +1874,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         node.childNodes[0]?.nodeType === Node.TEXT_NODE
           ? (node.childNodes[0].textContent = String(el.props.text ?? ""))
           : node.insertBefore(document.createTextNode(String(el.props.text ?? "")), node.firstChild);
-        node.style.background = String(el.props.color || "#fff3a3");
+        const isSuggestion = !!el.props.suggestion;
+        node.style.background = String(el.props.color || (isSuggestion ? "#eef1ff" : "#fff3a3"));
+        applySuggestionChrome(node, el, isSuggestion);
       } else if (el.type === "frame") {
         const label = node.querySelector<HTMLElement>(".easel-frame-label")!;
         label.textContent = String(el.props.label ?? "");
@@ -2476,6 +2560,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         // finish. Harmless for text/sticky, which also gain a cleaner edit.
         const hadHandle = handle.parentNode === node;
         if (hadHandle) handle.remove();
+        // Detach suggestion chrome too: the badge text and × glyph would
+        // otherwise be captured by the innerText read below and corrupt the
+        // saved note. renderEl re-adds them on finish via applySuggestionChrome.
+        node.querySelector(".easel-suggest-badge")?.remove();
+        node.querySelector(".easel-suggest-dismiss")?.remove();
         node.contentEditable = "plaintext-only";
         node.focus();
         const sel = window.getSelection();

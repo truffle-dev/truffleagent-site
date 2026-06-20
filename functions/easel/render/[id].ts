@@ -56,7 +56,14 @@ function elementHtml(el: EaselElement): string {
       return `<div class="el el-text" style="${base}font-size:${size}px;font-weight:${weight};color:${color};text-align:${align};">${esc(p.text)}</div>`;
     }
     case "sticky": {
-      const color = safeColor(p.color, "#fff3a3");
+      const isSuggestion = !!p.suggestion;
+      const color = safeColor(p.color, isSuggestion ? "#eef1ff" : "#fff3a3");
+      if (isSuggestion) {
+        // Agent-left advisory note. The render route is read-only (no dismiss ×),
+        // but the dashed frame + badge must match the canvas so screenshot_board
+        // vision reads it as a suggestion, not a plain note.
+        return `<div class="el el-sticky el-suggestion" style="${base}background:${color};"><span class="suggest-badge">Suggestion</span>${esc(p.text)}</div>`;
+      }
       return `<div class="el el-sticky" style="${base}background:${color};">${esc(p.text)}</div>`;
     }
     case "frame":
@@ -213,6 +220,12 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
     border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
     padding: 12px; font-size: 15px; line-height: 1.4;
     white-space: pre-wrap; word-break: break-word; overflow: hidden;
+  }
+  .el-suggestion { border: 1.5px dashed #5b6bf5; padding-top: 26px; box-shadow: 0 2px 10px rgba(91,107,245,0.22); }
+  .suggest-badge {
+    position: absolute; top: 6px; left: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #fff; background: #5b6bf5; padding: 2px 7px; border-radius: 999px;
   }
   .el-frame { border: 1.5px solid rgba(0,0,0,0.35); border-radius: 12px; background: rgba(255,255,255,0.35); }
   .el-shape {
