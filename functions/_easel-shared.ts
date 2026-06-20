@@ -41,7 +41,7 @@ export const newImageId = () => newId("ei");
 
 // ---------- board document ----------
 
-export type EaselElementType = "image" | "text" | "sticky" | "frame" | "shape" | "connector";
+export type EaselElementType = "image" | "text" | "sticky" | "frame" | "shape" | "draw" | "connector";
 
 export type EaselElement = {
   id: string;                 // e<n> stable within a board
@@ -58,6 +58,8 @@ export type EaselElement = {
   // sticky:{ text, color }
   // frame: { label, color? }
   // shape: { kind: "rect" | "ellipse", fill?, stroke?, text? }
+  // draw:  { points: [x,y][] in local 0..vbW / 0..vbH space, stroke?, width?, vbW?, vbH? }
+  //   a freehand polyline; vbW/vbH default to w/h so points may be given in 0..w / 0..h.
   // connector: { from, to (element ids), style?: "arrow" | "line", color? }
   //   geometry is derived from the two referenced elements; x/y/w/h/z are
   //   placeholders (0) and the connector is excluded from bounding-box math.
@@ -93,7 +95,7 @@ export function validateDoc(doc: unknown): { ok: true; doc: EaselDoc } | { ok: f
     if (typeof el !== "object" || el === null) return { ok: false, reason: "element must be an object" };
     const e = el as Record<string, unknown>;
     if (typeof e.id !== "string" || e.id.length > 16) return { ok: false, reason: "bad element id" };
-    if (!["image", "text", "sticky", "frame", "shape", "connector"].includes(e.type as string))
+    if (!["image", "text", "sticky", "frame", "shape", "draw", "connector"].includes(e.type as string))
       return { ok: false, reason: `bad element type ${String(e.type)}` };
     for (const k of ["x", "y", "w", "h", "z"]) {
       if (typeof e[k] !== "number" || !Number.isFinite(e[k] as number))

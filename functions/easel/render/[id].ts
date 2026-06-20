@@ -67,6 +67,24 @@ function elementHtml(el: EaselElement): string {
       const radius = p.kind === "ellipse" ? "50%" : "10px";
       return `<div class="el el-shape" style="${base}background:${fill};border:2px solid ${stroke};border-radius:${radius};">${esc(p.text)}</div>`;
     }
+    case "draw": {
+      // Freehand polyline. The viewBox is the stroke's drawn box (vbW/vbH,
+      // defaulting to w/h); preserveAspectRatio=none stretches it to the node.
+      const pts = Array.isArray(p.points) ? (p.points as unknown[]) : [];
+      const coords: string[] = [];
+      for (const pt of pts) {
+        if (!Array.isArray(pt)) continue;
+        const x = Number(pt[0]), y = Number(pt[1]);
+        if (Number.isFinite(x) && Number.isFinite(y)) coords.push(`${x} ${y}`);
+      }
+      if (coords.length < 2) return "";
+      const vbW = Number(p.vbW) > 0 ? Number(p.vbW) : (Number(el.w) || 1);
+      const vbH = Number(p.vbH) > 0 ? Number(p.vbH) : (Number(el.h) || 1);
+      const stroke = safeColor(p.stroke, "#1f1d1a");
+      const width = Number(p.width) > 0 ? Number(p.width) : 3;
+      const d = "M" + coords.join(" L");
+      return `<div class="el el-draw" style="${base}"><svg viewBox="0 0 ${vbW} ${vbH}" preserveAspectRatio="none" style="width:100%;height:100%;overflow:visible;display:block;"><path d="${d}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>`;
+    }
     default:
       return "";
   }
