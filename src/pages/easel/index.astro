@@ -193,7 +193,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>C</kbd></dt><dd>Connect two elements with an arrow</dd>
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
             <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
-            <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste an image from the clipboard</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>C</kbd></dt><dd>Copy the selection</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>X</kbd></dt><dd>Cut the selection</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste copied elements (or an image) from the clipboard</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt><dd>Undo</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo (or <kbd>Ctrl</kbd>+<kbd>Y</kbd>)</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Save now</dd>
@@ -3263,6 +3265,20 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         duplicateSelected();
         return;
       }
+      // Ctrl/Cmd+C: copy the selection to the cross-board clipboard.
+      if ((ev.metaKey || ev.ctrlKey) && !ev.shiftKey && ev.key.toLowerCase() === "c" && selectedBoxes().length) {
+        ev.preventDefault();
+        copySelection();
+        return;
+      }
+      // Ctrl/Cmd+X: cut the selection (copy, then delete the unlocked part).
+      if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "x" && selectedBoxes().length) {
+        ev.preventDefault();
+        cutSelection();
+        return;
+      }
+      // Ctrl/Cmd+V is intentionally NOT handled here; the native "paste" event
+      // drives pasteClipboard so it never double-fires with this keydown.
       // Ctrl/Cmd+A: select every element on the board.
       if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "a") {
         ev.preventDefault();
@@ -3606,17 +3622,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       addConnector(connectFrom, id);
       setConnectMode(false);
     };
-    const duplicateSelected = () => {
-      // Duplicate the whole selection: every selected box plus any connector
-      // whose BOTH endpoints are in the set (so internal wiring survives the
-      // copy, re-pointed at the clones). Lone-endpoint connectors are dropped.
-      const boxes = selectedBoxes();
-      if (!boxes.length) return;
-      const srcIds = new Set(boxes.map((b) => b.id));
-      const conns = doc.elements.filter(
-        (e) => e.type === "connector" &&
-          srcIds.has(String(e.props?.from)) && srcIds.has(String(e.props?.to)),
-      );
+    // Clone a set of boxes (plus the connectors fully internal to them) into the
+    // live doc, shifted by (dx,dy), and return the new box ids. Connectors are
+    // re-pointed at the clones; lone-endpoint connectors are dropped. Clones are
+    // always unlocked so a pasted/duplicated copy is immediately editable.
+    const cloneInto = (boxes: El[], conns: El[], dx: number, dy: number): string[] => {
       // Frames stay at the back; everything else lands on top, like a fresh add.
       let zTop = maxZ(), zBot = minZ();
       const idMap: Record<string, string> = {};
@@ -3626,12 +3636,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const nid = `e${nextElNum++}`;
         idMap[src.id] = nid;
         cloneBoxIds.push(nid);
+        const props = { ...src.props };
+        delete props.locked;
         const clone: El = {
           ...src,
           id: nid,
-          x: src.x + 24, y: src.y + 24,
+          x: src.x + dx, y: src.y + dy,
           z: src.type === "frame" ? --zBot : ++zTop,
-          props: { ...src.props },
+          props,
         };
         doc.elements.push(clone);
         fresh.push(clone);
@@ -3649,8 +3661,84 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       }
       for (const el of fresh) renderEl(el);
       drawConnectors();
+      return cloneBoxIds;
+    };
+    // Connectors whose BOTH endpoints sit inside the given box-id set.
+    const internalConnectors = (srcIds: Set<string>): El[] =>
+      doc.elements.filter(
+        (e) => e.type === "connector" &&
+          srcIds.has(String(e.props?.from)) && srcIds.has(String(e.props?.to)),
+      );
+    const duplicateSelected = () => {
+      // Duplicate the whole selection in place (offset 24,24).
+      const boxes = selectedBoxes();
+      if (!boxes.length) return;
+      const conns = internalConnectors(new Set(boxes.map((b) => b.id)));
+      const cloneBoxIds = cloneInto(boxes, conns, 24, 24);
       setSelection(cloneBoxIds);
       scheduleSave();
+    };
+
+    // ---------- clipboard (copy / cut / paste across boards) ----------
+    // Selection is serialised to localStorage so it survives a board switch and
+    // a reload; an in-memory mirror covers private-mode / quota failures. Paste
+    // lands in the viewport centre so it is always visible regardless of where
+    // the originals were.
+    const CLIP_KEY = "easel:clipboard";
+    let elClipboardMem = "";
+    const copySelection = (): boolean => {
+      const boxes = selectedBoxes();
+      if (!boxes.length) return false;
+      const srcIds = new Set(boxes.map((b) => b.id));
+      const conns = internalConnectors(srcIds);
+      const payload = JSON.stringify({
+        boxes: boxes.map((b) => ({ ...b, props: { ...b.props } })),
+        conns: conns.map((c) => ({ ...c, props: { ...c.props } })),
+      });
+      elClipboardMem = payload;
+      try { localStorage.setItem(CLIP_KEY, payload); } catch {}
+      return true;
+    };
+    const cutSelection = (): boolean => {
+      if (!copySelection()) return false;
+      // Delete only the unlocked selected boxes plus any connector left dangling.
+      const delIds = new Set(
+        [...selectedIds].filter((id) => !getEl(id)?.props.locked),
+      );
+      if (!delIds.size) return false;
+      // Drop the cut elements and any connector left dangling, mirroring Delete.
+      doc.elements = doc.elements.filter((e) =>
+        !delIds.has(e.id) &&
+        !(e.type === "connector" && (delIds.has(e.props.from) || delIds.has(e.props.to))));
+      selectEl(null);
+      renderDoc();
+      scheduleSave();
+      return true;
+    };
+    const pasteClipboard = (): boolean => {
+      let raw = "";
+      try { raw = localStorage.getItem(CLIP_KEY) || ""; } catch {}
+      if (!raw) raw = elClipboardMem;
+      if (!raw) return false;
+      let parsed: { boxes?: El[]; conns?: El[] };
+      try { parsed = JSON.parse(raw); } catch { return false; }
+      const boxes = Array.isArray(parsed.boxes) ? parsed.boxes : [];
+      const conns = Array.isArray(parsed.conns) ? parsed.conns : [];
+      if (!boxes.length) return false;
+      // Centre the clipboard bbox on the current viewport centre.
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const b of boxes) {
+        minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
+        maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h);
+      }
+      const r = stage.getBoundingClientRect();
+      const center = stagePoint(r.left + r.width / 2, r.top + r.height / 2);
+      const dx = center.x - (minX + maxX) / 2;
+      const dy = center.y - (minY + maxY) / 2;
+      const cloneBoxIds = cloneInto(boxes, conns, dx, dy);
+      setSelection(cloneBoxIds);
+      scheduleSave();
+      return true;
     };
 
     // ---------- layering (z-order) ----------
@@ -3847,7 +3935,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         (document.activeElement as HTMLElement)?.isContentEditable) return;
       const files = Array.from(ev.clipboardData?.files ?? [])
         .filter((f) => /^image\//.test(f.type));
-      if (!files.length) return;
+      // An image on the clipboard wins; otherwise fall through to element paste.
+      if (!files.length) {
+        if (pasteClipboard()) ev.preventDefault();
+        return;
+      }
       ev.preventDefault();
       uploadFiles(files);
     });
