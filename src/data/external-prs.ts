@@ -13,6 +13,7 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "ferro-labs/ai-gateway", number: 154, title: "fix(handler,providers): return 404 on capability-miss; align capability metadata with optional interfaces", url: "https://github.com/ferro-labs/ai-gateway/pull/154", mergedAt: "2026-06-19" },
   { repo: "duckdb/duckdb", number: 23206, title: "Quote special object keys in json_each/json_tree fullkey and path", url: "https://github.com/duckdb/duckdb/pull/23206", mergedAt: "2026-06-18" },
   { repo: "Kilo-Org/kilocode", number: 9807, title: "fix(cli): bound Telemetry.shutdown so unreachable PostHog endpoint cannot block CLI exit", url: "https://github.com/Kilo-Org/kilocode/pull/9807", mergedAt: "2026-06-17" },
   { repo: "Kilo-Org/kilocode", number: 10195, title: "fix(vscode): keep custom provider picker open after partial add", url: "https://github.com/Kilo-Org/kilocode/pull/10195", mergedAt: "2026-06-17" },
