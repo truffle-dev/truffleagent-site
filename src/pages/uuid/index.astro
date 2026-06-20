@@ -1,0 +1,532 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "UUID · Generate and Decode UUIDs (v4, v7)";
+const description =
+  "Generate UUID v4 and v7, or paste any UUID to read its version, variant, and embedded timestamp. Works offline. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/uuid/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "UUID Generator and Decoder",
+  alternateName: ["UUID Generator", "UUID v7", "GUID Generator", "UUID Decoder"],
+  url: canonical,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Generate UUID v4 (random)",
+    "Generate UUID v7 (time-ordered)",
+    "Generate in batches",
+    "Copy with one click",
+    "Decode any UUID: version and variant",
+    "Read the embedded timestamp from v1, v6, and v7",
+    "Detect nil and max UUIDs",
+    "Works offline, no servers, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is the difference between v4 and v7?",
+    a: "A v4 UUID is 122 random bits, so two made a millisecond apart sort nowhere near each other. A v7 UUID puts a 48-bit Unix millisecond timestamp in the front, so they sort by creation time. v7 is the better default for database keys because time-ordered inserts keep a B-tree index from fragmenting.",
+  },
+  {
+    q: "Can you really read the time out of a UUID?",
+    a: "Out of some of them. v1, v6, and v7 all store a timestamp in fixed bit positions, so paste one here and the decoder shows the exact moment it was minted. v4 is pure randomness with no embedded time, and v3 and v5 are hashes, so those tell you nothing about when they were made.",
+  },
+  {
+    q: "Is the timestamp accurate?",
+    a: "For v7 it is the generator's wall clock to the millisecond. For v1 and v6 it is 100-nanosecond intervals counted from 15 October 1582, which the decoder converts to a normal date. The clock is only as trustworthy as the machine that minted the UUID, so a wrong system clock makes a wrong embedded time.",
+  },
+  {
+    q: "Is this random enough to use?",
+    a: "Yes. Generation uses the browser's crypto.getRandomValues, the same cryptographically secure source the platform exposes to everything else. Nothing is generated on a server; it all happens in your browser.",
+  },
+  {
+    q: "What is the variant field?",
+    a: "Two or three bits that say which UUID layout standard a value follows. Almost everything you will see is the RFC 9562 variant (the bits 10xx). The decoder also flags the older NCS, the Microsoft GUID, and the reserved variants when it sees them.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. No ads, no analytics, no third-party scripts. Everything runs in your browser and nothing is sent anywhere.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="uuid-page">
+    <header class="uuid-topbar">
+      <div class="uuid-topbar-inner">
+        <div class="uuid-brand">
+          <span class="uuid-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="6" width="18" height="12" rx="2" />
+              <path d="M7 10v4" />
+              <path d="M11 10v4" />
+              <path d="M15 10v4" />
+            </svg>
+          </span>
+          <span class="uuid-brand-name">UUID</span>
+        </div>
+        <div class="uuid-topbar-actions">
+          <button id="share-btn" type="button" class="uuid-btn uuid-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="uuid-generate">
+      <div class="uuid-gen-controls">
+        <button id="gen-v7" type="button" class="uuid-btn uuid-btn-primary">Generate v7</button>
+        <button id="gen-v4" type="button" class="uuid-btn">Generate v4</button>
+        <label class="uuid-count">
+          <span>×</span>
+          <select id="count-input" aria-label="How many to generate">
+            <option value="1" selected>1</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="25">25</option>
+          </select>
+        </label>
+        <button id="copy-all" type="button" class="uuid-btn uuid-btn-ghost" hidden>Copy all</button>
+      </div>
+      <ul class="uuid-out" id="uuid-out" aria-live="polite">
+        <li class="uuid-out-empty">Press a button to mint a UUID. Click any value to copy it.</li>
+      </ul>
+    </section>
+
+    <section class="uuid-inspect">
+      <label class="uuid-field">
+        <span class="uuid-field-label">Decode a UUID</span>
+        <input id="inspect-input" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="01890f4a-1c2b-7def-8abc-1234567890ab" />
+      </label>
+      <div class="uuid-decode" id="uuid-decode" hidden></div>
+    </section>
+
+    <section class="uuid-why">
+      <h2>Why this exists</h2>
+      <p>
+        Most UUID pages stop at a random v4 and call it done. The interesting work is the other
+        direction: a v1, v6, or v7 UUID carries the moment it was minted in fixed bit positions,
+        so a value you already have in a log or a database row will tell you when it was created.
+        Paste one above and the decoder pulls the version, the variant, and the embedded timestamp
+        straight out of the bytes. Nothing leaves your browser.
+      </p>
+    </section>
+
+    <section class="uuid-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="uuid-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div class="uuid-toast" id="toast" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --uuid-bg: #fbfaf5;
+    --uuid-fg: #1a1611;
+    --uuid-muted: #6b6359;
+    --uuid-line: #e5dfd0;
+    --uuid-card: #ffffff;
+    --uuid-accent: #3a5b8c;
+    --uuid-accent-soft: #d8e2ee;
+    --uuid-ok: #3f7d52;
+    --uuid-bad: #b0492f;
+  }
+  :root[data-theme="dark"] {
+    --uuid-bg: #0e0c08;
+    --uuid-fg: #f1ece0;
+    --uuid-muted: #9c9485;
+    --uuid-line: #2a2620;
+    --uuid-card: #16130d;
+    --uuid-accent: #7ba5d4;
+    --uuid-accent-soft: #1a232e;
+    --uuid-ok: #7fb98e;
+    --uuid-bad: #d98a72;
+  }
+
+  body { background: var(--uuid-bg); color: var(--uuid-fg); }
+  .uuid-page { max-width: 760px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .uuid-topbar { border-bottom: 1px solid var(--uuid-line); padding: 18px 0; margin-bottom: 36px; }
+  .uuid-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .uuid-brand { display: flex; align-items: center; gap: 10px; }
+  .uuid-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--uuid-accent-soft); color: var(--uuid-accent); }
+  .uuid-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+
+  .uuid-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--uuid-line);
+    background: var(--uuid-card); color: var(--uuid-fg);
+    font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .uuid-btn:hover { border-color: var(--uuid-accent); color: var(--uuid-accent); }
+  .uuid-btn-primary { background: var(--uuid-accent); color: var(--uuid-bg); border-color: var(--uuid-accent); font-weight: 600; }
+  .uuid-btn-primary:hover { color: var(--uuid-bg); filter: brightness(1.05); }
+  .uuid-btn-ghost { background: transparent; }
+
+  .uuid-gen-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .uuid-count { display: inline-flex; align-items: center; gap: 6px; color: var(--uuid-muted); font-size: 14px; }
+  .uuid-count select {
+    font: inherit; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--uuid-line); background: var(--uuid-bg); color: var(--uuid-fg);
+    outline: none; cursor: pointer;
+  }
+  .uuid-count select:focus { border-color: var(--uuid-accent); }
+
+  .uuid-out { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 8px; }
+  .uuid-out-empty { color: var(--uuid-muted); font-size: 14px; padding: 4px 2px; }
+  .uuid-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--uuid-card); border: 1px solid var(--uuid-line); border-radius: 12px;
+    padding: 12px 14px; cursor: pointer;
+    transition: border-color .15s ease;
+  }
+  .uuid-row:hover { border-color: var(--uuid-accent); }
+  .uuid-row code { font-family: "JetBrains Mono", monospace; font-size: 14px; word-break: break-all; }
+  .uuid-row .uuid-ver { flex: none; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--uuid-accent); background: var(--uuid-accent-soft); padding: 3px 8px; border-radius: 999px; }
+
+  .uuid-inspect { margin-top: 44px; }
+  .uuid-field { display: flex; flex-direction: column; gap: 6px; }
+  .uuid-field-label { font-size: 12px; color: var(--uuid-muted); font-weight: 500; }
+  .uuid-field input {
+    font: inherit; font-family: "JetBrains Mono", monospace; font-size: 15px;
+    padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--uuid-line); background: var(--uuid-card); color: var(--uuid-fg);
+    outline: none;
+  }
+  .uuid-field input:focus { border-color: var(--uuid-accent); }
+
+  .uuid-decode { margin-top: 18px; background: var(--uuid-card); border: 1px solid var(--uuid-line); border-radius: 14px; padding: 8px 20px; }
+  .uuid-decode[data-state="bad"] { border-color: var(--uuid-bad); }
+  .uuid-drow { display: grid; grid-template-columns: 130px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--uuid-line); }
+  .uuid-drow:last-child { border-bottom: none; }
+  .uuid-dkey { font-size: 13px; color: var(--uuid-muted); }
+  .uuid-dval { font-size: 14px; word-break: break-all; }
+  .uuid-dval.mono { font-family: "JetBrains Mono", monospace; }
+  .uuid-dval.ok { color: var(--uuid-ok); }
+  .uuid-dval.bad { color: var(--uuid-bad); }
+  .uuid-dval .uuid-sub { display: block; color: var(--uuid-muted); font-size: 12px; margin-top: 3px; }
+
+  .uuid-why { margin-top: 64px; }
+  .uuid-why h2, .uuid-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .uuid-why p { font-size: 16px; line-height: 1.6; color: var(--uuid-fg); max-width: 64ch; margin: 0; }
+
+  .uuid-faq { margin-top: 56px; }
+  .uuid-faq dl { display: grid; gap: 18px; margin: 0; }
+  .uuid-faq-item { background: var(--uuid-card); border: 1px solid var(--uuid-line); border-radius: 14px; padding: 16px 20px; }
+  .uuid-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .uuid-faq-item dd { color: var(--uuid-muted); line-height: 1.55; margin: 0; }
+
+  .uuid-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--uuid-fg); color: var(--uuid-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+  }
+  .uuid-toast[hidden] { display: none !important; }
+
+  @media (max-width: 560px) {
+    .uuid-drow { grid-template-columns: 1fr; gap: 2px; }
+  }
+</style>
+
+<script>
+  // ---- byte helpers -------------------------------------------------------
+  function bytesToUuid(b: Uint8Array): string {
+    const h: string[] = [];
+    for (let i = 0; i < 16; i++) h.push(b[i].toString(16).padStart(2, "0"));
+    return (
+      h.slice(0, 4).join("") + "-" +
+      h.slice(4, 6).join("") + "-" +
+      h.slice(6, 8).join("") + "-" +
+      h.slice(8, 10).join("") + "-" +
+      h.slice(10, 16).join("")
+    );
+  }
+
+  function randomBytes(n: number): Uint8Array {
+    const a = new Uint8Array(n);
+    crypto.getRandomValues(a);
+    return a;
+  }
+
+  // ---- generators ---------------------------------------------------------
+  function genV4(): string {
+    const b = randomBytes(16);
+    b[6] = (b[6] & 0x0f) | 0x40; // version 4
+    b[8] = (b[8] & 0x3f) | 0x80; // RFC 9562 variant
+    return bytesToUuid(b);
+  }
+
+  function genV7(): string {
+    const b = randomBytes(16);
+    const ms = Date.now();
+    // first 48 bits = Unix ms timestamp, big-endian
+    b[0] = (ms / 0x10000000000) & 0xff;
+    b[1] = (ms / 0x100000000) & 0xff;
+    b[2] = (ms / 0x1000000) & 0xff;
+    b[3] = (ms / 0x10000) & 0xff;
+    b[4] = (ms / 0x100) & 0xff;
+    b[5] = ms & 0xff;
+    b[6] = (b[6] & 0x0f) | 0x70; // version 7
+    b[8] = (b[8] & 0x3f) | 0x80; // RFC 9562 variant
+    return bytesToUuid(b);
+  }
+
+  // ---- parsing + decoding -------------------------------------------------
+  const HEX32 = /^[0-9a-f]{32}$/i;
+
+  function parseUuid(raw: string): Uint8Array | null {
+    let s = raw.trim().toLowerCase();
+    s = s.replace(/^urn:uuid:/, "").replace(/[{}]/g, "");
+    s = s.replace(/-/g, "");
+    if (!HEX32.test(s)) return null;
+    const b = new Uint8Array(16);
+    for (let i = 0; i < 16; i++) b[i] = parseInt(s.substr(i * 2, 2), 16);
+    return b;
+  }
+
+  function variantName(b: Uint8Array): string {
+    const o = b[8];
+    if ((o & 0x80) === 0x00) return "NCS (reserved, legacy)";
+    if ((o & 0xc0) === 0x80) return "RFC 9562 (standard)";
+    if ((o & 0xe0) === 0xc0) return "Microsoft GUID";
+    return "Reserved (future)";
+  }
+
+  // 100-ns intervals between 1582-10-15 and 1970-01-01
+  const GREGORIAN_OFFSET = 122192928000000000n;
+
+  function fmtDate(ms: number): string {
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return "out of range";
+    return d.toISOString().replace("T", " ").replace(".000Z", "Z");
+  }
+
+  // v1: 60-bit time split across time_low / time_mid / time_hi
+  function timeV1(b: Uint8Array): number {
+    const timeLow = (b[0] * 0x1000000 + (b[1] << 16) + (b[2] << 8) + b[3]) >>> 0;
+    const timeMid = (b[4] << 8) | b[5];
+    const timeHi = ((b[6] & 0x0f) << 8) | b[7];
+    const t = (BigInt(timeHi) << 48n) | (BigInt(timeMid) << 32n) | BigInt(timeLow);
+    return Number((t - GREGORIAN_OFFSET) / 10000n);
+  }
+
+  // v6: same fields, reordered most-significant first
+  function timeV6(b: Uint8Array): number {
+    const timeHigh = (b[0] * 0x1000000 + (b[1] << 16) + (b[2] << 8) + b[3]) >>> 0;
+    const timeMid = (b[4] << 8) | b[5];
+    const timeLow = ((b[6] & 0x0f) << 8) | b[7];
+    const t = (BigInt(timeHigh) << 28n) | (BigInt(timeMid) << 12n) | BigInt(timeLow);
+    return Number((t - GREGORIAN_OFFSET) / 10000n);
+  }
+
+  // v7: first 48 bits are Unix ms
+  function timeV7(b: Uint8Array): number {
+    return b[0] * 0x10000000000 + b[1] * 0x100000000 + b[2] * 0x1000000 + (b[3] << 16) + (b[4] << 8) + b[5];
+  }
+
+  type Row = { key: string; val: string; cls?: string; sub?: string };
+
+  function decode(b: Uint8Array): Row[] {
+    const allZero = b.every((x) => x === 0);
+    const allMax = b.every((x) => x === 0xff);
+    const ver = b[6] >> 4;
+    const canonical = bytesToUuid(b);
+    const rows: Row[] = [];
+
+    rows.push({ key: "Valid", val: "Yes", cls: "ok" });
+    rows.push({ key: "Canonical", val: canonical, cls: "mono" });
+
+    if (allZero) {
+      rows.push({ key: "Kind", val: "Nil UUID", sub: "All 128 bits zero. The defined empty value." });
+      return rows;
+    }
+    if (allMax) {
+      rows.push({ key: "Kind", val: "Max UUID", sub: "All 128 bits one. The defined maximum value." });
+      return rows;
+    }
+
+    rows.push({ key: "Version", val: "v" + ver });
+    rows.push({ key: "Variant", val: variantName(b) });
+
+    let label = "";
+    let ms: number | null = null;
+    if (ver === 1) { label = "Gregorian (v1)"; ms = timeV1(b); }
+    else if (ver === 6) { label = "Gregorian (v6)"; ms = timeV6(b); }
+    else if (ver === 7) { label = "Unix ms (v7)"; ms = timeV7(b); }
+
+    if (ms !== null) {
+      const ago = relTime(ms);
+      rows.push({ key: "Timestamp", val: fmtDate(ms) + " UTC", cls: "ok", sub: label + " · " + ago });
+    } else if (ver === 4) {
+      rows.push({ key: "Timestamp", val: "None", sub: "v4 is random; it carries no creation time." });
+    } else if (ver === 3 || ver === 5) {
+      rows.push({ key: "Timestamp", val: "None", sub: "v" + ver + " is a name hash; it carries no creation time." });
+    } else {
+      rows.push({ key: "Timestamp", val: "None", sub: "This version has no defined embedded timestamp." });
+    }
+
+    return rows;
+  }
+
+  function relTime(ms: number): string {
+    const diff = Date.now() - ms;
+    const abs = Math.abs(diff);
+    const units: [number, string][] = [
+      [31536000000, "year"], [2592000000, "month"], [86400000, "day"],
+      [3600000, "hour"], [60000, "minute"], [1000, "second"],
+    ];
+    for (const [u, name] of units) {
+      if (abs >= u) {
+        const n = Math.round(abs / u);
+        const plural = n === 1 ? name : name + "s";
+        return diff >= 0 ? `${n} ${plural} ago` : `in ${n} ${plural}`;
+      }
+    }
+    return "just now";
+  }
+
+  // ---- DOM ----------------------------------------------------------------
+  function toast(msg: string): void {
+    const el = document.getElementById("toast");
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+    window.clearTimeout((el as any)._t);
+    (el as any)._t = window.setTimeout(() => { el.hidden = true; }, 1600);
+  }
+
+  function copy(text: string, label: string): void {
+    navigator.clipboard?.writeText(text).then(
+      () => toast(label),
+      () => toast("Copy failed"),
+    );
+  }
+
+  let lastBatch: string[] = [];
+
+  function render(uuids: string[], ver: string): void {
+    const out = document.getElementById("uuid-out");
+    if (!out) return;
+    lastBatch = uuids;
+    out.innerHTML = "";
+    for (const u of uuids) {
+      const li = document.createElement("li");
+      li.className = "uuid-row";
+      const code = document.createElement("code");
+      code.textContent = u;
+      const tag = document.createElement("span");
+      tag.className = "uuid-ver";
+      tag.textContent = ver;
+      li.append(code, tag);
+      li.addEventListener("click", () => copy(u, "Copied " + u.slice(0, 8) + "\u2026"));
+      out.appendChild(li);
+    }
+    const copyAll = document.getElementById("copy-all") as HTMLButtonElement | null;
+    if (copyAll) copyAll.hidden = uuids.length < 2;
+  }
+
+  function generate(kind: "v4" | "v7"): void {
+    const countEl = document.getElementById("count-input") as HTMLSelectElement | null;
+    const n = Math.max(1, parseInt(countEl?.value ?? "1", 10) || 1);
+    const fn = kind === "v7" ? genV7 : genV4;
+    const list: string[] = [];
+    for (let i = 0; i < n; i++) list.push(fn());
+    render(list, kind.toUpperCase());
+  }
+
+  function runDecode(): void {
+    const input = document.getElementById("inspect-input") as HTMLInputElement | null;
+    const panel = document.getElementById("uuid-decode");
+    if (!input || !panel) return;
+    const raw = input.value.trim();
+    if (raw === "") { panel.hidden = true; return; }
+    const bytes = parseUuid(raw);
+    panel.hidden = false;
+    if (!bytes) {
+      panel.dataset.state = "bad";
+      panel.innerHTML =
+        '<div class="uuid-drow"><span class="uuid-dkey">Valid</span>' +
+        '<span class="uuid-dval bad">Not a UUID</span></div>' +
+        '<div class="uuid-drow"><span class="uuid-dkey">Expected</span>' +
+        '<span class="uuid-dval">32 hex digits, with or without hyphens, braces, or a urn:uuid: prefix.</span></div>';
+      return;
+    }
+    panel.dataset.state = "ok";
+    const rows = decode(bytes);
+    panel.innerHTML = rows
+      .map((r) => {
+        const cls = "uuid-dval" + (r.cls ? " " + r.cls : "");
+        const sub = r.sub ? `<span class="uuid-sub">${escapeHtml(r.sub)}</span>` : "";
+        return `<div class="uuid-drow"><span class="uuid-dkey">${escapeHtml(r.key)}</span><span class="${cls}">${escapeHtml(r.val)}${sub}</span></div>`;
+      })
+      .join("");
+  }
+
+  function escapeHtml(s: string): string {
+    return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+  }
+
+  function shareLink(): void {
+    const url = "https://truffleagent.com/uuid/";
+    if (navigator.share) {
+      navigator.share({ title: "UUID", url }).catch(() => {});
+    } else {
+      copy(url, "Link copied");
+    }
+  }
+
+  function init(): void {
+    document.getElementById("gen-v7")?.addEventListener("click", () => generate("v7"));
+    document.getElementById("gen-v4")?.addEventListener("click", () => generate("v4"));
+    document.getElementById("copy-all")?.addEventListener("click", () => {
+      if (lastBatch.length) copy(lastBatch.join("\n"), "Copied " + lastBatch.length + " UUIDs");
+    });
+    document.getElementById("share-btn")?.addEventListener("click", shareLink);
+    document.getElementById("inspect-input")?.addEventListener("input", runDecode);
+    // mint one on load so the page is never empty
+    generate("v7");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+</script>
