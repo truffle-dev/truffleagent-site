@@ -25,7 +25,14 @@ const require = createRequire("/app/node_modules/");
 const { chromium } = require("playwright");
 
 const BASE = process.argv[2] || "https://truffleagent.com";
-const EPS = 2; // px / scale epsilon: below this is "unchanged"
+// Pan lives in pixels (deltas of tens); zoom lives in scale-units (deltas of
+// hundredths). They need separate epsilons: a single wheel tick only moves
+// scale by ~9% (1.0 -> 0.909), so a pixel-scale tolerance would treat a real
+// zoom as "unchanged" and miss the exact P5.1 "wheel always zooms" regression.
+const PAN_MOVED = 20;   // translate delta (px) that counts as a deliberate pan
+const PAN_STILL = 2;    // translate delta (px) below which the canvas didn't move
+const ZOOM_STILL = 0.01; // scale delta below which zoom is unchanged
+const ZOOM_MOVED = 0.02; // scale delta above which a real zoom happened
 
 let PASS = 0, FAIL = 0;
 function check(name, ok, detail) {
@@ -93,8 +100,8 @@ async function main() {
       await page.mouse.up();
       const after = await readView();
       const dx = after.panX - before.panX, dy = after.panY - before.panY;
-      const panned = Math.abs(dx) > 20 && Math.abs(dy) > 20;
-      const zoomSame = Math.abs(after.zoom - before.zoom) < EPS;
+      const panned = Math.abs(dx) > PAN_MOVED && Math.abs(dy) > PAN_MOVED;
+      const zoomSame = Math.abs(after.zoom - before.zoom) < ZOOM_STILL;
       check("plain left-drag pans (translate moves, scale fixed)", panned && zoomSame,
         `dpan=(${dx.toFixed(0)},${dy.toFixed(0)}) dzoom=${(after.zoom - before.zoom).toFixed(3)}`);
     }
@@ -105,8 +112,8 @@ async function main() {
       await page.mouse.move(cx, cy);
       await page.mouse.wheel(0, 120);
       const after = await readView();
-      const moved = Math.abs(after.panY - before.panY) > 20;
-      const zoomSame = Math.abs(after.zoom - before.zoom) < EPS;
+      const moved = Math.abs(after.panY - before.panY) > PAN_MOVED;
+      const zoomSame = Math.abs(after.zoom - before.zoom) < ZOOM_STILL;
       check("plain wheel pans (scale fixed)", moved && zoomSame,
         `dpanY=${(after.panY - before.panY).toFixed(0)} dzoom=${(after.zoom - before.zoom).toFixed(3)}`);
     }
@@ -119,7 +126,7 @@ async function main() {
       await page.mouse.wheel(0, -120); // up = zoom in
       await page.keyboard.up("Control");
       const after = await readView();
-      const zoomed = Math.abs(after.zoom - before.zoom) > 0.02;
+      const zoomed = Math.abs(after.zoom - before.zoom) > ZOOM_MOVED;
       check("ctrl+wheel zooms (scale changes)", zoomed,
         `dzoom=${(after.zoom - before.zoom).toFixed(3)}`);
     }
@@ -132,8 +139,8 @@ async function main() {
       await page.mouse.wheel(0, 120);
       await page.keyboard.up("Shift");
       const after = await readView();
-      const movedX = Math.abs(after.panX - before.panX) > 20;
-      const zoomSame = Math.abs(after.zoom - before.zoom) < EPS;
+      const movedX = Math.abs(after.panX - before.panX) > PAN_MOVED;
+      const zoomSame = Math.abs(after.zoom - before.zoom) < ZOOM_STILL;
       check("shift+wheel pans horizontally (scale fixed)", movedX && zoomSame,
         `dpanX=${(after.panX - before.panX).toFixed(0)} dzoom=${(after.zoom - before.zoom).toFixed(3)}`);
     }
@@ -149,9 +156,9 @@ async function main() {
       await page.keyboard.up("Shift");
       const after = await readView();
       const unchanged =
-        Math.abs(after.panX - before.panX) < EPS &&
-        Math.abs(after.panY - before.panY) < EPS &&
-        Math.abs(after.zoom - before.zoom) < EPS;
+        Math.abs(after.panX - before.panX) < PAN_STILL &&
+        Math.abs(after.panY - before.panY) < PAN_STILL &&
+        Math.abs(after.zoom - before.zoom) < ZOOM_STILL;
       check("shift+drag marquees (transform unchanged)", unchanged,
         `dpan=(${(after.panX - before.panX).toFixed(0)},${(after.panY - before.panY).toFixed(0)})`);
     }
@@ -167,8 +174,8 @@ async function main() {
       await page.keyboard.up("Space");
       const after = await readView();
       const dx = after.panX - before.panX, dy = after.panY - before.panY;
-      const panned = Math.abs(dx) > 20 && Math.abs(dy) > 20;
-      const zoomSame = Math.abs(after.zoom - before.zoom) < EPS;
+      const panned = Math.abs(dx) > PAN_MOVED && Math.abs(dy) > PAN_MOVED;
+      const zoomSame = Math.abs(after.zoom - before.zoom) < ZOOM_STILL;
       check("space+drag pans (translate moves, scale fixed)", panned && zoomSame,
         `dpan=(${dx.toFixed(0)},${dy.toFixed(0)}) dzoom=${(after.zoom - before.zoom).toFixed(3)}`);
     }
