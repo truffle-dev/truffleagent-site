@@ -917,6 +917,25 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       stroke-width: 4px;
       filter: drop-shadow(0 0 2.5px rgba(47, 111, 237, 0.95));
     }
+    /* 5.3.11 connector endpoint re-anchor handles — a selected connector shows a
+       grabbable dot at each border endpoint; drag one onto another element to
+       re-wire that end. Persistent #world nodes (like the rotate knob) so pointer
+       capture survives the per-move redraw; they scale with zoom like the line. */
+    .easel-conn-endpoint {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      margin: -7px 0 0 -7px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #2f6fed;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+      cursor: grab;
+      z-index: 10000;
+      touch-action: none;
+    }
+    .easel-conn-endpoint.is-dragging { cursor: grabbing; }
+    .easel-el.is-reanchor-target { outline: 2px solid #2f6fed; outline-offset: 2px; }
     /* Marquee selection rectangle, drawn in stage screen-space while a
        Shift+left-drag sweeps empty canvas. Never eats pointer events. */
     .easel-marquee {
@@ -2352,10 +2371,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       return `M${x1} ${y1} L${x2} ${y2}`;
     };
     const drawConnectors = () => {
+      selEndpoints = null;
       const conns = doc.elements.filter((e) => e.type === "connector");
       if (!conns.length) {
         // Nothing to draw — drop the layer entirely so an empty board is clean.
         if (connectorLayer) { connectorLayer.remove(); connectorLayer = null; }
+        drawEndpointHandles();
         return;
       }
       const svg = ensureConnectorLayer();
@@ -2366,8 +2387,26 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const a = getEl(String(c.props.from));
         const b = getEl(String(c.props.to));
         if (!a || !b || a.type === "connector" || b.type === "connector") continue;
-        const s = borderPt(a, b.x + b.w / 2, b.y + b.h / 2);
-        const e = borderPt(b, a.x + a.w / 2, a.y + a.h / 2);
+        let s = borderPt(a, b.x + b.w / 2, b.y + b.h / 2);
+        let e = borderPt(b, a.x + a.w / 2, a.y + a.h / 2);
+        // Live re-anchor preview: while an endpoint handle is being dragged, draw
+        // the dragged end toward the hovered target's border (or the free cursor)
+        // and re-clip the fixed end toward that new point.
+        if (endpointDrag && endpointDrag.connId === c.id) {
+          const cur = { x: endpointDrag.x, y: endpointDrag.y };
+          const tgt = endpointDrag.targetId ? getEl(endpointDrag.targetId) : null;
+          const dp = tgt ? { x: tgt.x + tgt.w / 2, y: tgt.y + tgt.h / 2 } : cur;
+          if (endpointDrag.end === "to") {
+            s = borderPt(a, dp.x, dp.y);
+            e = tgt ? borderPt(tgt, s.x, s.y) : cur;
+          } else {
+            e = borderPt(b, dp.x, dp.y);
+            s = tgt ? borderPt(tgt, e.x, e.y) : cur;
+          }
+        }
+        if (c.id === selectedConnectorId) {
+          selEndpoints = { from: { x: s.x, y: s.y }, to: { x: e.x, y: e.y } };
+        }
         labelData.push({
           id: c.id, mx: (s.x + e.x) / 2, my: (s.y + e.y) / 2,
           label: typeof c.props.label === "string" ? c.props.label : "",
@@ -2409,6 +2448,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         svg.appendChild(line);
       }
       drawConnLabels(labelData);
+      drawEndpointHandles();
     };
 
     // ---------- connector labels ----------
@@ -2493,6 +2533,99 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       }
       drawConnectors();
     };
+
+    // ---------- connector endpoint re-anchoring (5.3.11) ----------
+    // A selected connector shows a draggable handle at each border endpoint;
+    // dragging one onto another element re-anchors that end (props.from/props.to),
+    // releasing over empty canvas cancels. The handle nodes persist (like the
+    // rotate knob) so pointer capture survives the per-move drawConnectors()
+    // rebuild; endpointDrag holds the live cursor + hovered target so the path
+    // redraws to follow the drag, and selEndpoints (set in drawConnectors) keeps
+    // the handles glued to the current border points.
+    let endpointDrag: { connId: string; end: "from" | "to"; x: number; y: number; targetId: string | null } | null = null;
+    let selEndpoints: { from: { x: number; y: number }; to: { x: number; y: number } } | null = null;
+    const fromHandle = document.createElement("div");
+    fromHandle.className = "easel-conn-endpoint";
+    fromHandle.dataset.end = "from";
+    fromHandle.hidden = true;
+    const toHandle = document.createElement("div");
+    toHandle.className = "easel-conn-endpoint";
+    toHandle.dataset.end = "to";
+    toHandle.hidden = true;
+    world.appendChild(fromHandle);
+    world.appendChild(toHandle);
+    // Topmost (highest z) non-connector box containing a world point — the
+    // re-anchor target under the cursor. Rotation is ignored (same axis-aligned
+    // approximation the border clip uses); fixedId is the opposite endpoint, which
+    // can't be the new target (no self-loops).
+    const elementAtWorld = (wx: number, wy: number, excludeId: string): El | null => {
+      let best: El | null = null;
+      for (const el of doc.elements) {
+        if (el.type === "connector" || el.id === excludeId) continue;
+        if (wx >= el.x && wx <= el.x + el.w && wy >= el.y && wy <= el.y + el.h) {
+          if (!best || el.z > best.z) best = el;
+        }
+      }
+      return best;
+    };
+    const setReanchorTarget = (id: string | null) => {
+      world.querySelectorAll(".easel-el.is-reanchor-target").forEach((n) => n.classList.remove("is-reanchor-target"));
+      if (id) world.querySelector(`[data-el-id="${id}"]`)?.classList.add("is-reanchor-target");
+    };
+    const drawEndpointHandles = () => {
+      if (!selEndpoints || selectedConnectorId === null || editingConnLabelId !== null) {
+        fromHandle.hidden = true;
+        toHandle.hidden = true;
+        return;
+      }
+      fromHandle.style.left = `${selEndpoints.from.x.toFixed(1)}px`;
+      fromHandle.style.top = `${selEndpoints.from.y.toFixed(1)}px`;
+      toHandle.style.left = `${selEndpoints.to.x.toFixed(1)}px`;
+      toHandle.style.top = `${selEndpoints.to.y.toFixed(1)}px`;
+      fromHandle.hidden = false;
+      toHandle.hidden = false;
+    };
+    const beginEndpointDrag = (ev: PointerEvent, handle: HTMLElement) => {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const connId = selectedConnectorId;
+      const end: "from" | "to" = handle.dataset.end === "from" ? "from" : "to";
+      const c = connId ? getEl(connId) : null;
+      if (!connId || !c || c.type !== "connector") return;
+      const fixedId = end === "from" ? String(c.props.to) : String(c.props.from);
+      handle.classList.add("is-dragging");
+      try { handle.setPointerCapture(ev.pointerId); } catch { /* synthetic ids in tests */ }
+      const startP = stagePoint(ev.clientX, ev.clientY);
+      endpointDrag = { connId, end, x: startP.x, y: startP.y, targetId: null };
+      const onMove = (mv: PointerEvent) => {
+        const p = stagePoint(mv.clientX, mv.clientY);
+        const tgt = elementAtWorld(p.x, p.y, fixedId);
+        endpointDrag = { connId, end, x: p.x, y: p.y, targetId: tgt ? tgt.id : null };
+        setReanchorTarget(tgt ? tgt.id : null);
+        drawConnectors();
+      };
+      const onUp = () => {
+        handle.removeEventListener("pointermove", onMove);
+        handle.removeEventListener("pointerup", onUp);
+        handle.classList.remove("is-dragging");
+        const drag = endpointDrag;
+        endpointDrag = null;
+        setReanchorTarget(null);
+        // Commit only when released over a valid, different element; an empty drop
+        // cancels (the redraw below restores the original geometry).
+        if (drag && drag.targetId && drag.targetId !== fixedId) {
+          if (end === "from") c.props.from = drag.targetId;
+          else c.props.to = drag.targetId;
+          scheduleSave();
+        }
+        drawConnectors();
+      };
+      handle.addEventListener("pointermove", onMove);
+      handle.addEventListener("pointerup", onUp);
+    };
+    fromHandle.addEventListener("pointerdown", (ev) => beginEndpointDrag(ev, fromHandle));
+    toHandle.addEventListener("pointerdown", (ev) => beginEndpointDrag(ev, toHandle));
 
     const renderDoc = (animate = false) => {
       const ids = new Set(doc.elements.map((e) => e.id));
