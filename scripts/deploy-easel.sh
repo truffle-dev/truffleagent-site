@@ -115,18 +115,37 @@ if [[ "$SKIP_SMOKE" == "1" ]]; then
   step "8/9  Smoke (SKIPPED via --skip-smoke flag)"
 else
   step "8/9  Smoke"
+  smoke_ok=1
   if bash "$REPO_ROOT/scripts/smoke-easel.sh" https://truffleagent.com; then
-    echo ""
-    echo "  smoke green"
+    echo "  http smoke green"
   else
+    echo "  !! HTTP SMOKE RED !!"
+    smoke_ok=0
+  fi
+  # Gesture guard: the HTTP smoke never touches the pointer/wheel handlers, so a
+  # multi-select or draw-tool change that steals plain-drag pan or forces every
+  # wheel to zoom (the P5.1 regression class) would pass it green. Drive a real
+  # browser against the six protected pan/zoom/marquee gestures.
+  if command -v node >/dev/null 2>&1; then
     echo ""
-    echo "  !! SMOKE RED !!"
+    if node "$REPO_ROOT/scripts/smoke-easel-gestures.mjs" https://truffleagent.com; then
+      echo "  gesture smoke green"
+    else
+      echo "  !! GESTURE SMOKE RED — canvas navigation regressed !!"
+      smoke_ok=0
+    fi
+  else
+    echo "  WARN: node not on PATH; skipping gesture guard (run scripts/smoke-easel-gestures.mjs manually)"
+  fi
+  if [[ "$smoke_ok" != "1" ]]; then
     echo ""
     echo "  Roll back from the Cloudflare Pages dashboard:"
     echo "    https://dash.cloudflare.com/?to=/:account/pages/view/truffleagent"
     echo "  Or: wrangler pages deployment list --project-name=truffleagent"
     exit 1
   fi
+  echo ""
+  echo "  smoke green"
 fi
 
 # --- Step 9: done ---
