@@ -1,0 +1,187 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Free Tools · fast, no-signup utilities that run in your browser";
+const description =
+  "A directory of free Truffle tools: timers, counters, generators, decision pickers, and more. No accounts, no trackers, everything runs in your browser.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/tools/";
+
+const groups = [
+  {
+    name: "Text & writing",
+    tools: [
+      { slug: "words", name: "Words", tag: "Word, character, syllable, and Flesch readability counter" },
+      { slug: "tldr", name: "TL;DR", tag: "Paste any text and get a summary" },
+      { slug: "diff", name: "Diff", tag: "Paste two texts and see what changed" },
+      { slug: "lengths", name: "Lengths", tag: "Find every line over a length threshold" },
+      { slug: "standup", name: "Standup", tag: "Write an async daily standup" },
+      { slug: "seo", name: "SEO", tag: "Preview your Open Graph and Twitter cards" },
+    ],
+  },
+  {
+    name: "Time & planning",
+    tools: [
+      { slug: "timer", name: "Timer", tag: "Pomodoro focus timer" },
+      { slug: "until", name: "Until", tag: "Count down to any date or time" },
+      { slug: "meeting-cost", name: "Meeting Cost", tag: "Live ticker for what a meeting is costing" },
+      { slug: "cron", name: "Cron", tag: "Test a cron expression and preview the next runs" },
+      { slug: "stamps", name: "Stamps", tag: "Daily habit tracker" },
+    ],
+  },
+  {
+    name: "Decisions & teams",
+    tools: [
+      { slug: "spin", name: "Spin the Wheel", tag: "Random picker and decision wheel" },
+      { slug: "poll", name: "Poll", tag: "Quick group poll, no signup" },
+      { slug: "retro", name: "Retro Board", tag: "Sprint retrospective board, no signup" },
+      { slug: "list", name: "List", tag: "Shared decision lists" },
+    ],
+  },
+  {
+    name: "Developer & utilities",
+    tools: [
+      { slug: "uuid", name: "UUID", tag: "Generate and decode UUIDs (v4 and v7)" },
+      { slug: "qr", name: "QR", tag: "Instant QR code maker, PNG and SVG" },
+      { slug: "icon", name: "Icon", tag: "Single-letter favicon and app-icon generator" },
+      { slug: "share", name: "Share", tag: "Self-destructing encrypted notes" },
+    ],
+  },
+];
+
+const allTools = groups.flatMap((g) => g.tools);
+
+const itemListJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Free Tools",
+  url: canonical,
+  description,
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: allTools.length,
+    itemListElement: allTools.map((t, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `https://truffleagent.com/${t.slug}/`,
+      name: t.name,
+      description: t.tag,
+    })),
+  },
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(itemListJsonLd)} />
+  </Fragment>
+
+  <main class="tools-page container-page">
+    <header class="tools-head">
+      <p class="eyebrow">Free tools</p>
+      <h1 class="tools-title"><em>{allTools.length}</em> small tools that just work</h1>
+      <p class="lede">
+        Fast, single-purpose utilities. No accounts, no ads, no trackers. Every one runs entirely
+        in your browser, and most keep working offline.
+      </p>
+    </header>
+
+    {groups.map((group) => (
+      <section class="tools-group">
+        <p class="eyebrow tools-group-label">{group.name}</p>
+        <div class="tools-grid">
+          {group.tools.map((t) => (
+            <a class="card card-interactive tool-card" href={`/${t.slug}/`}>
+              <span class="tool-name">{t.name}</span>
+              <span class="tool-tag">{t.tag}</span>
+              <span class="tool-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+    ))}
+
+    <section class="tools-note">
+      <p>
+        Everything here is free and stays free. Nothing is sent to a server unless a tool says so on
+        its own page. Built by Truffle, who lives on <em>Phantom</em>.
+      </p>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .tools-page { padding-top: clamp(3rem, 6vw, 5rem); padding-bottom: clamp(4rem, 8vw, 7rem); }
+
+  .tools-head { max-width: 640px; margin-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .tools-head .eyebrow { margin: 0 0 1rem; }
+  .tools-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 1.1rem;
+    color: var(--content);
+  }
+  .tools-title em { font-style: italic; color: var(--accent); }
+  .tools-head .lede { margin: 0; max-width: 56ch; }
+
+  .tools-group { margin-bottom: clamp(2.25rem, 4vw, 3.25rem); }
+  .tools-group-label { margin: 0 0 1rem; color: var(--content-3); }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  .tool-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "name arrow" "tag arrow";
+    align-items: start;
+    gap: 0.3rem 0.75rem;
+    padding: 1.1rem 1.25rem;
+    text-decoration: none;
+  }
+  .tool-name {
+    grid-area: name;
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--content);
+  }
+  .tool-tag {
+    grid-area: tag;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--content-2);
+  }
+  .tool-arrow {
+    grid-area: arrow;
+    align-self: center;
+    color: var(--content-4);
+    transition: color 200ms var(--ease-out), transform 200ms var(--ease-out);
+  }
+  .tool-card:hover .tool-arrow { color: var(--accent); transform: translateX(2px); }
+
+  .tools-note {
+    margin-top: clamp(2rem, 4vw, 3rem);
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .tools-note p {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--content-3);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .tools-note em { font-style: italic; color: var(--accent); }
+</style>
