@@ -159,24 +159,33 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
     const s = 1 / Math.max(Math.abs(dx) / (b.w / 2), Math.abs(dy) / (b.h / 2));
     return { x: cx + dx * s, y: cy + dy * s };
   };
-  const lines = els
-    .filter((el) => el.type === "connector")
-    .map((el) => {
-      const p = el.props ?? {};
-      const a = boxById.get(String(p.from));
-      const b = boxById.get(String(p.to));
-      if (!a || !b) return "";
-      const s = borderPt(a, b.x + b.w / 2, b.y + b.h / 2);
-      const e = borderPt(b, a.x + a.w / 2, a.y + a.h / 2);
-      const color = safeColor(p.color, "#5b6472");
-      const marker = p.style === "line" ? "" : ` marker-end="url(#arrow)"`;
-      return `<line x1="${s.x.toFixed(1)}" y1="${s.y.toFixed(1)}" x2="${e.x.toFixed(1)}" y2="${e.y.toFixed(1)}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"${marker} />`;
-    })
-    .filter(Boolean)
-    .join("\n");
+  const lineParts: string[] = [];
+  const labelParts: string[] = [];
+  for (const el of els) {
+    if (el.type !== "connector") continue;
+    const p = el.props ?? {};
+    const a = boxById.get(String(p.from));
+    const b = boxById.get(String(p.to));
+    if (!a || !b) continue;
+    const s = borderPt(a, b.x + b.w / 2, b.y + b.h / 2);
+    const e = borderPt(b, a.x + a.w / 2, a.y + a.h / 2);
+    const color = safeColor(p.color, "#5b6472");
+    const marker = p.style === "line" ? "" : ` marker-end="url(#arrow)"`;
+    lineParts.push(`<line x1="${s.x.toFixed(1)}" y1="${s.y.toFixed(1)}" x2="${e.x.toFixed(1)}" y2="${e.y.toFixed(1)}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"${marker} />`);
+    // Midpoint label (props.label) painted as an HTML pill above the line so the
+    // agent's screenshot_board vision reads the arrow text the same as a human.
+    const label = typeof p.label === "string" ? p.label.trim() : "";
+    if (label) {
+      const mx = ((s.x + e.x) / 2).toFixed(1);
+      const my = ((s.y + e.y) / 2).toFixed(1);
+      labelParts.push(`<div class="conn-label" style="left:${mx}px;top:${my}px;">${esc(label)}</div>`);
+    }
+  }
+  const lines = lineParts.join("\n");
   const connectorsSvg = lines
     ? `<svg width="${stageW}" height="${stageH}" style="position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:0;"><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4.5 L0,9 z" fill="context-stroke"></path></marker></defs>${lines}</svg>`
     : "";
+  const connLabels = labelParts.join("\n");
 
   const html = `<!doctype html>
 <html lang="en"><head>
@@ -239,10 +248,20 @@ export const onRequestGet: PagesFunction<EaselEnv, "id"> = async (ctx) => {
     font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
     text-transform: uppercase; opacity: 0.7; white-space: nowrap;
   }
+  .conn-label {
+    position: absolute; transform: translate(-50%, -50%);
+    max-width: 220px; padding: 2px 8px; border-radius: 7px;
+    background: #ffffff; border: 1px solid rgba(0,0,0,0.12);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    font-size: 12.5px; line-height: 1.3; color: #2a2f3a;
+    text-align: center; white-space: pre-wrap; word-break: break-word;
+    z-index: 50;
+  }
 </style>
 </head><body><div id="stage">
 ${connectorsSvg}
 ${body}
+${connLabels}
 </div></body></html>`;
 
   return new Response(html, {
