@@ -38,6 +38,18 @@ function safeColor(v: unknown, fallback: string): string {
     : fallback;
 }
 
+// Conditional text styling for sticky/shape labels — only emit a property when
+// the prop is present so each element's CSS default holds (zero regression).
+function textStyle(p: Record<string, unknown>): string {
+  let s = "";
+  const size = Number(p.size);
+  if (size > 0) s += `font-size:${size}px;`;
+  const weight = Number(p.weight);
+  if (weight > 0) s += `font-weight:${weight};`;
+  if (typeof p.textColor === "string" && p.textColor) s += `color:${safeColor(p.textColor, "#1a1a1a")};`;
+  return s;
+}
+
 function elementHtml(el: EaselElement): string {
   const rot = el.rotation ? `transform:rotate(${Number(el.rotation)}deg);` : "";
   const base = `left:${Number(el.x)}px;top:${Number(el.y)}px;width:${Number(el.w)}px;height:${Number(el.h)}px;z-index:${Number(el.z)};${rot}`;
@@ -51,7 +63,7 @@ function elementHtml(el: EaselElement): string {
     case "text": {
       const size = Number(p.size) || 28;
       const weight = Number(p.weight) || 600;
-      const color = safeColor(p.color, "#1a1a1a");
+      const color = safeColor(p.textColor ?? p.color, "#1a1a1a");
       const align = ["left", "center", "right"].includes(String(p.align)) ? String(p.align) : "left";
       return `<div class="el el-text" style="${base}font-size:${size}px;font-weight:${weight};color:${color};text-align:${align};">${esc(p.text)}</div>`;
     }
@@ -62,9 +74,9 @@ function elementHtml(el: EaselElement): string {
         // Agent-left advisory note. The render route is read-only (no dismiss ×),
         // but the dashed frame + badge must match the canvas so screenshot_board
         // vision reads it as a suggestion, not a plain note.
-        return `<div class="el el-sticky el-suggestion" style="${base}background:${color};"><span class="suggest-badge">Suggestion</span>${esc(p.text)}</div>`;
+        return `<div class="el el-sticky el-suggestion" style="${base}background:${color};${textStyle(p)}"><span class="suggest-badge">Suggestion</span>${esc(p.text)}</div>`;
       }
-      return `<div class="el el-sticky" style="${base}background:${color};">${esc(p.text)}</div>`;
+      return `<div class="el el-sticky" style="${base}background:${color};${textStyle(p)}">${esc(p.text)}</div>`;
     }
     case "frame":
       return `<div class="el el-frame" style="${base}"><span class="frame-label">${esc(p.label)}</span></div>`;
@@ -80,10 +92,10 @@ function elementHtml(el: EaselElement): string {
         return `<div class="el el-shape" style="${base}">`
           + `<svg class="shape-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible;">`
           + `<polygon points="${poly}" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`
-          + `<span class="shape-label" style="position:relative;z-index:1;">${esc(p.text)}</span></div>`;
+          + `<span class="shape-label" style="position:relative;z-index:1;${textStyle(p)}">${esc(p.text)}</span></div>`;
       }
       const radius = p.kind === "ellipse" ? "50%" : "10px";
-      return `<div class="el el-shape" style="${base}background:${fill};border:2px solid ${stroke};border-radius:${radius};">${esc(p.text)}</div>`;
+      return `<div class="el el-shape" style="${base}background:${fill};border:2px solid ${stroke};border-radius:${radius};${textStyle(p)}">${esc(p.text)}</div>`;
     }
     case "draw": {
       // Freehand polyline. The viewBox is the stroke's drawn box (vbW/vbH,

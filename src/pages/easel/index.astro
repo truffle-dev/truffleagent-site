@@ -182,6 +182,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <span class="easel-align-sep"></span>
           <button class="easel-conn-del" id="conn-del" type="button" title="Delete connector" aria-label="Delete connector"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3 4h10M6 4V2.6h4V4M5 4l.6 9h4.8L11 4" /></svg></button>
         </div>
+        <div class="easel-textbar" id="textbar" role="group" aria-label="Text style" hidden>
+          <button class="easel-text-btn" type="button" data-size="down" title="Smaller text" aria-label="Smaller text">A-</button>
+          <button class="easel-text-btn" type="button" data-size="up" title="Larger text" aria-label="Larger text">A+</button>
+          <button class="easel-text-btn easel-text-bold" id="text-bold" type="button" title="Bold text" aria-label="Bold text" aria-pressed="false">B</button>
+          <span class="easel-align-sep"></span>
+          <button class="easel-text-color" type="button" data-color="#1a1a1a" title="Black" aria-label="Black text" style="background:#1a1a1a"></button>
+          <button class="easel-text-color" type="button" data-color="#5b6472" title="Gray" aria-label="Gray text" style="background:#5b6472"></button>
+          <button class="easel-text-color" type="button" data-color="#e0564f" title="Red" aria-label="Red text" style="background:#e0564f"></button>
+          <button class="easel-text-color" type="button" data-color="#2f6fed" title="Blue" aria-label="Blue text" style="background:#2f6fed"></button>
+          <button class="easel-text-color" type="button" data-color="#3fa45b" title="Green" aria-label="Green text" style="background:#3fa45b"></button>
+        </div>
         <button class="easel-zoom-badge" id="zoom-badge" type="button" title="Reset zoom to 100%">100%</button>
         <div class="easel-minimap" id="minimap" hidden>
           <button class="easel-minimap-bar" id="minimap-toggle" type="button" aria-expanded="true" title="Collapse minimap">
@@ -203,6 +214,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
             <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
             <dt>Minimap</dt><dd>Click or drag the bottom-left overview to move around a large board</dd>
+            <dt>Text style</dt><dd>Select a text, sticky, or shape to set font size, bold, and colour from the top bar</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>C</kbd></dt><dd>Copy the selection</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>X</kbd></dt><dd>Cut the selection</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>V</kbd></dt><dd>Paste copied elements (or an image) from the clipboard</dd>
@@ -821,6 +833,58 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       stroke-width: 1.4;
       stroke-linecap: round;
       stroke-linejoin: round;
+    }
+    /* Text-style bar: font size, bold, and text colour for a single text /
+       sticky / shape selection. Same top-center pill as the others; when a
+       sticky/shape is picked the colour-swatch bar already owns the top slot,
+       so this drops to a stacked second row (.is-stacked). */
+    .easel-textbar {
+      position: absolute;
+      top: 0.9rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+      z-index: 6;
+    }
+    .easel-textbar.is-stacked { top: 3.4rem; }
+    .easel-text-btn {
+      min-width: 26px;
+      height: 22px;
+      padding: 0 0.4rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      background: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+    .easel-text-btn:hover { background: #f1f0ec; }
+    .easel-text-bold { font-weight: 800; }
+    .easel-text-bold.is-active {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+    .easel-text-color {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+    }
+    .easel-text-color:hover { transform: scale(1.12); }
+    .easel-text-color.is-active {
+      border-color: rgba(0, 0, 0, 0.55);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(0, 0, 0, 0.4);
     }
     /* The wide invisible hit target that makes a thin connector clickable, plus
        the selected-connector highlight (CSS stroke-width + a glow; the line's
@@ -1709,6 +1773,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const connbar = $("connbar");
     const connStyleBtn = $<HTMLButtonElement>("conn-style");
     const connRouteBtn = $<HTMLButtonElement>("conn-route");
+    const textbar = $("textbar");
+    const boldBtn = $<HTMLButtonElement>("text-bold");
     const dropHint = $("drop-hint");
     const templatesModal = $("templates-modal");
     const keysOverlay = $("keys-overlay");
@@ -2060,6 +2126,35 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       scheduleSave();
     };
 
+    // Font-size ladder for the A-/A+ buttons. Defaults: text 28px, sticky/shape 15px.
+    const SIZE_LADDER = [10, 12, 14, 16, 20, 24, 28, 36, 48, 64, 96];
+    const defaultFontSize = (type: string) => (type === "text" ? 28 : 15);
+    const stepFontSize = (cur: number, dir: "up" | "down") => {
+      const found = SIZE_LADDER.findIndex((v) => v >= cur);
+      let i = found === -1 ? SIZE_LADDER.length - 1 : found;
+      if (dir === "up" && SIZE_LADDER[i] <= cur) i++;
+      else if (dir === "down" && SIZE_LADDER[i] >= cur) i--;
+      return SIZE_LADDER[Math.max(0, Math.min(SIZE_LADDER.length - 1, i))];
+    };
+    // Apply text styling (font size, weight, colour) shared by text/sticky/shape.
+    // The text element keeps its explicit inline defaults (size 28, weight 600,
+    // ink #1a1a1a, align); sticky/shape only override when a prop is present so
+    // their CSS defaults hold (zero regression for existing notes/shapes).
+    const applyTextStyle = (node: HTMLElement, el: El) => {
+      if (el.type === "text") {
+        node.style.fontSize = `${Number(el.props.size) || 28}px`;
+        node.style.fontWeight = String(el.props.weight || 600);
+        node.style.color = String(el.props.textColor || el.props.color || "#1a1a1a");
+        node.style.textAlign = String(el.props.align || "left");
+        return;
+      }
+      const s = Number(el.props.size);
+      node.style.fontSize = s > 0 ? `${s}px` : "";
+      const w = Number(el.props.weight);
+      node.style.fontWeight = w > 0 ? String(w) : "";
+      const tc = el.props.textColor;
+      node.style.color = typeof tc === "string" && tc ? tc : "";
+    };
     const renderEl = (el: El, animate = false) => {
       // Connectors are not box nodes; they live in the SVG layer. Any call that
       // lands here (e.g. a move that touches a connector) just redraws the layer.
@@ -2084,10 +2179,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         node.childNodes[0]?.nodeType === Node.TEXT_NODE
           ? (node.childNodes[0].textContent = String(el.props.text ?? ""))
           : node.insertBefore(document.createTextNode(String(el.props.text ?? "")), node.firstChild);
-        node.style.fontSize = `${Number(el.props.size) || 28}px`;
-        node.style.fontWeight = String(el.props.weight || 600);
-        node.style.color = String(el.props.color || "#1a1a1a");
-        node.style.textAlign = String(el.props.align || "left");
+        applyTextStyle(node, el);
       } else if (el.type === "sticky") {
         node.childNodes[0]?.nodeType === Node.TEXT_NODE
           ? (node.childNodes[0].textContent = String(el.props.text ?? ""))
@@ -2095,6 +2187,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const isSuggestion = !!el.props.suggestion;
         node.style.background = String(el.props.color || (isSuggestion ? "#eef1ff" : "#fff3a3"));
         applySuggestionChrome(node, el, isSuggestion);
+        applyTextStyle(node, el);
       } else if (el.type === "frame") {
         const label = node.querySelector<HTMLElement>(".easel-frame-label")!;
         label.textContent = String(el.props.label ?? "");
@@ -2137,6 +2230,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           node.style.border = `2px solid ${stroke}`;
           node.style.borderRadius = el.props.kind === "ellipse" ? "50%" : "10px";
         }
+        applyTextStyle(node, el);
       } else if (el.type === "draw") {
         const svg = node.querySelector("svg")!;
         const pts = Array.isArray(el.props.points) ? (el.props.points as number[][]) : [];
@@ -2606,6 +2700,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (selectedConnectorId !== null) { selectedConnectorId = null; drawConnectors(); }
       connbar.hidden = true;
       reflectSwatches();
+      reflectTextbar();
       updateAlignbar();
       updateLockTool();
       drawGroupBox();
@@ -2841,6 +2936,25 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       });
       // Toggle label shows the kind a click switches TO.
       if (isShape) shapeKind.textContent = SHAPE_KIND_LABEL[nextShapeKind(String(el!.props.kind || "rect"))];
+    };
+    // Text-style bar: shown for a single text/sticky/shape selection. When the
+    // selection is a sticky/shape the colour-swatch bar owns the top slot, so the
+    // text bar stacks below it (.is-stacked); a plain text box takes the top slot.
+    const reflectTextbar = () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      const isTexty = !!el && (el.type === "text" || el.type === "sticky" || el.type === "shape");
+      textbar.hidden = !isTexty;
+      if (!isTexty) return;
+      textbar.classList.toggle("is-stacked", el!.type !== "text");
+      const bold = Number(el!.props.weight) >= 700;
+      boldBtn.classList.toggle("is-active", bold);
+      boldBtn.setAttribute("aria-pressed", bold ? "true" : "false");
+      const cur = String(
+        el!.props.textColor || (el!.type === "text" ? el!.props.color || "#1a1a1a" : "#1a1a1a"),
+      ).toLowerCase();
+      textbar.querySelectorAll<HTMLButtonElement>(".easel-text-color").forEach((b) => {
+        b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === cur);
+      });
     };
 
     const wireElement = (node: HTMLElement) => {
@@ -4329,6 +4443,29 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       } else return;
       renderEl(el);
       reflectSwatches();
+      scheduleSave();
+    });
+    // Text-style bar: font size (A-/A+), bold toggle, and text colour. Applies to
+    // the single selected text/sticky/shape. Keep clicks off the stage.
+    textbar.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    textbar.addEventListener("click", (ev) => {
+      if (!selectedId) return;
+      const el = getEl(selectedId);
+      if (!el || !(el.type === "text" || el.type === "sticky" || el.type === "shape")) return;
+      const t = ev.target as HTMLElement;
+      const sizeBtn = t.closest<HTMLButtonElement>("[data-size]");
+      const colorBtn = t.closest<HTMLButtonElement>(".easel-text-color");
+      if (sizeBtn) {
+        const cur = Number(el.props.size) || defaultFontSize(el.type);
+        el.props.size = stepFontSize(cur, sizeBtn.dataset.size === "up" ? "up" : "down");
+      } else if (t.closest("#text-bold")) {
+        if (Number(el.props.weight) >= 700) delete el.props.weight;
+        else el.props.weight = 700;
+      } else if (colorBtn && colorBtn.dataset.color) {
+        el.props.textColor = colorBtn.dataset.color;
+      } else return;
+      renderEl(el);
+      reflectTextbar();
       scheduleSave();
     });
     // Cycle the selected shape through rectangle -> ellipse -> diamond -> triangle.
