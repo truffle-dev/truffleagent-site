@@ -99,6 +99,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-lock" type="button" title="Lock or unlock the selection (Ctrl/Cmd+Shift+L)" aria-pressed="false" hidden>Lock</button>
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
+          <button class="easel-tool" id="tool-grid" type="button" title="Snap to grid (G)" aria-pressed="false">Grid</button>
           <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog" aria-expanded="false">?</button>
           <span class="easel-save-state" id="save-state" aria-live="polite">Saved</span>
           <div class="easel-export-wrap">
@@ -120,6 +121,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       </div>
 
       <div class="easel-stage" id="stage">
+        <div class="easel-grid" id="grid" aria-hidden="true"></div>
         <div class="easel-world" id="world"></div>
         <div class="easel-empty-hint" id="empty-hint" hidden>
           <p class="easel-empty-hint-title">Start with anything</p>
@@ -217,6 +219,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>C</kbd></dt><dd>Connect two elements with an arrow</dd>
             <dt><kbd>U</kbd></dt><dd>Upload images</dd>
             <dt><kbd>F</kbd></dt><dd>Fit board to view</dd>
+            <dt><kbd>G</kbd></dt><dd>Toggle snap-to-grid: drag, resize, and new elements snap to a 20px grid (<kbd>Alt</kbd> bypasses)</dd>
             <dt>Minimap</dt><dd>Click or drag the bottom-left overview to move around a large board</dd>
             <dt>Text style</dt><dd>Select a text, sticky, or shape to set font size, bold, alignment, and colour from the top bar</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>C</kbd></dt><dd>Copy the selection</dd>
@@ -569,6 +572,24 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         #fdfbf7;
     }
     .easel-stage.is-panning { cursor: grabbing; }
+    /* 5.11 snap-to-grid: an optional WORLD-ALIGNED dot grid that tracks pan/zoom,
+       unlike .easel-stage's static screen-space decorative texture. When grid mode
+       is on, .easel-stage gets .grid-active (decorative texture replaced by plain
+       paper) and #grid paints dots whose spacing = STEP*zoom and origin = panX,panY
+       (set in applyView), so a dot lands on every world grid point that drag/resize
+       snap to. Hidden (display:none) when off; never eats pointer events. */
+    .easel-grid {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      display: none;
+    }
+    .easel-stage.grid-active { background: #fdfbf7; }
+    .easel-stage.grid-active .easel-grid {
+      display: block;
+      background-image: radial-gradient(circle, rgba(0, 0, 0, 0.13) 1px, transparent 1px);
+    }
     /* Connect mode: the whole stage takes a crosshair and every element invites
        a click. The armed source element gets a dashed ring so the user knows
        which end the next click will wire to. */
@@ -1807,6 +1828,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const workspace = $("easel-workspace");
     const stage = $("stage");
     const world = $("world");
+    const grid = $("grid");
     const emptyHint = $("empty-hint");
     const swatches = $("swatches");
     const shapeKind = $<HTMLButtonElement>("shape-kind");
@@ -1932,9 +1954,24 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 
     // ---------- viewport ----------
     let panX = 0, panY = 0, zoom = 1;
+    // 5.11 snap-to-grid state (see the #grid layer). Off by default so the board
+    // keeps its current decorative paper texture; toggling on shows a world-aligned
+    // dot grid and snaps drag/resize/new-element positions to GRID_STEP world units.
+    const GRID_STEP = 20;
+    let gridOn = false;
+    const snapToGrid = (v: number) => Math.round(v / GRID_STEP) * GRID_STEP;
     const applyView = () => {
       world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
       zoomBadge.textContent = `${Math.round(zoom * 100)}%`;
+      if (gridOn) {
+        // Dots track the board: spacing scales with zoom, origin follows the pan so
+        // a dot sits on every (GRID_STEP × n) world coordinate. Fade out below ~8px
+        // screen spacing (snapping still works; the texture just stops being clutter).
+        const step = GRID_STEP * zoom;
+        grid.style.backgroundSize = `${step}px ${step}px`;
+        grid.style.backgroundPosition = `${panX}px ${panY}px`;
+        grid.style.opacity = step < 8 ? "0" : "1";
+      }
       saveViewport();
       scheduleMinimap();
     };
@@ -3186,30 +3223,49 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const onMove = (mv: PointerEvent) => {
           const p = stagePoint(mv.clientX, mv.clientY);
           const dx = p.x - start.x, dy = p.y - start.y;
+          // Grid snapping (5.11) applies to drag/resize when grid mode is on,
+          // unless Alt is held — exactly like the alignment-guide bypass.
+          const gsnap = gridOn && !mv.altKey;
           if (resizing) {
-            el.w = Math.max(40, orig.w + dx);
-            el.h = mv.shiftKey || el.type !== "image"
-              ? Math.max(40, orig.h + dy)
-              : Math.max(40, el.w / ratio);
+            let nw = orig.w + dx;
+            if (gsnap) nw = Math.max(GRID_STEP, snapToGrid(nw));
+            el.w = Math.max(40, nw);
+            if (mv.shiftKey || el.type !== "image") {
+              let nh = orig.h + dy;
+              if (gsnap) nh = Math.max(GRID_STEP, snapToGrid(nh));
+              el.h = Math.max(40, nh);
+            } else {
+              // Aspect-locked image: derive height from the (snapped) width so the
+              // ratio holds and the box edge still lands on the grid.
+              el.h = Math.max(40, el.w / ratio);
+            }
             renderEl(el);
           } else if (isGroup) {
             // Group move: translate every member, no snap guides (snapping a
-            // single edge of a rigid group is more confusing than helpful).
+            // single edge of a rigid group is more confusing than helpful). With
+            // grid on, snap the rigid delta so the group lands on the grid as a unit.
             clearGuides();
+            let gdx = dx, gdy = dy;
+            if (gsnap) { gdx = snapToGrid(dx); gdy = snapToGrid(dy); }
             for (const g of groupOrigins) {
-              g.el.x = g.x + dx;
-              g.el.y = g.y + dy;
+              g.el.x = g.x + gdx;
+              g.el.y = g.y + gdy;
               renderEl(g.el);
             }
             drawGroupBox();
           } else if (mv.altKey) {
-            // Alt bypasses snapping for free placement.
+            // Alt bypasses snapping (grid AND alignment) for free placement.
             clearGuides();
             el.x = orig.x + dx;
             el.y = orig.y + dy;
             renderEl(el);
           } else {
-            const s = snapMove(el, orig.x + dx, orig.y + dy);
+            // Grid snap first (coarse), then alignment-guide snap can refine onto a
+            // neighbouring element's edge within its 6px threshold — element
+            // alignment beats the grid, like every pro canvas.
+            let bx = orig.x + dx, by = orig.y + dy;
+            if (gridOn) { bx = snapToGrid(bx); by = snapToGrid(by); }
+            const s = snapMove(el, bx, by);
             el.x = s.x;
             el.y = s.y;
             renderEl(el);
@@ -3724,6 +3780,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       else if (ev.key.toLowerCase() === "p") setDrawMode(!drawMode);
       else if (ev.key.toLowerCase() === "u") fileInput.click();
       else if (ev.key.toLowerCase() === "f") zoomToFit();
+      else if (ev.key.toLowerCase() === "g") setGrid(!gridOn);
       else if (ev.key === "?") setKeysOverlay(keysOverlay.hidden);
       else if (ev.key === "Escape") {
         // Esc closes the help overlay first, then cancels connect mode, then
@@ -3750,7 +3807,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       return stagePoint(r.left + r.width / 2, r.top + r.height / 2);
     };
     const addElement = (el: Omit<El, "id" | "z">) => {
-      const full: El = { ...el, id: `e${nextElNum++}`, z: maxZ() + 1 };
+      // With grid mode on, a freshly added element lands with its top-left on the
+      // grid (position only — width/height are left to each add helper so image
+      // aspect ratios and fixed sizes are untouched).
+      const pos = gridOn ? { x: snapToGrid(el.x), y: snapToGrid(el.y) } : { x: el.x, y: el.y };
+      const full: El = { ...el, ...pos, id: `e${nextElNum++}`, z: maxZ() + 1 };
       doc.elements.push(full);
       renderEl(full);
       selectEl(full.id);
@@ -3790,9 +3851,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       // Frames go to the BACK of the z-order so they group elements
       // visually without covering them.
       const c = centerPoint();
+      let fx = c.x - 240, fy = c.y - 160;
+      if (gridOn) { fx = snapToGrid(fx); fy = snapToGrid(fy); }
       const full: El = {
         type: "frame", id: `e${nextElNum++}`, z: minZ() - 1,
-        x: c.x - 240, y: c.y - 160, w: 480, h: 320,
+        x: fx, y: fy, w: 480, h: 320,
         props: { label: "Frame" },
       };
       doc.elements.push(full);
@@ -3963,6 +4026,22 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       btn.setAttribute("aria-pressed", String(on));
       if (on) { if (connectMode) setConnectMode(false); selectEl(null); }
     };
+    // 5.11 Grid mode is a VIEWPORT toggle, not a mutually-exclusive draw/connect
+    // mode — it only flips snapping + the dot overlay, so it can stay on while you
+    // add, connect, draw, or select. Persisted globally (like the minimap collapse)
+    // so the preference follows the user across boards.
+    const GRID_KEY = "easel.grid.on";
+    const setGrid = (on: boolean) => {
+      gridOn = on;
+      stage.classList.toggle("grid-active", on);
+      const btn = $("tool-grid");
+      btn.classList.toggle("is-active", on);
+      btn.setAttribute("aria-pressed", String(on));
+      try { localStorage.setItem(GRID_KEY, on ? "1" : "0"); } catch { /* private mode / quota */ }
+      applyView();
+    };
+    // Restore the saved grid preference at startup.
+    try { if (localStorage.getItem(GRID_KEY) === "1") setGrid(true); } catch { /* ignore */ }
     // Called from an element's pointerdown while connect mode is armed: first
     // click picks the source, second click wires the arrow and exits the mode.
     const handleConnectPick = (id: string) => {
@@ -4588,6 +4667,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     $("tool-draw").addEventListener("click", () => setDrawMode(!drawMode));
     $("tool-upload").addEventListener("click", () => fileInput.click());
     $("tool-zoom-fit").addEventListener("click", zoomToFit);
+    $("tool-grid").addEventListener("click", () => setGrid(!gridOn));
     // Clicking the zoom badge resets to 100%, anchored on the stage center
     // (same zoom-around-a-point math as the wheel handler) so the view stays put.
     zoomBadge.addEventListener("click", () => {
