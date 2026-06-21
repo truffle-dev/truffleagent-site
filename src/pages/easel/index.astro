@@ -246,6 +246,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt>Drag group corner</dt><dd>Resize a multi-selection as a unit (<kbd>Shift</kbd> keeps aspect)</dd>
             <dt><kbd>Alt</kbd> + drag</dt><dd>Move without snapping</dd>
             <dt>Export</dt><dd>Download the board as PNG or SVG (just the selection if 2+ are selected)</dd>
+            <dt>Right-click</dt><dd>Open the actions menu: cut, copy, paste, duplicate, layer, group, lock, delete</dd>
             <dt>Double-click</dt><dd>Empty canvas: new sticky. On an element: edit text or label</dd>
             <dt>Scroll / drag</dt><dd>Pan the canvas · <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+scroll or pinch to zoom</dd>
             <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>=</kbd>/<kbd>-</kbd>/<kbd>0</kbd></dt><dd>Zoom in / out / reset to 100% from the keyboard</dd>
@@ -281,6 +282,23 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             </div>
             <button class="easel-templates-close" id="templates-close" type="button">Cancel</button>
           </div>
+        </div>
+        <div class="easel-ctxmenu" id="ctxmenu" role="menu" aria-label="Actions" hidden>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="cut">Cut<span class="easel-ctx-key">Ctrl+X</span></button>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="copy">Copy<span class="easel-ctx-key">Ctrl+C</span></button>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="paste">Paste<span class="easel-ctx-key">Ctrl+V</span></button>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="duplicate">Duplicate<span class="easel-ctx-key">Ctrl+D</span></button>
+          <span class="easel-ctx-sep"></span>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="front">Bring to front<span class="easel-ctx-key">Ctrl+Shift+]</span></button>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="back">Send to back<span class="easel-ctx-key">Ctrl+Shift+[</span></button>
+          <span class="easel-ctx-sep"></span>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="group">Group<span class="easel-ctx-key">Ctrl+G</span></button>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="ungroup">Ungroup<span class="easel-ctx-key">Ctrl+Shift+G</span></button>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="lock">Lock<span class="easel-ctx-key">Ctrl+Shift+L</span></button>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="unlock">Unlock<span class="easel-ctx-key">Ctrl+Shift+L</span></button>
+          <span class="easel-ctx-sep"></span>
+          <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="selectall">Select all<span class="easel-ctx-key">Ctrl+A</span></button>
+          <button class="easel-ctx-item easel-ctx-danger" type="button" role="menuitem" data-ctx="delete">Delete<span class="easel-ctx-key">Del</span></button>
         </div>
       </div>
 
@@ -805,6 +823,54 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: rgba(0, 0, 0, 0.14);
       margin: 0 0.2rem;
     }
+    /* Right-click context menu: a small floating panel positioned at the cursor.
+       Same surface language as the bars (white panel, hairline border, soft
+       shadow), but a vertical list rather than a pill. Sits above the bars. */
+    .easel-ctxmenu {
+      position: absolute;
+      top: 0;
+      left: 0;
+      min-width: 184px;
+      display: flex;
+      flex-direction: column;
+      padding: 0.3rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+      z-index: 9;
+    }
+    .easel-ctx-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.2rem;
+      width: 100%;
+      padding: 0.34rem 0.5rem;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #1a1a1a;
+      font-size: 0.82rem;
+      text-align: left;
+      cursor: pointer;
+    }
+    .easel-ctx-item:hover { background: #f1f0ec; }
+    .easel-ctx-item[hidden] { display: none; }
+    .easel-ctx-key {
+      font-size: 0.72rem;
+      color: #8a8a82;
+      font-variant-numeric: tabular-nums;
+    }
+    .easel-ctx-danger { color: #c4362f; }
+    .easel-ctx-danger:hover { background: #fbeae9; }
+    .easel-ctx-danger .easel-ctx-key { color: #d08a86; }
+    .easel-ctx-sep {
+      height: 1px;
+      margin: 0.25rem 0.3rem;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .easel-ctx-sep[hidden] { display: none; }
     /* Connector style bar: same top-center pill, shown only while a single
        connector (arrow/line) is selected. A connector selection clears any box
        selection, so this never collides with the swatch or align pills. */
@@ -1844,6 +1910,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const shapeKind = $<HTMLButtonElement>("shape-kind");
     const alignbar = $("alignbar");
     const groupBtn = $<HTMLButtonElement>("group-btn");
+    const ctxmenu = $("ctxmenu");
     const connbar = $("connbar");
     const connStyleBtn = $<HTMLButtonElement>("conn-style");
     const connRouteBtn = $<HTMLButtonElement>("conn-route");
@@ -3692,8 +3759,146 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       addSticky(stagePoint(ev.clientX, ev.clientY));
     });
 
+    // ---------- right-click context menu ----------
+    // The discoverability-standard surface every serious canvas has: right-click
+    // an element (or empty canvas) to reach the same actions as the toolbar and
+    // keyboard. It is a human-only convenience over functions the agent already
+    // drives via MCP (like the minimap/grid, it needs no agent twin). The menu
+    // is a static panel inside #stage (same pattern as the bars), shown at the
+    // cursor with per-context item visibility.
+    const clipboardHasContent = (): boolean => {
+      let raw = "";
+      try { raw = localStorage.getItem(CLIP_KEY) || ""; } catch {}
+      if (!raw) raw = elClipboardMem;
+      if (!raw) return false;
+      try {
+        const p = JSON.parse(raw);
+        return Array.isArray(p?.boxes) && p.boxes.length > 0;
+      } catch { return false; }
+    };
+    const hideCtxMenu = () => { if (!ctxmenu.hidden) ctxmenu.hidden = true; };
+    const ctxItem = (action: string) =>
+      ctxmenu.querySelector<HTMLButtonElement>(`[data-ctx="${action}"]`);
+    const showCtxMenu = (clientX: number, clientY: number, onElement: boolean) => {
+      const boxes = selectedBoxes();
+      const hasSel = boxes.length > 0;
+      const multi = boxes.length > 1;
+      const anyGrouped = boxes.some(
+        (e) => typeof e.props.groupId === "string" && e.props.groupId,
+      );
+      const allLocked = hasSel && boxes.every((e) => e.props.locked);
+      // Per-context item visibility: element actions need a selection; canvas
+      // actions (paste, select-all) stand on their own.
+      const vis: Record<string, boolean> = {
+        cut: hasSel,
+        copy: hasSel,
+        paste: clipboardHasContent(),
+        duplicate: hasSel,
+        front: hasSel,
+        back: hasSel,
+        // Group when 2+ selected and not yet grouped; Ungroup when any is grouped.
+        group: multi && !anyGrouped,
+        ungroup: anyGrouped,
+        lock: hasSel && !allLocked,
+        unlock: hasSel && allLocked,
+        selectall: doc.elements.some((e) => e.type !== "connector"),
+        delete: hasSel,
+      };
+      for (const [action, on] of Object.entries(vis)) {
+        const item = ctxItem(action);
+        if (item) item.hidden = !on;
+      }
+      // Collapse separators that would otherwise lead, trail, or double up once
+      // their neighbouring items are hidden.
+      const kids = [...ctxmenu.children] as HTMLElement[];
+      let lastWasItem = false;
+      let lastSepIdx = -1;
+      kids.forEach((node, i) => {
+        if (node.classList.contains("easel-ctx-sep")) {
+          node.hidden = !lastWasItem; // hide leading / adjacent separators
+          if (!node.hidden) lastSepIdx = i;
+          lastWasItem = false;
+        } else if (!node.hidden) {
+          lastWasItem = true;
+        }
+      });
+      if (!lastWasItem && lastSepIdx >= 0) kids[lastSepIdx].hidden = true; // trailing
+      // If nothing at all is actionable, don't pop an empty menu.
+      const anyVisible = kids.some(
+        (n) => n.classList.contains("easel-ctx-item") && !n.hidden,
+      );
+      if (!anyVisible) { hideCtxMenu(); return; }
+      // Position at the cursor, clamped inside the stage so it never overflows.
+      ctxmenu.hidden = false;
+      const r = stage.getBoundingClientRect();
+      const mw = ctxmenu.offsetWidth, mh = ctxmenu.offsetHeight;
+      let x = clientX - r.left, y = clientY - r.top;
+      x = Math.max(4, Math.min(x, r.width - mw - 4));
+      y = Math.max(4, Math.min(y, r.height - mh - 4));
+      ctxmenu.style.left = `${x}px`;
+      ctxmenu.style.top = `${y}px`;
+      void onElement;
+    };
+    stage.addEventListener("contextmenu", (ev) => {
+      if (workspace.hidden) return;
+      // Let the browser's native menu through inside the agent dock / inputs.
+      const t = ev.target as HTMLElement;
+      if (t.closest("input, textarea, [contenteditable='true'], .easel-agent")) return;
+      ev.preventDefault();
+      // Right-clicking the open menu itself keeps it where it is.
+      if (t.closest("#ctxmenu")) return;
+      const node = t.closest<HTMLElement>("[data-el-id]");
+      if (node) {
+        const id = node.dataset.elId!;
+        // Right-clicking an unselected element selects it (its whole group) first,
+        // matching the click-to-select behaviour so the menu acts on what's under
+        // the cursor. A right-click inside an existing multi-selection keeps it.
+        if (!selectedIds.has(id)) setSelection([...expandToGroups([id])]);
+        clearConnectorSelection();
+        showCtxMenu(ev.clientX, ev.clientY, true);
+      } else {
+        showCtxMenu(ev.clientX, ev.clientY, false);
+      }
+    });
+    ctxmenu.addEventListener("click", (ev) => {
+      const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>(".easel-ctx-item");
+      if (!btn) return;
+      const action = btn.dataset.ctx;
+      hideCtxMenu();
+      switch (action) {
+        case "cut": cutSelection(); break;
+        case "copy": copySelection(); break;
+        case "paste": pasteClipboard(); break;
+        case "duplicate": duplicateSelected(); break;
+        case "front": restackSelected("front"); break;
+        case "back": restackSelected("back"); break;
+        case "group": groupSelection(); break;
+        case "ungroup": ungroupSelection(); break;
+        case "lock": case "unlock": toggleLockSelection(); break;
+        case "selectall":
+          setSelection(
+            doc.elements.filter((e) => e.type !== "connector").map((e) => e.id),
+          );
+          break;
+        case "delete": deleteSelection(); break;
+      }
+    });
+    // Dismiss on any interaction outside the menu.
+    document.addEventListener("pointerdown", (ev) => {
+      if (!ctxmenu.hidden && !(ev.target as HTMLElement).closest("#ctxmenu")) hideCtxMenu();
+    });
+    stage.addEventListener("wheel", hideCtxMenu, { passive: true });
+    window.addEventListener("resize", hideCtxMenu);
+    window.addEventListener("blur", hideCtxMenu);
+
     document.addEventListener("keydown", (ev) => {
       if (workspace.hidden) return;
+      // Escape closes the context menu first, before any other Escape handling.
+      if (ev.key === "Escape" && !ctxmenu.hidden) {
+        ev.preventDefault();
+        hideCtxMenu();
+        return;
+      }
       const tag = (document.activeElement?.tagName || "").toLowerCase();
       const typing = tag === "input" || tag === "textarea" ||
         (document.activeElement as HTMLElement)?.isContentEditable;
@@ -3840,18 +4045,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         return;
       }
       if ((ev.key === "Delete" || ev.key === "Backspace") && selectedIds.size) {
-        // Locked elements are protected from deletion; only delete the rest.
-        const delIds = new Set([...selectedIds].filter((id) => !getEl(id)?.props.locked));
-        if (delIds.size) {
-          // Drop the selected elements and any connector that referenced one of
-          // them, so no arrow is left dangling to a box that no longer exists.
-          doc.elements = doc.elements.filter((e) =>
-            !delIds.has(e.id) &&
-            !(e.type === "connector" && (delIds.has(e.props.from) || delIds.has(e.props.to))));
-          selectEl(null);
-          renderDoc();
-          scheduleSave();
-        }
+        deleteSelection();
       } else if (ev.key.toLowerCase() === "t") addText();
       else if (ev.key.toLowerCase() === "s") addSticky();
       else if (ev.key.toLowerCase() === "r") addFrame();
@@ -4190,6 +4384,21 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         (e) => e.type === "connector" &&
           srcIds.has(String(e.props?.from)) && srcIds.has(String(e.props?.to)),
       );
+    const deleteSelection = (): boolean => {
+      // Locked elements are protected from deletion; only delete the rest.
+      const delIds = new Set([...selectedIds].filter((id) => !getEl(id)?.props.locked));
+      if (!delIds.size) return false;
+      // Drop the selected elements and any connector that referenced one of
+      // them, so no arrow is left dangling to a box that no longer exists.
+      doc.elements = doc.elements.filter((e) =>
+        !delIds.has(e.id) &&
+        !(e.type === "connector" && (delIds.has(e.props.from) || delIds.has(e.props.to))));
+      selectEl(null);
+      renderDoc();
+      scheduleSave();
+      return true;
+    };
+
     const duplicateSelected = () => {
       // Duplicate the whole selection in place (offset 24,24).
       const boxes = selectedBoxes();
