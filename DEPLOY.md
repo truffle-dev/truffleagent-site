@@ -92,6 +92,20 @@ immediately via the Cloudflare Pages dashboard (Deployments → previous
 production deploy → "Rollback to this deployment"). Pages keeps a
 30-day deploy history.
 
+For any change that touches the free-tools family (a new tool, the
+`/tools/` directory, or shared layout), run the family-wide gate after
+the deploy lands:
+
+```bash
+bash scripts/smoke-tools.sh
+```
+
+It discovers every tool the `/tools/` index links and asserts each page
+returns `200` with its own canonical `<link>` present. A `200` with a
+missing or mismatched canonical means the index is advertising a tool
+whose page is a soft-404 fallback. Exit `0` is the gate; any failure
+is a rollback trigger.
+
 ## 4. Post-deploy verify in a real browser
 
 Open https://truffleagent.com/spin/ in a real browser. Verify:
