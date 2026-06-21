@@ -1,0 +1,570 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "JWT · Decode and Inspect JSON Web Tokens";
+const description =
+  "Paste a JWT to read its header and payload, and see the iat, nbf, and exp claims as real dates with an expiry verdict. Decodes in your browser. No accounts, no servers, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/jwt/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "JWT Decoder",
+  alternateName: ["JWT Decoder", "JSON Web Token Decoder", "JWT Inspector", "Decode JWT"],
+  url: canonical,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Decode a JWT header and payload",
+    "Read iat, nbf, and exp claims as real dates",
+    "See an expiry verdict: valid, expired, or not yet valid",
+    "Label the registered claims (iss, sub, aud, jti)",
+    "Flag the alg none security footgun",
+    "Decodes entirely in your browser, the token is never sent anywhere",
+    "Works offline, no servers, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "Does my token get sent to a server?",
+    a: "No. The whole decode happens in your browser with no network call, so the token never leaves the tab. That matters because a JWT is a bearer credential: anyone who has it can act as you until it expires. Pasting a live token into a site that decodes it server-side hands that site your session.",
+  },
+  {
+    q: "Does this verify the signature?",
+    a: "No, and it never asks for your secret or key. Verifying a JWT means recomputing the signature with the signing key, which only the issuer and the verifier should hold. This tool reads the header and payload, which are just base64url-encoded JSON, so a decoded token tells you what it claims, not whether the claims are trustworthy.",
+  },
+  {
+    q: "What is iat, nbf, and exp?",
+    a: "Three timestamp claims from RFC 7519, each a NumericDate counted in seconds since the Unix epoch. iat is when the token was issued, nbf is the earliest moment it should be accepted, and exp is when it expires. The decoder converts all three to normal dates and tells you whether the token is currently inside its valid window.",
+  },
+  {
+    q: "Why is a base64url payload not encryption?",
+    a: "Because base64url is an encoding, not a cipher. There is no key, so anyone can reverse it. A standard JWT is signed, not encrypted, which means the payload is fully readable by whoever holds the token. Never put a secret in a JWT payload expecting it to stay hidden.",
+  },
+  {
+    q: "What does alg none mean?",
+    a: "It means the token claims to need no signature at all. Historically some libraries would accept an alg none token as valid, letting an attacker strip the signature and forge claims. A real verifier should reject none unless it was explicitly chosen for an unsigned context, so the decoder flags it when it sees it.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. No ads, no analytics, no third-party scripts. Everything runs in your browser and nothing is sent anywhere.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="jwt-page">
+    <header class="jwt-topbar">
+      <div class="jwt-topbar-inner">
+        <div class="jwt-brand">
+          <span class="jwt-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="12" r="4" />
+              <path d="M11.5 12H21" />
+              <path d="M17 12v4" />
+              <path d="M20 12v3" />
+            </svg>
+          </span>
+          <span class="jwt-brand-name">JWT</span>
+        </div>
+        <div class="jwt-topbar-actions">
+          <button id="example-btn" type="button" class="jwt-btn jwt-btn-ghost">Try an example</button>
+          <button id="share-btn" type="button" class="jwt-btn jwt-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="jwt-input">
+      <label class="jwt-field">
+        <span class="jwt-field-label">Paste a JSON Web Token</span>
+        <textarea id="token-input" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"></textarea>
+      </label>
+      <p class="jwt-privacy">
+        <span class="jwt-lock" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+        </span>
+        Decoded in your browser. The token is never sent anywhere, and the signature is not checked.
+      </p>
+    </section>
+
+    <section class="jwt-result" id="jwt-result" hidden>
+      <div class="jwt-verdict" id="jwt-verdict"></div>
+
+      <div class="jwt-decode" id="jwt-claims" hidden></div>
+
+      <div class="jwt-segs">
+        <div class="jwt-seg" id="seg-header" hidden>
+          <div class="jwt-seg-head">
+            <span class="jwt-seg-title">Header</span>
+            <button type="button" class="jwt-btn jwt-btn-sm jwt-copy" data-copy="header">Copy</button>
+          </div>
+          <pre class="jwt-json"><code id="header-json"></code></pre>
+        </div>
+        <div class="jwt-seg" id="seg-payload" hidden>
+          <div class="jwt-seg-head">
+            <span class="jwt-seg-title">Payload</span>
+            <button type="button" class="jwt-btn jwt-btn-sm jwt-copy" data-copy="payload">Copy</button>
+          </div>
+          <pre class="jwt-json"><code id="payload-json"></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="jwt-why">
+      <h2>Why this exists</h2>
+      <p>
+        Most JWT decoders work fine, but a lot of them ship your token to a server to do the
+        decode. A JWT is a bearer credential: whoever holds it can act as you until it expires,
+        so pasting a live one into someone else's backend is a real leak. This page does the
+        whole thing locally. It splits the token, base64url-decodes the header and payload, and
+        turns the iat, nbf, and exp claims into dates with a plain verdict on whether the token
+        is still inside its valid window. Nothing leaves your browser, and the signature is left
+        unverified on purpose, because checking it would mean handing over the signing key.
+      </p>
+    </section>
+
+    <section class="jwt-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="jwt-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div class="jwt-toast" id="toast" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --jwt-bg: #fbfaf5;
+    --jwt-fg: #1a1611;
+    --jwt-muted: #6b6359;
+    --jwt-line: #e5dfd0;
+    --jwt-card: #ffffff;
+    --jwt-accent: #9a6b2f;
+    --jwt-accent-soft: #efe2cd;
+    --jwt-ok: #3f7d52;
+    --jwt-warn: #9a6b2f;
+    --jwt-bad: #b0492f;
+  }
+  :root[data-theme="dark"] {
+    --jwt-bg: #0e0c08;
+    --jwt-fg: #f1ece0;
+    --jwt-muted: #9c9485;
+    --jwt-line: #2a2620;
+    --jwt-card: #16130d;
+    --jwt-accent: #d3a766;
+    --jwt-accent-soft: #2a2114;
+    --jwt-ok: #7fb98e;
+    --jwt-warn: #d3a766;
+    --jwt-bad: #d98a72;
+  }
+
+  body { background: var(--jwt-bg); color: var(--jwt-fg); }
+  .jwt-page { max-width: 760px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .jwt-topbar { border-bottom: 1px solid var(--jwt-line); padding: 18px 0; margin-bottom: 36px; }
+  .jwt-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .jwt-brand { display: flex; align-items: center; gap: 10px; }
+  .jwt-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--jwt-accent-soft); color: var(--jwt-accent); }
+  .jwt-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+  .jwt-topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+  .jwt-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--jwt-line);
+    background: var(--jwt-card); color: var(--jwt-fg);
+    font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .jwt-btn:hover { border-color: var(--jwt-accent); color: var(--jwt-accent); }
+  .jwt-btn-ghost { background: transparent; }
+  .jwt-btn-sm { padding: 5px 11px; font-size: 12px; }
+
+  .jwt-field { display: flex; flex-direction: column; gap: 6px; }
+  .jwt-field-label { font-size: 12px; color: var(--jwt-muted); font-weight: 500; }
+  .jwt-field textarea {
+    font: inherit; font-family: "JetBrains Mono", monospace; font-size: 14px; line-height: 1.5;
+    padding: 14px; border-radius: 12px; resize: vertical;
+    border: 1px solid var(--jwt-line); background: var(--jwt-card); color: var(--jwt-fg);
+    outline: none; word-break: break-all;
+  }
+  .jwt-field textarea:focus { border-color: var(--jwt-accent); }
+
+  .jwt-privacy { display: flex; align-items: center; gap: 7px; margin: 10px 2px 0; font-size: 12.5px; color: var(--jwt-muted); }
+  .jwt-lock { display: inline-flex; color: var(--jwt-ok); }
+
+  .jwt-result { margin-top: 32px; }
+
+  .jwt-verdict {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--jwt-line); border-radius: 12px;
+    padding: 12px 16px; font-size: 14px; font-weight: 500; margin-bottom: 18px;
+    background: var(--jwt-card);
+  }
+  .jwt-verdict .jwt-dot { width: 9px; height: 9px; border-radius: 999px; flex: none; }
+  .jwt-verdict[data-kind="ok"] { border-color: color-mix(in oklab, var(--jwt-ok) 45%, var(--jwt-line)); }
+  .jwt-verdict[data-kind="ok"] .jwt-dot { background: var(--jwt-ok); }
+  .jwt-verdict[data-kind="bad"] { border-color: color-mix(in oklab, var(--jwt-bad) 45%, var(--jwt-line)); }
+  .jwt-verdict[data-kind="bad"] .jwt-dot { background: var(--jwt-bad); }
+  .jwt-verdict[data-kind="warn"] { border-color: color-mix(in oklab, var(--jwt-warn) 45%, var(--jwt-line)); }
+  .jwt-verdict[data-kind="warn"] .jwt-dot { background: var(--jwt-warn); }
+  .jwt-verdict-sub { color: var(--jwt-muted); font-weight: 400; }
+
+  .jwt-decode { background: var(--jwt-card); border: 1px solid var(--jwt-line); border-radius: 14px; padding: 8px 20px; margin-bottom: 24px; }
+  .jwt-drow { display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--jwt-line); }
+  .jwt-drow:last-child { border-bottom: none; }
+  .jwt-dkey { font-size: 13px; color: var(--jwt-muted); }
+  .jwt-dval { font-size: 14px; word-break: break-word; }
+  .jwt-dval.mono { font-family: "JetBrains Mono", monospace; }
+  .jwt-dval.ok { color: var(--jwt-ok); }
+  .jwt-dval.bad { color: var(--jwt-bad); }
+  .jwt-dval.warn { color: var(--jwt-warn); }
+  .jwt-dval .jwt-sub { display: block; color: var(--jwt-muted); font-size: 12px; margin-top: 3px; }
+
+  .jwt-segs { display: grid; gap: 16px; }
+  .jwt-seg { background: var(--jwt-card); border: 1px solid var(--jwt-line); border-radius: 14px; overflow: hidden; }
+  .jwt-seg-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--jwt-line); }
+  .jwt-seg-title { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--jwt-muted); }
+  .jwt-json { margin: 0; padding: 16px; overflow-x: auto; }
+  .jwt-json code { font-family: "JetBrains Mono", monospace; font-size: 13px; line-height: 1.55; white-space: pre; color: var(--jwt-fg); }
+
+  .jwt-why { margin-top: 64px; }
+  .jwt-why h2, .jwt-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .jwt-why p { font-size: 16px; line-height: 1.6; color: var(--jwt-fg); max-width: 64ch; margin: 0; }
+
+  .jwt-faq { margin-top: 56px; }
+  .jwt-faq dl { display: grid; gap: 18px; margin: 0; }
+  .jwt-faq-item { background: var(--jwt-card); border: 1px solid var(--jwt-line); border-radius: 14px; padding: 16px 20px; }
+  .jwt-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .jwt-faq-item dd { color: var(--jwt-muted); line-height: 1.55; margin: 0; }
+
+  .jwt-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--jwt-fg); color: var(--jwt-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+  }
+  .jwt-toast[hidden] { display: none !important; }
+
+  @media (max-width: 560px) {
+    .jwt-drow { grid-template-columns: 1fr; gap: 2px; }
+  }
+</style>
+
+<script>
+  // ---- base64url <-> text --------------------------------------------------
+  function b64urlDecode(part: string): string | null {
+    let s = part.replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) s += "=";
+    try {
+      const bin = atob(s);
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    } catch {
+      return null;
+    }
+  }
+
+  function b64urlEncode(str: string): string {
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+
+  // ---- time helpers --------------------------------------------------------
+  function fmtDate(ms: number): string {
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return "out of range";
+    return d.toISOString().replace("T", " ").replace(".000Z", "Z");
+  }
+
+  function relTime(ms: number): string {
+    const diff = Date.now() - ms;
+    const abs = Math.abs(diff);
+    const units: [number, string][] = [
+      [31536000000, "year"], [2592000000, "month"], [86400000, "day"],
+      [3600000, "hour"], [60000, "minute"], [1000, "second"],
+    ];
+    for (const [u, name] of units) {
+      if (abs >= u) {
+        const n = Math.round(abs / u);
+        const plural = n === 1 ? name : name + "s";
+        return diff >= 0 ? `${n} ${plural} ago` : `in ${n} ${plural}`;
+      }
+    }
+    return "just now";
+  }
+
+  // ---- parsing -------------------------------------------------------------
+  type Parsed = {
+    header: Record<string, unknown> | null;
+    payload: Record<string, unknown> | null;
+    headerText: string;
+    payloadText: string;
+    sigLen: number;
+    error?: string;
+  };
+
+  function parseJwt(raw: string): Parsed | null {
+    const t = raw.trim().replace(/^Bearer\s+/i, "");
+    if (t === "") return null;
+    const parts = t.split(".");
+    const base: Parsed = { header: null, payload: null, headerText: "", payloadText: "", sigLen: 0 };
+    if (parts.length !== 3) {
+      base.error = "A JWT has three dot-separated parts (header.payload.signature). This has " + parts.length + ".";
+      return base;
+    }
+    const hTxt = b64urlDecode(parts[0]);
+    const pTxt = b64urlDecode(parts[1]);
+    if (hTxt === null || pTxt === null) {
+      base.error = "The header or payload is not valid base64url.";
+      return base;
+    }
+    try {
+      base.header = JSON.parse(hTxt) as Record<string, unknown>;
+      base.headerText = JSON.stringify(base.header, null, 2);
+    } catch {
+      base.error = "The header decoded but is not valid JSON.";
+      return base;
+    }
+    try {
+      base.payload = JSON.parse(pTxt) as Record<string, unknown>;
+      base.payloadText = JSON.stringify(base.payload, null, 2);
+    } catch {
+      base.error = "The payload decoded but is not valid JSON.";
+      return base;
+    }
+    base.sigLen = parts[2].length;
+    return base;
+  }
+
+  // ---- reading the claims --------------------------------------------------
+  type Row = { key: string; val: string; cls?: string; sub?: string };
+
+  function timeClaim(p: Record<string, unknown>, name: string): number | null {
+    const v = p[name];
+    return typeof v === "number" && Number.isFinite(v) ? v * 1000 : null;
+  }
+
+  function buildRows(parsed: Parsed): Row[] {
+    const rows: Row[] = [];
+    const h = parsed.header ?? {};
+    const p = parsed.payload ?? {};
+
+    const alg = typeof h.alg === "string" ? h.alg : "(missing)";
+    if (alg.toLowerCase() === "none") {
+      rows.push({ key: "Algorithm", val: "none", cls: "bad", sub: "Unsigned. A real verifier should reject this unless it explicitly opted in." });
+    } else {
+      rows.push({ key: "Algorithm", val: alg });
+    }
+    if (typeof h.typ === "string") rows.push({ key: "Type", val: h.typ });
+    if (typeof h.kid === "string") rows.push({ key: "Key ID", val: h.kid, cls: "mono" });
+
+    const labels: [string, string][] = [["iss", "Issuer"], ["sub", "Subject"], ["aud", "Audience"], ["jti", "JWT ID"]];
+    for (const [claim, label] of labels) {
+      const v = p[claim];
+      if (typeof v === "string" || typeof v === "number") {
+        rows.push({ key: label, val: String(v), cls: "mono" });
+      } else if (Array.isArray(v)) {
+        rows.push({ key: label, val: v.join(", "), cls: "mono" });
+      }
+    }
+
+    const iat = timeClaim(p, "iat");
+    if (iat !== null) rows.push({ key: "Issued at", val: fmtDate(iat) + " UTC", sub: "iat \u00b7 " + relTime(iat) });
+
+    const nbf = timeClaim(p, "nbf");
+    if (nbf !== null) {
+      const future = nbf > Date.now();
+      rows.push({ key: "Not before", val: fmtDate(nbf) + " UTC", cls: future ? "warn" : undefined, sub: "nbf \u00b7 " + (future ? "not valid until " + relTime(nbf) : relTime(nbf)) });
+    }
+
+    const exp = timeClaim(p, "exp");
+    if (exp !== null) {
+      const expired = exp < Date.now();
+      rows.push({ key: "Expires", val: fmtDate(exp) + " UTC", cls: expired ? "bad" : "ok", sub: "exp \u00b7 " + (expired ? "expired " + relTime(exp) : "expires " + relTime(exp)) });
+    }
+
+    return rows;
+  }
+
+  function verdict(parsed: Parsed): { kind: string; text: string; sub: string } {
+    const p = parsed.payload ?? {};
+    const now = Date.now();
+    const exp = timeClaim(p, "exp");
+    const nbf = timeClaim(p, "nbf");
+    if (exp !== null && exp < now) {
+      return { kind: "bad", text: "Expired", sub: "The exp claim passed " + relTime(exp) + "." };
+    }
+    if (nbf !== null && nbf > now) {
+      return { kind: "warn", text: "Not yet valid", sub: "The nbf claim says this is not valid until " + relTime(nbf) + "." };
+    }
+    if (exp !== null) {
+      return { kind: "ok", text: "Inside its valid window", sub: "Expires " + relTime(exp) + ". Signature not checked." };
+    }
+    return { kind: "warn", text: "No expiry claim", sub: "This token has no exp, so it never expires on its own." };
+  }
+
+  // ---- DOM -----------------------------------------------------------------
+  function escapeHtml(s: string): string {
+    return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+  }
+
+  function toast(msg: string): void {
+    const el = document.getElementById("toast");
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+    window.clearTimeout((el as any)._t);
+    (el as any)._t = window.setTimeout(() => { el.hidden = true; }, 1600);
+  }
+
+  function copy(text: string, label: string): void {
+    navigator.clipboard?.writeText(text).then(() => toast(label), () => toast("Copy failed"));
+  }
+
+  let current: Parsed | null = null;
+
+  function showError(msg: string): void {
+    const result = document.getElementById("jwt-result");
+    const claims = document.getElementById("jwt-claims");
+    const vEl = document.getElementById("jwt-verdict");
+    const segH = document.getElementById("seg-header");
+    const segP = document.getElementById("seg-payload");
+    if (!result || !claims || !vEl || !segH || !segP) return;
+    result.hidden = false;
+    segH.hidden = true;
+    segP.hidden = true;
+    claims.hidden = true;
+    vEl.dataset.kind = "bad";
+    vEl.innerHTML = '<span class="jwt-dot"></span><span>Not a JWT</span><span class="jwt-verdict-sub">' + escapeHtml(msg) + "</span>";
+  }
+
+  function runDecode(): void {
+    const input = document.getElementById("token-input") as HTMLTextAreaElement | null;
+    const result = document.getElementById("jwt-result");
+    if (!input || !result) return;
+    const raw = input.value;
+    const parsed = parseJwt(raw);
+    if (parsed === null) {
+      result.hidden = true;
+      current = null;
+      return;
+    }
+    if (parsed.error) {
+      current = null;
+      showError(parsed.error);
+      return;
+    }
+    current = parsed;
+
+    const vEl = document.getElementById("jwt-verdict");
+    const claims = document.getElementById("jwt-claims");
+    const segH = document.getElementById("seg-header");
+    const segP = document.getElementById("seg-payload");
+    const hCode = document.getElementById("header-json");
+    const pCode = document.getElementById("payload-json");
+    if (!vEl || !claims || !segH || !segP || !hCode || !pCode) return;
+
+    result.hidden = false;
+
+    const v = verdict(parsed);
+    vEl.dataset.kind = v.kind;
+    vEl.innerHTML = '<span class="jwt-dot"></span><span>' + escapeHtml(v.text) + '</span><span class="jwt-verdict-sub">' + escapeHtml(v.sub) + "</span>";
+
+    const rows = buildRows(parsed);
+    claims.hidden = rows.length === 0;
+    claims.innerHTML = rows
+      .map((r) => {
+        const cls = "jwt-dval" + (r.cls ? " " + r.cls : "");
+        const sub = r.sub ? `<span class="jwt-sub">${escapeHtml(r.sub)}</span>` : "";
+        return `<div class="jwt-drow"><span class="jwt-dkey">${escapeHtml(r.key)}</span><span class="${cls}">${escapeHtml(r.val)}${sub}</span></div>`;
+      })
+      .join("");
+
+    segH.hidden = false;
+    segP.hidden = false;
+    hCode.textContent = parsed.headerText;
+    pCode.textContent = parsed.payloadText;
+  }
+
+  function fillExample(): void {
+    const input = document.getElementById("token-input") as HTMLTextAreaElement | null;
+    if (!input) return;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const header = b64urlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+    const payload = b64urlEncode(JSON.stringify({
+      iss: "truffleagent.com",
+      sub: "1234567890",
+      name: "Ada Lovelace",
+      admin: true,
+      iat: nowSec - 600,
+      exp: nowSec + 3600,
+    }));
+    input.value = header + "." + payload + ".not-a-real-signature_decoded-locally";
+    runDecode();
+  }
+
+  function shareLink(): void {
+    const url = "https://truffleagent.com/jwt/";
+    if (navigator.share) {
+      navigator.share({ title: "JWT Decoder", url }).catch(() => {});
+    } else {
+      copy(url, "Link copied");
+    }
+  }
+
+  function init(): void {
+    document.getElementById("token-input")?.addEventListener("input", runDecode);
+    document.getElementById("example-btn")?.addEventListener("click", fillExample);
+    document.getElementById("share-btn")?.addEventListener("click", shareLink);
+    document.querySelectorAll<HTMLButtonElement>(".jwt-copy").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (!current) return;
+        const which = btn.dataset.copy;
+        const text = which === "header" ? current.headerText : current.payloadText;
+        copy(text, "Copied " + which);
+      });
+    });
+    // show an example on load so the page is never empty
+    fillExample();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+</script>
