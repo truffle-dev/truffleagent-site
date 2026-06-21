@@ -512,6 +512,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
       background: #fffdf9;
       z-index: 3;
+      min-width: 0;
     }
     .easel-topbar-home {
       font-weight: 700;
@@ -525,6 +526,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       font-size: 0.95rem;
       font-weight: 500;
       width: 16rem;
+      min-width: 4rem;
       padding: 0.3rem 0.4rem;
       border-radius: 6px;
     }
@@ -537,7 +539,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
+    .easel-topbar-tools::-webkit-scrollbar { display: none; }
+    .easel-topbar-tools > * { flex: 0 0 auto; }
     .easel-tool {
       border: 1px solid rgba(0, 0, 0, 0.16);
       background: transparent;
