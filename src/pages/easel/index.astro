@@ -170,6 +170,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <span class="easel-align-sep"></span>
           <button class="easel-align-btn" type="button" data-dist="h" title="Distribute horizontal spacing" aria-label="Distribute horizontal spacing"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 3v10M8 3v10M14 3v10" /></svg></button>
           <button class="easel-align-btn" type="button" data-dist="v" title="Distribute vertical spacing" aria-label="Distribute vertical spacing"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2h10M3 8h10M3 14h10" /></svg></button>
+          <span class="easel-align-sep"></span>
+          <button class="easel-align-btn is-text" id="group-btn" type="button" title="Group (Ctrl/Cmd+G) — move and select as one">Group</button>
         </div>
         <div class="easel-connbar" id="connbar" role="group" aria-label="Connector style" hidden>
           <button class="easel-conn-style" id="conn-style" type="button" title="Toggle arrowhead">Line</button>
@@ -231,6 +233,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>Duplicate the selection</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring forward / send backward</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd></dt><dd>Bring to front / send to back</dd>
+            <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>G</kbd></dt><dd>Group the selection (2+) into one unit · <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> to ungroup</dd>
             <dt><kbd>Delete</kbd></dt><dd>Delete the selected element</dd>
             <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></dt><dd>Lock or unlock the selection (locked elements can't be moved, resized, edited, or deleted)</dd>
             <dt>Click an arrow</dt><dd>Select a connector to recolour, flip arrow/line, switch routing (straight / curved / elbow), label, or <kbd>Delete</kbd></dd>
@@ -779,6 +782,13 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       background: transparent;
       color: #1a1a1a;
       cursor: pointer;
+    }
+    .easel-align-btn.is-text {
+      width: auto;
+      padding: 0 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
     }
     .easel-align-btn:hover { background: #f1f0ec; }
     .easel-align-btn:disabled { opacity: 0.32; cursor: default; }
@@ -1833,6 +1843,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const swatches = $("swatches");
     const shapeKind = $<HTMLButtonElement>("shape-kind");
     const alignbar = $("alignbar");
+    const groupBtn = $<HTMLButtonElement>("group-btn");
     const connbar = $("connbar");
     const connStyleBtn = $<HTMLButtonElement>("conn-style");
     const connRouteBtn = $<HTMLButtonElement>("conn-route");
@@ -2962,6 +2973,56 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // align/distribute bar. Show the bar at 2+, enable distribute at 3+.
     const selectedBoxes = () =>
       [...selectedIds].map(getEl).filter((e): e is NonNullable<typeof e> => !!e && e.type !== "connector");
+
+    // ---------- persistent groups (5.12) ----------
+    // Elements sharing props.groupId move / select / duplicate / delete as one
+    // unit (Figma/tldraw/Miro signature). groupId is a free-form PROP on the
+    // existing element types — no new element type, no validateDoc / render-route
+    // change. Groups are flat: regrouping a selection overwrites any prior
+    // groupId, and there is no nesting.
+    const groupMembers = (gid: string) =>
+      doc.elements.filter((e) => e.type !== "connector" && e.props.groupId === gid);
+    // Grow an id set to include every element grouped with any member — the rule
+    // that makes one click on a grouped element select the whole group, and a
+    // marquee / shift-toggle act on whole groups.
+    const expandToGroups = (ids: Iterable<string>): Set<string> => {
+      const out = new Set<string>(ids);
+      const gids = new Set<string>();
+      for (const id of out) {
+        const g = getEl(id)?.props.groupId;
+        if (typeof g === "string" && g) gids.add(g);
+      }
+      for (const gid of gids) for (const m of groupMembers(gid)) out.add(m.id);
+      return out;
+    };
+    // Shift-click / programmatic toggle that respects groups: if every member of
+    // the clicked element's group is already selected, drop them all; otherwise
+    // add them. Degrades to single-element toggle for an ungrouped element.
+    const toggleGroupSelection = (id: string) => {
+      const ids = expandToGroups([id]);
+      const allIn = [...ids].every((i) => selectedIds.has(i));
+      for (const i of ids) { if (allIn) selectedIds.delete(i); else if (getEl(i)) selectedIds.add(i); }
+      refreshSelectionUI();
+    };
+    // Ctrl/Cmd+G binds the current 2+ selection into a group; Ctrl/Cmd+Shift+G
+    // dissolves any groups in the selection. groupId rides the normal board save
+    // + undo diff, so persistence and undo are free.
+    const groupSelection = () => {
+      const boxes = selectedBoxes();
+      if (boxes.length < 2) return;
+      const gid = `g${Math.random().toString(36).slice(2, 10)}`;
+      for (const e of boxes) e.props.groupId = gid;
+      refreshSelectionUI();
+      scheduleSave();
+    };
+    const ungroupSelection = () => {
+      const boxes = selectedBoxes();
+      let changed = false;
+      for (const e of boxes) {
+        if (typeof e.props.groupId === "string" && e.props.groupId) { delete e.props.groupId; changed = true; }
+      }
+      if (changed) { refreshSelectionUI(); scheduleSave(); }
+    };
     // Elements a frame "contains" — every non-connector whose centre falls inside
     // the frame's box (the frame itself excluded). This is the FigJam/Miro rule:
     // a frame is a container, so dragging it carries its contents along. Centre-
@@ -2981,6 +3042,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       alignbar.querySelectorAll<HTMLButtonElement>("[data-dist]").forEach((b) => {
         b.disabled = boxes.length < 3;
       });
+      // The pill flips to "Ungroup" when every selected box already shares a
+      // single persistent group, so one button toggles both directions.
+      const allGrouped = boxes.length >= 2 &&
+        boxes.every((e) => typeof e.props.groupId === "string" && e.props.groupId);
+      groupBtn.textContent = allGrouped ? "Ungroup" : "Group";
+      groupBtn.title = allGrouped
+        ? "Ungroup (Ctrl/Cmd+Shift+G)"
+        : "Group (Ctrl/Cmd+G) — move and select as one";
     };
 
     // ---------- group bounding box + resize-as-unit ----------
@@ -3178,12 +3247,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         if (!el) return;
         // In connect mode a click wires an arrow instead of selecting/dragging.
         if (connectMode) { handleConnectPick(id); return; }
-        // Shift-click toggles membership without starting a drag.
-        if (ev.shiftKey) { toggleSelection(id); return; }
+        // Shift-click toggles membership without starting a drag. If the
+        // element belongs to a persistent group the whole group toggles.
+        if (ev.shiftKey) { toggleGroupSelection(id); return; }
         // Clicking an element already inside a multi-selection keeps the group
         // (so you can drag the whole set); a plain click on anything else makes
-        // it the sole selection.
-        if (!selectedIds.has(id)) selectEl(id);
+        // it the sole selection — expanded to the full persistent group when
+        // the element carries a groupId.
+        if (!selectedIds.has(id)) setSelection([...expandToGroups([id])]);
 
         // A group move slides every selected box together; single select keeps
         // the rich single-element behaviour (resize, snap guides, z-bump).
@@ -3482,7 +3553,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         for (const el of boxEls) {
           if (el.x < p1.x && el.x + el.w > p0.x && el.y < p1.y && el.y + el.h > p0.y) hit.add(el.id);
         }
-        setSelection([...hit]);
+        // Marquee pulls in whole persistent groups when any member is touched.
+        setSelection([...expandToGroups(hit)]);
       };
       const onUp = () => {
         if (box) box.remove();
@@ -3693,6 +3765,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "a") {
         ev.preventDefault();
         setSelection(doc.elements.filter((e) => e.type !== "connector").map((e) => e.id));
+        return;
+      }
+      // Ctrl/Cmd+G groups the 2+ selection into one persistent unit; +Shift
+      // dissolves any group in the selection. ev.code is layout-safe.
+      if ((ev.metaKey || ev.ctrlKey) && ev.code === "KeyG") {
+        ev.preventDefault();
+        if (ev.shiftKey) ungroupSelection();
+        else groupSelection();
         return;
       }
       // Ctrl/Cmd+] / [ restack: bring forward / send backward; +Shift jumps to
@@ -4063,6 +4143,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       // Frames stay at the back; everything else lands on top, like a fresh add.
       let zTop = maxZ(), zBot = minZ();
       const idMap: Record<string, string> = {};
+      // Remap groupIds so a duplicated/pasted group forms its OWN fresh group
+      // instead of silently merging into the source group on the board.
+      const gidMap: Record<string, string> = {};
       const cloneBoxIds: string[] = [];
       const fresh: El[] = [];
       for (const src of [...boxes].sort((a, b) => a.z - b.z)) {
@@ -4071,6 +4154,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         cloneBoxIds.push(nid);
         const props = { ...src.props };
         delete props.locked;
+        if (typeof props.groupId === "string" && props.groupId) {
+          const og = props.groupId;
+          gidMap[og] = gidMap[og] || `g${Math.random().toString(36).slice(2, 10)}`;
+          props.groupId = gidMap[og];
+        }
         const clone: El = {
           ...src,
           id: nid,
@@ -4746,6 +4834,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (!btn || btn.disabled) return;
       if (btn.dataset.align) alignSelected(btn.dataset.align as AlignMode);
       else if (btn.dataset.dist) distributeSelected(btn.dataset.dist as "h" | "v");
+      else if (btn.id === "group-btn") {
+        const boxes = selectedBoxes();
+        const grouped = boxes.length >= 2 &&
+          boxes.every((e) => typeof e.props.groupId === "string" && e.props.groupId);
+        if (grouped) ungroupSelection(); else groupSelection();
+      }
     });
     // Connector style bar: recolour, flip arrow/line, or delete the picked
     // connector. pointerdown is swallowed so a click here never deselects.
