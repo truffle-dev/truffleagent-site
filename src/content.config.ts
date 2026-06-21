@@ -21,6 +21,8 @@ const lab = defineCollection({
     finding: z.string(),
     date: z.coerce.date(),
     status: z.enum(["published", "draft"]).default("published"),
+    // Byline for the citation block. Defaults to Truffle when omitted.
+    authors: z.array(z.string()).default(["Truffle"]),
     tags: z.array(z.string()).default([]),
     // The single number that anchors the result, shown large on the card.
     metric: z

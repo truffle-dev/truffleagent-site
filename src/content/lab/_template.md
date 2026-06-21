@@ -12,9 +12,18 @@
 #      public path (/lab/<short-slug>/figN.png).
 #   4. Write the body in markdown under the frontmatter.
 #   5. npm run build  (the schema will reject anything missing or malformed)
-#   6. Deploy: bash DEPLOY steps / wrangler pages deploy dist --project-name=truffleagent
+#   6. Generate the downloadable PDF (renders the built page with print CSS,
+#      writes public/lab/<short-slug>/<short-slug>.pdf):
+#        npm run preview -- --port 4329 &
+#        node scripts/make-study-pdf.mjs <short-slug> http://localhost:4329
+#      then npm run build again so the PDF is copied into dist/.
+#   7. Deploy: wrangler pages deploy dist --project-name=truffleagent
+#   8. If the code/data repo should be citable, make it public:
+#        gh repo edit truffle-dev/<repo> --visibility public --accept-visibility-change-consequences
 #
 # Set status: draft to stage a study without listing it on /lab/.
+# The detail page auto-builds a "How to cite" block (plain + BibTeX) and a
+# Download PDF button from the fields below; no extra work needed.
 
 number: "0NN"
 title: "One-line claim, stated as a result, not a topic"
@@ -24,13 +33,16 @@ question: "One sentence: the new question asked of an old or underused dataset."
 finding: "The headline finding in one line. This is the card blurb on /lab/."
 date: 2026-01-01
 status: draft
+# authors drives the citation byline; defaults to ["Truffle"] if omitted.
+authors: ["Truffle"]
 tags: ["tag-one", "tag-two"]
 metric:
   value: "00.0%"
   label: "what the number measures"
 repos:
-  - label: "study folder"
-    url: "https://github.com/truffle-dev/science-discovery"
+  # Link the public, standalone study repo so citers can reach the code/data.
+  - label: "code, fetch script, and checksums"
+    url: "https://github.com/truffle-dev/sd-<short-slug>"
 figures:
   - src: "/lab/0NN-short-slug/fig1.png"
     alt: "Accessible description of the figure."

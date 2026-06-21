@@ -14,7 +14,8 @@ const { entry } = Astro.props;
 const { Content } = await render(entry);
 const d = entry.data;
 
-const canonical = `https://truffleagent.com/lab/${entry.id}/`;
+const slug = entry.id;
+const canonical = `https://truffleagent.com/lab/${slug}/`;
 const title = `${d.title} · The Lab`;
 const description = d.finding;
 const ogImage = d.figures[0]?.src ?? "/img/og.jpg";
@@ -28,16 +29,35 @@ const dateFmt = d.date.toLocaleDateString("en-US", {
 const heroFigure = d.figures[0];
 const restFigures = d.figures.slice(1);
 
+// Citation surface. Every study is a citable artifact.
+const authors = d.authors.length > 0 ? d.authors : ["Truffle"];
+const year = d.date.getUTCFullYear();
+const authorsPlain = authors.length > 1
+  ? authors.slice(0, -1).join(", ") + " and " + authors[authors.length - 1]
+  : authors[0];
+const pdfHref = `/lab/${slug}/${slug}.pdf`;
+const bibKey = `truffle${year}${slug.replace(/[^a-z0-9]/gi, "")}`;
+const citationPlain = `${authorsPlain} (${year}). ${d.title}. The Lab, Truffle Co. ${canonical}`;
+const bibtex = `@misc{${bibKey},
+  title        = {${d.title}},
+  author       = {${authors.join(" and ")}},
+  year         = {${year}},
+  howpublished = {The Lab, Truffle Co.},
+  url          = {${canonical}}
+}`;
+
 const articleJsonLd = {
   "@context": "https://schema.org",
   "@type": "ScholarlyArticle",
   headline: d.title,
   url: canonical,
   datePublished: d.date.toISOString().slice(0, 10),
-  author: "Truffle",
+  author: authors.length === 1 ? authors[0] : authors,
   about: d.dataset,
   keywords: d.tags.join(", "),
   description: d.finding,
+  license: "https://creativecommons.org/licenses/by/4.0/",
+  isAccessibleForFree: true,
 };
 ---
 <BaseLayout
@@ -77,6 +97,16 @@ const articleJsonLd = {
             {d.tags.map((t) => <span class="pill study-tag">{t}</span>)}
           </span>
         )}
+        <span class="study-actions">
+          <a class="study-action" href={pdfHref} download>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download PDF
+          </a>
+          <a class="study-action study-action-ghost" href="#cite">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+            Cite
+          </a>
+        </span>
       </div>
     </div>
 
@@ -129,6 +159,30 @@ const articleJsonLd = {
           </p>
         </section>
       )}
+
+      <section class="study-cite" id="cite">
+        <h2 class="study-sub">How to cite</h2>
+        <p class="study-cite-intro">
+          This study is published under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+          You are free to share and build on it with attribution.
+        </p>
+
+        <div class="cite-block">
+          <div class="cite-head">
+            <span class="cite-label">Plain text</span>
+            <button class="cite-copy" type="button" data-copy-target="cite-plain">Copy</button>
+          </div>
+          <p class="cite-plain" id="cite-plain">{citationPlain}</p>
+        </div>
+
+        <div class="cite-block">
+          <div class="cite-head">
+            <span class="cite-label">BibTeX</span>
+            <button class="cite-copy" type="button" data-copy-target="cite-bibtex">Copy</button>
+          </div>
+          <pre class="cite-bibtex" id="cite-bibtex"><code>{bibtex}</code></pre>
+        </div>
+      </section>
 
       <a class="study-back study-back-foot" href="/lab/">← All findings</a>
     </div>
@@ -205,9 +259,11 @@ const articleJsonLd = {
     color: var(--content-3);
   }
   .study-figure-hero {
+    margin-inline: auto;
     margin-block: clamp(2rem, 4vw, 3rem);
     max-width: 1000px;
   }
+  .study-figure-hero img { margin-inline: auto; }
   .study-figures {
     display: flex;
     flex-direction: column;
@@ -278,4 +334,134 @@ const articleJsonLd = {
   .study-repo .mono { font-size: 0.8125rem; color: var(--content-2); }
   .study-repo-label { font-size: 0.75rem; color: var(--content-3); }
   .study-note { line-height: 1.5; }
+
+  /* header actions */
+  .study-actions { display: inline-flex; gap: 0.5rem; margin-left: auto; }
+  .study-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), color 150ms var(--ease-out);
+  }
+  .study-action:hover { background: color-mix(in oklab, var(--accent) 85%, #000); }
+  .study-action svg { flex-shrink: 0; }
+  .study-action-ghost {
+    background: transparent;
+    color: var(--content-2);
+    border-color: var(--border);
+  }
+  .study-action-ghost:hover {
+    background: var(--surface-2);
+    border-color: var(--content-3);
+    color: var(--content);
+  }
+  @media (max-width: 540px) {
+    .study-actions { margin-left: 0; width: 100%; }
+  }
+
+  /* citation */
+  .study-cite { margin-top: 3rem; scroll-margin-top: 5rem; }
+  .study-cite-intro { color: var(--content-2); margin: 0 0 1.5rem; line-height: 1.6; }
+  .study-cite-intro a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .cite-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  .cite-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .cite-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--content-3);
+    font-weight: 600;
+  }
+  .cite-copy {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--content-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 6px);
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    transition: border-color 150ms var(--ease-out), color 150ms var(--ease-out);
+  }
+  .cite-copy:hover { border-color: var(--content-3); color: var(--content); }
+  .cite-copy.is-copied { color: var(--accent); border-color: var(--accent); }
+  .cite-plain {
+    margin: 0;
+    padding: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--content-2);
+  }
+  .cite-bibtex {
+    margin: 0;
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--content-2);
+    background: transparent;
+  }
+  .cite-bibtex code { font-family: inherit; }
+
+  /* print: a clean, citable document */
+  @media print {
+    :global(.site-header), :global(.site-footer),
+    .study-back, .study-actions, .cite-copy { display: none !important; }
+    :global(.reveal) { opacity: 1 !important; transform: none !important; }
+    .study { padding: 0; }
+    .study-figure-hero, .study-figure { max-width: 100% !important; break-inside: avoid; }
+    .study-figure img { border: 1px solid #ccc; }
+    .study-body :global(a) { color: inherit; text-decoration: none; }
+    .study-cite { break-inside: avoid; }
+  }
 </style>
+
+<script>
+  document.querySelectorAll(".cite-copy").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-copy-target");
+      const el = id ? document.getElementById(id) : null;
+      if (!el) return;
+      const text = el.innerText.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(r);
+        document.execCommand("copy");
+        sel?.removeAllRanges();
+      }
+      const original = btn.textContent;
+      btn.textContent = "Copied";
+      btn.classList.add("is-copied");
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove("is-copied");
+      }, 1600);
+    });
+  });
+</script>

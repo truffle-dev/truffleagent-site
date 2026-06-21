@@ -12,9 +12,7 @@ metric:
   value: "70.9%"
   label: "phase accuracy with zero pixels (matched splits)"
 repos:
-  - label: "study folder"
-    url: "https://github.com/truffle-dev/science-discovery"
-  - label: "standalone repo"
+  - label: "code, fetch script, and checksums"
     url: "https://github.com/truffle-dev/sd-phase-recognition-temporal-prior"
 figures:
   - src: "/lab/008-cholec80-temporal-prior/fig1_accuracy_ladder.png"
@@ -64,11 +62,11 @@ it has not measured the shortcut. That gap is the study.
 
 Four predictors, each given strictly less information than a vision model:
 
-- **Majority floor** — always predict the single longest phase. This is the floor any
+- **Majority floor.** Always predict the single longest phase. This is the floor any
   model must clear to claim it learned anything.
-- **Clock (histogram)** — a transparent 100-bin histogram of normalized time, argmax phase.
-- **Clock (gradient-boosted)** — a small gradient-boosted tree on normalized time.
-- **Elapsed-minutes** — the online variant, given only absolute minutes since the start
+- **Clock (histogram).** A transparent 100-bin histogram of normalized time, argmax phase.
+- **Clock (gradient-boosted).** A small gradient-boosted tree on normalized time.
+- **Elapsed-minutes.** The online variant, given only absolute minutes since the start
   with no knowledge of total duration.
 
 And three protocols. The official EndoNet split (train videos 1-40, test 41-80). Twenty
