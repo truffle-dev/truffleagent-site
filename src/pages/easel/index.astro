@@ -2824,6 +2824,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // the live cursor + hovered target so the preview path follows the drag.
     let connectNubDrag: { fromId: string; x: number; y: number; targetId: string | null } | null = null;
     const NUB_SIDES = ["top", "right", "bottom", "left"] as const;
+    // Drag a nub past this many world px onto empty canvas to spawn-and-connect a
+    // new sticky (the mind-mapping reflex). A near-zero drag is an accidental nub
+    // click and just cancels.
+    const NUB_SPAWN_MIN = 40;
     const connectNubHost = document.createElement("div");
     connectNubHost.className = "easel-conn-nub-host";
     connectNubHost.hidden = true;
@@ -2882,10 +2886,22 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const drag = connectNubDrag;
         connectNubDrag = null;
         setReanchorTarget(null);
-        // Commit only when released over a valid, different element; an empty drop
-        // cancels (the redraw clears the preview). addConnector de-dups + saves.
-        if (drag && drag.targetId && drag.targetId !== fromId) addConnector(fromId, drag.targetId);
-        else drawConnectors();
+        // Released over a valid, different element: wire the two together.
+        // addConnector de-dups + saves.
+        if (drag && drag.targetId && drag.targetId !== fromId) {
+          addConnector(fromId, drag.targetId);
+        } else if (drag && !drag.targetId &&
+                   Math.hypot(drag.x - p0.x, drag.y - p0.y) >= NUB_SPAWN_MIN) {
+          // Dragged out onto empty canvas: spawn a new sticky at the drop point
+          // and connect to it — the FigJam/Miro mind-mapping reflex (drag out to
+          // create the next idea). The new sticky opens straight into edit mode
+          // so you can type immediately. addSticky/addConnector both save.
+          const created = addSticky({ x: drag.x, y: drag.y });
+          addConnector(fromId, created.id);
+        } else {
+          // Near-zero accidental drag: cancel (the redraw clears the preview).
+          drawConnectors();
+        }
         drawConnectNubs();
       };
       nub.addEventListener("pointermove", onMove);
@@ -4307,6 +4323,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         props: { text: "New note", color: lastStickyColor } });
       editElement(el.id);
       coachMark("sticky");
+      return el;
     };
     const addFrame = () => {
       // Frames go to the BACK of the z-order so they group elements
