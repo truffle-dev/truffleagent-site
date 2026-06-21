@@ -1033,6 +1033,36 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     }
     .easel-conn-endpoint.is-dragging { cursor: grabbing; }
     .easel-el.is-reanchor-target { outline: 2px solid #2f6fed; outline-offset: 2px; }
+    /* 5.14 drag-to-connect nubs — a lone selected box shows four edge dots; press
+       one and drag onto another element to wire a connector with no mode switch
+       (FigJam/Miro parity). Hosted in a rotated zero-size box (like the rotate
+       knob) so they track a rotated element; the live preview reuses the
+       connector path machinery. */
+    .easel-conn-nub-host {
+      position: absolute;
+      width: 0;
+      height: 0;
+      transform-origin: 0 0;
+      pointer-events: none;
+      z-index: 9998;
+    }
+    .easel-conn-nub {
+      position: absolute;
+      width: 11px;
+      height: 11px;
+      margin: -5.5px 0 0 -5.5px;
+      border-radius: 50%;
+      background: #2f6fed;
+      border: 2px solid #fdfbf7;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      cursor: crosshair;
+      pointer-events: auto;
+      touch-action: none;
+      transition: transform 100ms ease;
+    }
+    .easel-conn-nub:hover { transform: scale(1.4); }
+    .easel-conn-nub.is-dragging { cursor: crosshair; }
+    .easel-conn-preview { pointer-events: none; opacity: 0.85; }
     /* Marquee selection rectangle, drawn in stage screen-space while a
        Shift+left-drag sweeps empty canvas. Never eats pointer events. */
     .easel-marquee {
@@ -2488,15 +2518,18 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const drawConnectors = () => {
       selEndpoints = null;
       const conns = doc.elements.filter((e) => e.type === "connector");
-      if (!conns.length) {
+      // A live drag-to-connect preview (5.14) needs the SVG layer even before the
+      // board has its first real connector, so it keeps the layer alive too.
+      if (!conns.length && !connectNubDrag) {
         // Nothing to draw — drop the layer entirely so an empty board is clean.
         if (connectorLayer) { connectorLayer.remove(); connectorLayer = null; }
         drawEndpointHandles();
+        drawConnectNubs();
         return;
       }
       const svg = ensureConnectorLayer();
       // Rebuild the paths (cheap: a board has few connectors), keep <defs>.
-      svg.querySelectorAll(".easel-conn, .easel-conn-hit").forEach((n) => n.remove());
+      svg.querySelectorAll(".easel-conn, .easel-conn-hit, .easel-conn-preview").forEach((n) => n.remove());
       const labelData: { id: string; mx: number; my: number; label: string }[] = [];
       for (const c of conns) {
         const a = getEl(String(c.props.from));
@@ -2562,8 +2595,33 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         if (c.props.style !== "line") line.setAttribute("marker-end", "url(#easel-arrow)");
         svg.appendChild(line);
       }
+      // 5.14 drag-to-connect preview: a dashed arrow from the source border toward
+      // the hovered target's border (or the free cursor) while a nub is dragged.
+      if (connectNubDrag) {
+        const a = getEl(connectNubDrag.fromId);
+        if (a && a.type !== "connector") {
+          const cur = { x: connectNubDrag.x, y: connectNubDrag.y };
+          const tgt = connectNubDrag.targetId ? getEl(connectNubDrag.targetId) : null;
+          const dp = tgt ? { x: tgt.x + tgt.w / 2, y: tgt.y + tgt.h / 2 } : cur;
+          const s = borderPt(a, dp.x, dp.y);
+          const e = tgt ? borderPt(tgt, s.x, s.y) : cur;
+          const d = connPathD(s.x, s.y, e.x, e.y, "straight");
+          const line = document.createElementNS(SVG_NS, "path");
+          line.setAttribute("d", d);
+          line.setAttribute("fill", "none");
+          line.setAttribute("stroke", "#5b6472");
+          line.setAttribute("stroke-width", "2.5");
+          line.setAttribute("stroke-linecap", "round");
+          line.setAttribute("stroke-linejoin", "round");
+          line.setAttribute("stroke-dasharray", "6 5");
+          line.setAttribute("marker-end", "url(#easel-arrow)");
+          line.setAttribute("class", "easel-conn-preview");
+          svg.appendChild(line);
+        }
+      }
       drawConnLabels(labelData);
       drawEndpointHandles();
+      drawConnectNubs();
     };
 
     // ---------- connector labels ----------
@@ -2741,6 +2799,86 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     };
     fromHandle.addEventListener("pointerdown", (ev) => beginEndpointDrag(ev, fromHandle));
     toHandle.addEventListener("pointerdown", (ev) => beginEndpointDrag(ev, toHandle));
+
+    // ---------- drag-to-connect nubs (5.14) ----------
+    // A single selected box shows four edge nubs; press one and drag onto another
+    // element to wire a connector with no connect-mode switch (FigJam/Miro
+    // parity). The nubs live in a rotated zero-size host (like the rotate knob) so
+    // they track a rotated element; pointer capture survives the per-move
+    // drawConnectors() redraw because the host nodes persist. connectNubDrag holds
+    // the live cursor + hovered target so the preview path follows the drag.
+    let connectNubDrag: { fromId: string; x: number; y: number; targetId: string | null } | null = null;
+    const NUB_SIDES = ["top", "right", "bottom", "left"] as const;
+    const connectNubHost = document.createElement("div");
+    connectNubHost.className = "easel-conn-nub-host";
+    connectNubHost.hidden = true;
+    const connectNubs: Record<string, HTMLDivElement> = {};
+    for (const side of NUB_SIDES) {
+      const nub = document.createElement("div");
+      nub.className = "easel-conn-nub";
+      nub.dataset.side = side;
+      connectNubHost.appendChild(nub);
+      connectNubs[side] = nub;
+    }
+    world.appendChild(connectNubHost);
+    const drawConnectNubs = () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      // Only a lone, unlocked box gets nubs. Hide during connect/draw mode, while a
+      // connector label is being edited, and mid-nub-drag (the host repositions to
+      // the source — the preview path carries the visual instead).
+      if (!el || el.type === "connector" || el.props.locked ||
+          connectMode || drawMode || editingConnLabelId !== null || connectNubDrag) {
+        connectNubHost.hidden = true;
+        return;
+      }
+      connectNubHost.hidden = false;
+      connectNubHost.style.left = `${el.x + el.w / 2}px`;
+      connectNubHost.style.top = `${el.y + el.h / 2}px`;
+      connectNubHost.style.transform = `rotate(${el.rotation || 0}deg)`;
+      const hw = el.w / 2, hh = el.h / 2;
+      connectNubs.top.style.left = "0px"; connectNubs.top.style.top = `${-hh}px`;
+      connectNubs.bottom.style.left = "0px"; connectNubs.bottom.style.top = `${hh}px`;
+      connectNubs.left.style.left = `${-hw}px`; connectNubs.left.style.top = "0px";
+      connectNubs.right.style.left = `${hw}px`; connectNubs.right.style.top = "0px";
+    };
+    const beginNubDrag = (ev: PointerEvent, nub: HTMLElement) => {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const fromId = selectedId;
+      const a = fromId ? getEl(fromId) : null;
+      if (!fromId || !a || a.type === "connector") return;
+      nub.classList.add("is-dragging");
+      try { nub.setPointerCapture(ev.pointerId); } catch { /* synthetic ids in tests */ }
+      const p0 = stagePoint(ev.clientX, ev.clientY);
+      connectNubDrag = { fromId, x: p0.x, y: p0.y, targetId: null };
+      drawConnectNubs(); // hides the host now that a drag is live
+      const onMove = (mv: PointerEvent) => {
+        const p = stagePoint(mv.clientX, mv.clientY);
+        const tgt = elementAtWorld(p.x, p.y, fromId);
+        connectNubDrag = { fromId, x: p.x, y: p.y, targetId: tgt ? tgt.id : null };
+        setReanchorTarget(tgt ? tgt.id : null);
+        drawConnectors();
+      };
+      const onUp = () => {
+        nub.removeEventListener("pointermove", onMove);
+        nub.removeEventListener("pointerup", onUp);
+        nub.classList.remove("is-dragging");
+        const drag = connectNubDrag;
+        connectNubDrag = null;
+        setReanchorTarget(null);
+        // Commit only when released over a valid, different element; an empty drop
+        // cancels (the redraw clears the preview). addConnector de-dups + saves.
+        if (drag && drag.targetId && drag.targetId !== fromId) addConnector(fromId, drag.targetId);
+        else drawConnectors();
+        drawConnectNubs();
+      };
+      nub.addEventListener("pointermove", onMove);
+      nub.addEventListener("pointerup", onUp);
+    };
+    for (const side of NUB_SIDES) {
+      connectNubs[side].addEventListener("pointerdown", (ev) => beginNubDrag(ev, connectNubs[side]));
+    }
 
     const renderDoc = (animate = false) => {
       const ids = new Set(doc.elements.map((e) => e.id));
@@ -2985,6 +3123,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       updateLockTool();
       drawGroupBox();
       drawRotateHandle();
+      drawConnectNubs();
     };
     const setSelection = (ids: string[]) => {
       selectedIds.clear();
