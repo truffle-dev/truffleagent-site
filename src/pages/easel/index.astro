@@ -204,6 +204,18 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-text-color" type="button" data-color="#3fa45b" title="Green" aria-label="Green text" style="background:#3fa45b"></button>
           <input class="easel-color-custom" type="color" id="text-color-custom" title="Custom color" aria-label="Custom text color" value="#1a1a1a" />
         </div>
+        <div class="easel-drawbar" id="drawbar" role="group" aria-label="Pen style" hidden>
+          <button class="easel-draw-width" type="button" data-width="2" title="Thin stroke" aria-label="Thin stroke"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M2 9h14" stroke-width="1.5" /></svg></button>
+          <button class="easel-draw-width" type="button" data-width="4" title="Medium stroke" aria-label="Medium stroke"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M2 9h14" stroke-width="3.5" /></svg></button>
+          <button class="easel-draw-width" type="button" data-width="8" title="Thick stroke" aria-label="Thick stroke"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M2 9h14" stroke-width="6.5" /></svg></button>
+          <span class="easel-align-sep"></span>
+          <button class="easel-draw-color" type="button" data-color="#1f1d1a" title="Ink" aria-label="Ink" style="background:#1f1d1a"></button>
+          <button class="easel-draw-color" type="button" data-color="#e0564f" title="Red" aria-label="Red" style="background:#e0564f"></button>
+          <button class="easel-draw-color" type="button" data-color="#2f6fed" title="Blue" aria-label="Blue" style="background:#2f6fed"></button>
+          <button class="easel-draw-color" type="button" data-color="#3fa45b" title="Green" aria-label="Green" style="background:#3fa45b"></button>
+          <button class="easel-draw-color" type="button" data-color="#9333ea" title="Purple" aria-label="Purple" style="background:#9333ea"></button>
+          <input class="easel-color-custom" type="color" id="draw-color-custom" title="Custom color" aria-label="Custom pen color" value="#1f1d1a" />
+        </div>
         <button class="easel-zoom-badge" id="zoom-badge" type="button" title="Reset zoom to 100%">100%</button>
         <div class="easel-minimap" id="minimap" hidden>
           <button class="easel-minimap-bar" id="minimap-toggle" type="button" aria-expanded="true" title="Collapse minimap">
@@ -1036,6 +1048,62 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     }
     .easel-text-color:hover { transform: scale(1.12); }
     .easel-text-color.is-active {
+      border-color: rgba(0, 0, 0, 0.55);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(0, 0, 0, 0.4);
+    }
+    /* Pen-style bar: stroke width + colour for freehand draw. Shown while Draw
+       mode is armed (styles the next strokes) or a single draw element is
+       selected (restyles it). Same top-center pill; Draw mode clears the box
+       selection and a draw element shows no other bar, so it never collides. */
+    .easel-drawbar {
+      position: absolute;
+      top: 0.9rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+      z-index: 6;
+    }
+    .easel-draw-width {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 26px;
+      padding: 0;
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      border-radius: 7px;
+      background: #fff;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+    .easel-draw-width:hover { background: #f1f0ec; }
+    .easel-draw-width svg path {
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+    }
+    .easel-draw-width.is-active {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+    .easel-draw-color {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+    }
+    .easel-draw-color:hover { transform: scale(1.12); }
+    .easel-draw-color.is-active {
       border-color: rgba(0, 0, 0, 0.55);
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(0, 0, 0, 0.4);
     }
@@ -1993,6 +2061,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const textbar = $("textbar");
     const boldBtn = $<HTMLButtonElement>("text-bold");
     const textColorCustom = $<HTMLInputElement>("text-color-custom");
+    const drawbar = $("drawbar");
+    const drawColorCustom = $<HTMLInputElement>("draw-color-custom");
     const dropHint = $("drop-hint");
     const templatesModal = $("templates-modal");
     const keysOverlay = $("keys-overlay");
@@ -2083,8 +2153,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     let connectMode = false;
     let drawMode = false;
     // Last-used freehand stroke style, so consecutive strokes stay consistent.
+    // Default width matches the pen-style bar's "medium" preset (4px).
     let lastDrawColor = "#1f1d1a";
-    let lastDrawWidth = 3;
+    let lastDrawWidth = 4;
     // A freehand stroke is "M x y L x y …" in the element's local box space.
     const drawPath = (pts: number[][]) =>
       pts.length ? "M" + pts.map((p) => `${p[0]} ${p[1]}`).join(" L") : "";
@@ -3187,6 +3258,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       connbar.hidden = true;
       reflectSwatches();
       reflectTextbar();
+      reflectDrawbar();
       updateAlignbar();
       updateLockTool();
       drawGroupBox();
@@ -3524,6 +3596,31 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const on = b.dataset.align === curAlign;
         b.classList.toggle("is-active", on);
         b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    };
+    // Pen-style bar: dual-purpose like the swatch bar. Shown while Draw mode is
+    // armed (reads/writes the carry-forward lastDrawColor + lastDrawWidth for the
+    // next strokes) or while a single draw element is selected (reads/writes that
+    // element's props.stroke + props.width). The two contexts are exclusive —
+    // arming Draw mode clears the box selection.
+    const reflectDrawbar = () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      const selDraw = el && el.type === "draw" ? el : null;
+      const show = drawMode || !!selDraw;
+      drawbar.hidden = !show;
+      if (!show) return;
+      const curColor = String(selDraw ? selDraw.props.stroke || "#1f1d1a" : lastDrawColor).toLowerCase();
+      const curWidth = Number(selDraw ? selDraw.props.width || 3 : lastDrawWidth);
+      let matchedPreset = false;
+      drawbar.querySelectorAll<HTMLButtonElement>(".easel-draw-color").forEach((b) => {
+        const on = (b.dataset.color || "").toLowerCase() === curColor;
+        if (on) matchedPreset = true;
+        b.classList.toggle("is-active", on);
+      });
+      if (/^#[0-9a-f]{6}$/.test(curColor)) drawColorCustom.value = curColor;
+      drawColorCustom.classList.toggle("is-active", !matchedPreset);
+      drawbar.querySelectorAll<HTMLButtonElement>(".easel-draw-width").forEach((b) => {
+        b.classList.toggle("is-active", Number(b.dataset.width) === curWidth);
       });
     };
 
@@ -4557,6 +4654,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       btn.classList.toggle("is-active", on);
       btn.setAttribute("aria-pressed", String(on));
       if (on) { if (connectMode) setConnectMode(false); selectEl(null); }
+      // Show/hide the pen-style bar for the armed state (selectEl above already
+      // refreshed it when arming; this covers disarming, which takes no selection
+      // path).
+      reflectDrawbar();
     };
     // 5.11 Grid mode is a VIEWPORT toggle, not a mutually-exclusive draw/connect
     // mode — it only flips snapping + the dot overlay, so it can stay on while you
@@ -5373,6 +5474,42 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       drawConnectors();
       reflectConnbar();
       scheduleSave();
+    });
+    // Pen-style bar: stroke width + colour. A click always updates the
+    // carry-forward defaults (lastDrawColor/lastDrawWidth) for the next stroke,
+    // and ALSO restyles the selected draw element when one is picked. pointerdown
+    // is swallowed so a click here never deselects or starts a pan.
+    const selectedDraw = () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      return el && el.type === "draw" ? el : null;
+    };
+    drawbar.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    drawbar.addEventListener("click", (ev) => {
+      const t = ev.target as HTMLElement;
+      const colorBtn = t.closest<HTMLButtonElement>(".easel-draw-color");
+      const widthBtn = t.closest<HTMLButtonElement>(".easel-draw-width");
+      const sel = selectedDraw();
+      if (colorBtn && colorBtn.dataset.color) {
+        lastDrawColor = colorBtn.dataset.color;
+        if (sel) { sel.props.stroke = colorBtn.dataset.color; renderEl(sel); scheduleSave(); }
+        reflectDrawbar();
+        return;
+      }
+      if (widthBtn && widthBtn.dataset.width) {
+        const wv = Number(widthBtn.dataset.width);
+        lastDrawWidth = wv;
+        if (sel) { sel.props.width = wv; renderEl(sel); scheduleSave(); }
+        reflectDrawbar();
+        return;
+      }
+    });
+    // Custom pen colour: any colour, fired live on input. (The bar's pointerdown
+    // stop keeps the draw element selected / Draw mode armed through the picker.)
+    drawColorCustom.addEventListener("input", () => {
+      lastDrawColor = drawColorCustom.value;
+      const sel = selectedDraw();
+      if (sel) { sel.props.stroke = drawColorCustom.value; renderEl(sel); scheduleSave(); }
+      reflectDrawbar();
     });
     $("tool-keys").addEventListener("click", () => { setKeysOverlay(keysOverlay.hidden); });
     // ---------- templates picker wiring ----------
