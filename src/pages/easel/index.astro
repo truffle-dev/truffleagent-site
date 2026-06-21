@@ -1577,19 +1577,29 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       user-select: text;
       cursor: text;
     }
+    /* Eight resize handles (4 corners + 4 edge midpoints), like every pro
+       canvas. Each carries data-rz with its direction; the gesture anchors the
+       opposite edge/corner so dragging a handle never moves the side you're not
+       touching. Corners resize both axes (and aspect-lock images / Shift), edge
+       handles resize a single axis. */
     .easel-resize-handle {
       position: absolute;
-      right: -7px;
-      bottom: -7px;
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       background: #4658e0;
       border: 2px solid #fdfbf7;
-      cursor: nwse-resize;
       display: none;
     }
     .easel-el.is-selected .easel-resize-handle { display: block; }
+    .easel-resize-handle[data-rz="nw"] { top: -6px; left: -6px; cursor: nwse-resize; }
+    .easel-resize-handle[data-rz="ne"] { top: -6px; right: -6px; cursor: nesw-resize; }
+    .easel-resize-handle[data-rz="se"] { bottom: -6px; right: -6px; cursor: nwse-resize; }
+    .easel-resize-handle[data-rz="sw"] { bottom: -6px; left: -6px; cursor: nesw-resize; }
+    .easel-resize-handle[data-rz="n"] { top: -6px; left: 50%; margin-left: -6px; cursor: ns-resize; }
+    .easel-resize-handle[data-rz="s"] { bottom: -6px; left: 50%; margin-left: -6px; cursor: ns-resize; }
+    .easel-resize-handle[data-rz="w"] { top: 50%; left: -6px; margin-top: -6px; cursor: ew-resize; }
+    .easel-resize-handle[data-rz="e"] { top: 50%; right: -6px; margin-top: -6px; cursor: ew-resize; }
     /* Rotation grip lives in #world (not on the node) so an element's own
        overflow:hidden never clips it. A zero-size host anchored at the
        element centre carries the box's rotation; the knob hangs above. */
@@ -2066,6 +2076,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     // keeps its current decorative paper texture; toggling on shows a world-aligned
     // dot grid and snaps drag/resize/new-element positions to GRID_STEP world units.
     const GRID_STEP = 20;
+    // The eight resize-handle directions: four corners then four edge midpoints.
+    const RESIZE_DIRS = ["nw", "ne", "se", "sw", "n", "e", "s", "w"] as const;
     let gridOn = false;
     const snapToGrid = (v: number) => Math.round(v / GRID_STEP) * GRID_STEP;
     const applyView = () => {
@@ -2211,9 +2223,12 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           svg.appendChild(path);
           node.appendChild(svg);
         }
-        const handle = document.createElement("div");
-        handle.className = "easel-resize-handle";
-        node.appendChild(handle);
+        for (const dir of RESIZE_DIRS) {
+          const handle = document.createElement("div");
+          handle.className = "easel-resize-handle";
+          handle.dataset.rz = dir;
+          node.appendChild(handle);
+        }
         world.appendChild(node);
         wireElement(node);
       }
@@ -3443,19 +3458,26 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     };
 
     const wireElement = (node: HTMLElement) => {
-      const handle = node.querySelector<HTMLElement>(".easel-resize-handle")!;
-
       node.addEventListener("pointerdown", (ev) => {
         if (ev.button !== 0 || node.dataset.editing === "1") return;
         ev.stopPropagation();
         const id = node.dataset.elId!;
         const el = getEl(id);
         if (!el) return;
+        // Which resize handle (if any) was grabbed. data-rz holds the direction
+        // (nw/n/ne/e/se/s/sw/w); empty string means a body grab (drag). Computed
+        // up front so the shift-toggle branch below can let Shift+handle through
+        // to the aspect-locked resize instead of swallowing it as a selection toggle.
+        const rzTarget = (ev.target instanceof HTMLElement && ev.target.classList.contains("easel-resize-handle"))
+          ? ev.target : null;
+        const resizeDir = rzTarget?.dataset.rz ?? "";
         // In connect mode a click wires an arrow instead of selecting/dragging.
         if (connectMode) { handleConnectPick(id); return; }
-        // Shift-click toggles membership without starting a drag. If the
-        // element belongs to a persistent group the whole group toggles.
-        if (ev.shiftKey) { toggleGroupSelection(id); return; }
+        // Shift-click on the body toggles membership without starting a drag (if
+        // the element belongs to a persistent group the whole group toggles). A
+        // Shift drag on a resize handle is a deliberate aspect-locked resize, so
+        // it falls through to the resize path rather than toggling selection.
+        if (ev.shiftKey && !rzTarget) { toggleGroupSelection(id); return; }
         // Clicking an element already inside a multi-selection keeps the group
         // (so you can drag the whole set); a plain click on anything else makes
         // it the sole selection — expanded to the full persistent group when
@@ -3480,7 +3502,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           node.style.zIndex = String(el.z);
         }
 
-        const resizing = !isGroup && ev.target === handle;
+        const resizing = !isGroup && resizeDir !== "";
         const start = stagePoint(ev.clientX, ev.clientY);
         const orig = { x: el.x, y: el.y, w: el.w, h: el.h };
         const ratio = orig.w / Math.max(orig.h, 1);
@@ -3504,18 +3526,44 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           // unless Alt is held — exactly like the alignment-guide bypass.
           const gsnap = gridOn && !mv.altKey;
           if (resizing) {
-            let nw = orig.w + dx;
-            if (gsnap) nw = Math.max(GRID_STEP, snapToGrid(nw));
-            el.w = Math.max(40, nw);
-            if (mv.shiftKey || el.type !== "image") {
-              let nh = orig.h + dy;
-              if (gsnap) nh = Math.max(GRID_STEP, snapToGrid(nh));
-              el.h = Math.max(40, nh);
-            } else {
-              // Aspect-locked image: derive height from the (snapped) width so the
-              // ratio holds and the box edge still lands on the grid.
-              el.h = Math.max(40, el.w / ratio);
+            // Work in edge coordinates so every handle anchors the side it isn't
+            // touching. A direction letter means that edge moves with the cursor;
+            // the opposite edge stays put. The moving edge snaps to the grid.
+            const hasN = resizeDir.includes("n"), hasS = resizeDir.includes("s");
+            const hasW = resizeDir.includes("w"), hasE = resizeDir.includes("e");
+            const isCorner = (hasN || hasS) && (hasW || hasE);
+            let left = orig.x, right = orig.x + orig.w;
+            let top = orig.y, bottom = orig.y + orig.h;
+            if (hasE) { right = orig.x + orig.w + dx; if (gsnap) right = snapToGrid(right); }
+            if (hasW) { left = orig.x + dx; if (gsnap) left = snapToGrid(left); }
+            if (hasS) { bottom = orig.y + orig.h + dy; if (gsnap) bottom = snapToGrid(bottom); }
+            if (hasN) { top = orig.y + dy; if (gsnap) top = snapToGrid(top); }
+            // Aspect lock applies on corners only: images lock by default (Shift
+            // frees them); other elements lock while Shift is held — matching the
+            // single-handle rule, just generalised to all four corners.
+            const aspectLock = isCorner
+              && ((el.type === "image" && !mv.shiftKey) || (el.type !== "image" && mv.shiftKey));
+            if (aspectLock) {
+              const nh = (right - left) / ratio;
+              if (hasN) top = bottom - nh; else bottom = top + nh;
             }
+            // Min-40 clamp re-anchors the fixed edge so a box never inverts.
+            if (right - left < 40) {
+              if (hasW) left = right - 40; else right = left + 40;
+              if (aspectLock) {
+                const nh = 40 / ratio;
+                if (hasN) top = bottom - nh; else bottom = top + nh;
+              }
+            }
+            if (bottom - top < 40) {
+              if (hasN) top = bottom - 40; else bottom = top + 40;
+              if (aspectLock) {
+                const nwid = 40 * ratio;
+                if (hasW) left = right - nwid; else right = left + nwid;
+              }
+            }
+            el.x = left; el.y = top;
+            el.w = right - left; el.h = bottom - top;
             renderEl(el);
           } else if (isGroup) {
             // Group move: translate every member, no snap guides (snapping a
@@ -3608,14 +3656,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         }
         if (el.type !== "text" && el.type !== "sticky" && el.type !== "shape") return;
         node.dataset.editing = "1";
-        // Pull the resize handle out of the editable region while editing.
+        // Pull the resize handles out of the editable region while editing.
         // selectAllChildren spans every child, and on a flex container (shapes)
-        // the browser merges typed text INTO the trailing block child — the
+        // the browser merges typed text INTO the trailing block child — a
         // handle — which duplicates the label and corrupts the read. With the
-        // handle detached, typed text has nowhere to merge; it is restored on
-        // finish. Harmless for text/sticky, which also gain a cleaner edit.
-        const hadHandle = handle.parentNode === node;
-        if (hadHandle) handle.remove();
+        // handles detached, typed text has nowhere to merge; they are restored
+        // on finish. Harmless for text/sticky, which also gain a cleaner edit.
+        const editHandles = Array.from(node.querySelectorAll<HTMLElement>(".easel-resize-handle"));
+        for (const h of editHandles) h.remove();
         // Detach suggestion chrome too: the badge text and × glyph would
         // otherwise be captured by the innerText read below and corrupt the
         // saved note. renderEl re-adds them on finish via applySuggestionChrome.
@@ -3639,10 +3687,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           // rendered text with line breaks in both cases. Trailing blank lines
           // that contenteditable tends to leave are trimmed.
           el.props.text = (node.innerText ?? "").replace(/\n+$/, "");
-          // Clear every edit artifact, then restore the resize handle, so
-          // renderEl rebuilds a single clean text node followed by the handle.
+          // Clear every edit artifact, then restore the resize handles, so
+          // renderEl rebuilds a single clean text node followed by the handles.
           Array.from(node.childNodes).forEach((c) => c.remove());
-          if (hadHandle) node.appendChild(handle);
+          for (const h of editHandles) node.appendChild(h);
           renderEl(el);
           scheduleSave();
           node.removeEventListener("blur", finish);
