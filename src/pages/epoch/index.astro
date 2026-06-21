@@ -1,0 +1,527 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const title = "Epoch · Unix Timestamp Converter (seconds, ms, µs, ns)";
+const description =
+  "Convert a Unix timestamp to a human date, or a date to a timestamp. Auto-detects seconds, milliseconds, microseconds, and nanoseconds. Live UTC and local time. Works offline, no accounts, no trackers.";
+const ogImage = "/img/og.jpg";
+const canonical = "https://truffleagent.com/epoch/";
+
+const webAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Unix Timestamp Converter",
+  alternateName: ["Epoch Converter", "Unix Time Converter", "Timestamp to Date", "Epoch Time"],
+  url: canonical,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any (Web)",
+  browserRequirements: "Requires JavaScript",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  description,
+  featureList: [
+    "Convert a Unix timestamp to a human-readable date",
+    "Auto-detect seconds, milliseconds, microseconds, and nanoseconds",
+    "Show both UTC and your local time",
+    "Relative time, like 3 hours ago",
+    "Convert a date back to a Unix timestamp",
+    "Live current epoch, ticking every second",
+    "Copy any value with one click",
+    "Works offline, no servers, no trackers",
+  ],
+  author: "Truffle",
+};
+
+const faq = [
+  {
+    q: "What is a Unix timestamp?",
+    a: "It is the number of seconds that have passed since midnight UTC on 1 January 1970, the Unix epoch. It is the most common way computers store a moment in time because it is a single integer with no timezone attached. A timestamp of 0 is the epoch itself; negative values are moments before 1970.",
+  },
+  {
+    q: "How does it know if my number is seconds or milliseconds?",
+    a: "By how many digits it has. A 10-digit number lands in the present day when read as seconds, so it is treated as seconds. A 13-digit number is milliseconds, 16 is microseconds, and 19 is nanoseconds. You can override the guess with the unit buttons if your value is unusual.",
+  },
+  {
+    q: "Why is the local time different from the UTC time?",
+    a: "A Unix timestamp has no timezone; it is a fixed instant. UTC and your local time are two labels for that same instant. The converter shows both so you can read the moment in the timezone you think in, while UTC stays the unambiguous reference everyone agrees on.",
+  },
+  {
+    q: "Can it handle dates before 1970?",
+    a: "Yes. Paste a negative timestamp and it resolves to a date before the epoch. The date-to-timestamp direction handles them too, so a 1960s date produces the correct negative value.",
+  },
+  {
+    q: "What is the year 2038 problem?",
+    a: "Systems that store Unix time in a signed 32-bit integer run out of room on 19 January 2038, when the second count exceeds 2,147,483,647 and wraps to a negative number. Anything using a 64-bit integer, which is now standard, is fine for roughly 292 billion years.",
+  },
+  {
+    q: "Does it track me or use cookies?",
+    a: "No. No ads, no analytics, no third-party scripts. Every conversion happens in your browser and nothing is sent anywhere.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<BaseLayout title={title} description={description} ogImage={ogImage} canonical={canonical}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(webAppJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  </Fragment>
+
+  <main class="ep-page">
+    <header class="ep-topbar">
+      <div class="ep-topbar-inner">
+        <div class="ep-brand">
+          <span class="ep-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 3" />
+            </svg>
+          </span>
+          <span class="ep-brand-name">Epoch</span>
+        </div>
+        <div class="ep-topbar-actions">
+          <button id="share-btn" type="button" class="ep-btn ep-btn-ghost">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8h16v-8" /><path d="M12 3v13" /><path d="M7 8l5-5 5 5" /></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="ep-now">
+      <p class="ep-now-label">Current Unix time</p>
+      <div class="ep-now-grid">
+        <button id="now-sec" type="button" class="ep-now-cell" title="Copy seconds">
+          <span class="ep-now-val" id="now-sec-val">0</span>
+          <span class="ep-now-unit">seconds</span>
+        </button>
+        <button id="now-ms" type="button" class="ep-now-cell" title="Copy milliseconds">
+          <span class="ep-now-val" id="now-ms-val">0</span>
+          <span class="ep-now-unit">milliseconds</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="ep-block">
+      <label class="ep-field">
+        <span class="ep-field-label">Timestamp to date</span>
+        <input id="ts-input" type="text" inputmode="numeric" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="1750500000" />
+      </label>
+      <div class="ep-units" role="group" aria-label="Unit">
+        <button type="button" class="ep-unit is-active" data-unit="auto">Auto</button>
+        <button type="button" class="ep-unit" data-unit="s">s</button>
+        <button type="button" class="ep-unit" data-unit="ms">ms</button>
+        <button type="button" class="ep-unit" data-unit="us">µs</button>
+        <button type="button" class="ep-unit" data-unit="ns">ns</button>
+      </div>
+      <div class="ep-out" id="ts-out" hidden></div>
+    </section>
+
+    <section class="ep-block">
+      <label class="ep-field">
+        <span class="ep-field-label">Date to timestamp</span>
+        <input id="date-input" type="datetime-local" step="1" />
+      </label>
+      <div class="ep-zone" role="group" aria-label="Read the date as">
+        <button type="button" class="ep-unit is-active" data-zone="local">Local time</button>
+        <button type="button" class="ep-unit" data-zone="utc">UTC</button>
+      </div>
+      <div class="ep-out" id="date-out" hidden></div>
+    </section>
+
+    <section class="ep-why">
+      <h2>Why this exists</h2>
+      <p>
+        Most epoch tools make you tell them whether your number is seconds or milliseconds, then
+        quietly mangle the answer when you get it wrong. This one reads the digit count and picks
+        the unit that lands in a sane range, handles microseconds and nanoseconds too, and shows
+        UTC and your local time side by side so you never have to do the offset in your head.
+        Everything runs in your browser.
+      </p>
+    </section>
+
+    <section class="ep-faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <div class="ep-faq-item">
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </main>
+
+  <div class="ep-toast" id="toast" hidden></div>
+</BaseLayout>
+
+<style is:global>
+  :root {
+    --ep-bg: #fbfaf5;
+    --ep-fg: #1a1611;
+    --ep-muted: #6b6359;
+    --ep-line: #e5dfd0;
+    --ep-card: #ffffff;
+    --ep-accent: #3a5b8c;
+    --ep-accent-soft: #d8e2ee;
+    --ep-ok: #3f7d52;
+    --ep-bad: #b0492f;
+  }
+  :root[data-theme="dark"] {
+    --ep-bg: #0e0c08;
+    --ep-fg: #f1ece0;
+    --ep-muted: #9c9485;
+    --ep-line: #2a2620;
+    --ep-card: #16130d;
+    --ep-accent: #7ba5d4;
+    --ep-accent-soft: #1a232e;
+    --ep-ok: #7fb98e;
+    --ep-bad: #d98a72;
+  }
+
+  body { background: var(--ep-bg); color: var(--ep-fg); }
+  .ep-page { max-width: 760px; margin: 0 auto; padding: 0 24px 96px; }
+
+  .ep-topbar { border-bottom: 1px solid var(--ep-line); padding: 18px 0; margin-bottom: 36px; }
+  .ep-topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .ep-brand { display: flex; align-items: center; gap: 10px; }
+  .ep-brand-mark { display: inline-flex; padding: 6px; border-radius: 8px; background: var(--ep-accent-soft); color: var(--ep-accent); }
+  .ep-brand-name { font-family: "Fraunces", serif; font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
+
+  .ep-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--ep-line);
+    background: var(--ep-card); color: var(--ep-fg);
+    font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .ep-btn:hover { border-color: var(--ep-accent); color: var(--ep-accent); }
+  .ep-btn-ghost { background: transparent; }
+
+  .ep-now { background: var(--ep-card); border: 1px solid var(--ep-line); border-radius: 16px; padding: 18px 20px 20px; }
+  .ep-now-label { margin: 0 0 12px; font-size: 12px; color: var(--ep-muted); font-weight: 500; letter-spacing: .02em; }
+  .ep-now-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ep-now-cell {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+    background: var(--ep-bg); border: 1px solid var(--ep-line); border-radius: 12px;
+    padding: 12px 14px; cursor: pointer; text-align: left; font: inherit;
+    transition: border-color .15s ease;
+  }
+  .ep-now-cell:hover { border-color: var(--ep-accent); }
+  .ep-now-val { font-family: "JetBrains Mono", monospace; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: var(--ep-fg); }
+  .ep-now-unit { font-size: 12px; color: var(--ep-muted); }
+
+  .ep-block { margin-top: 36px; }
+  .ep-field { display: flex; flex-direction: column; gap: 6px; }
+  .ep-field-label { font-size: 12px; color: var(--ep-muted); font-weight: 500; }
+  .ep-field input {
+    font: inherit; font-family: "JetBrains Mono", monospace; font-size: 16px;
+    padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--ep-line); background: var(--ep-card); color: var(--ep-fg);
+    outline: none; width: 100%; box-sizing: border-box;
+  }
+  .ep-field input:focus { border-color: var(--ep-accent); }
+
+  .ep-units, .ep-zone { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .ep-unit {
+    font: inherit; font-size: 13px; font-weight: 500;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--ep-line); background: var(--ep-card); color: var(--ep-muted);
+    cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .ep-unit:hover { border-color: var(--ep-accent); color: var(--ep-accent); }
+  .ep-unit.is-active { background: var(--ep-accent); border-color: var(--ep-accent); color: var(--ep-bg); }
+
+  .ep-out { margin-top: 16px; background: var(--ep-card); border: 1px solid var(--ep-line); border-radius: 14px; padding: 8px 20px; }
+  .ep-out[data-state="bad"] { border-color: var(--ep-bad); }
+  .ep-drow { display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--ep-line); }
+  .ep-drow:last-child { border-bottom: none; }
+  .ep-dkey { font-size: 13px; color: var(--ep-muted); }
+  .ep-dval { font-size: 15px; word-break: break-word; }
+  .ep-dval.mono { font-family: "JetBrains Mono", monospace; }
+  .ep-dval.ok { color: var(--ep-ok); }
+  .ep-dval.bad { color: var(--ep-bad); }
+  .ep-dval.copyable { cursor: pointer; }
+  .ep-dval.copyable:hover { color: var(--ep-accent); }
+  .ep-dval .ep-sub { display: block; color: var(--ep-muted); font-size: 12px; margin-top: 3px; }
+
+  .ep-why { margin-top: 64px; }
+  .ep-why h2, .ep-faq h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 28px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .ep-why p { font-size: 16px; line-height: 1.6; color: var(--ep-fg); max-width: 64ch; margin: 0; }
+
+  .ep-faq { margin-top: 56px; }
+  .ep-faq dl { display: grid; gap: 18px; margin: 0; }
+  .ep-faq-item { background: var(--ep-card); border: 1px solid var(--ep-line); border-radius: 14px; padding: 16px 20px; }
+  .ep-faq-item dt { font-weight: 600; margin: 0 0 6px; }
+  .ep-faq-item dd { color: var(--ep-muted); line-height: 1.55; margin: 0; }
+
+  .ep-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--ep-fg); color: var(--ep-bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 60;
+  }
+  .ep-toast[hidden] { display: none !important; }
+
+  @media (max-width: 560px) {
+    .ep-now-grid { grid-template-columns: 1fr; }
+    .ep-drow { grid-template-columns: 1fr; gap: 2px; }
+  }
+</style>
+
+<script>
+  // ---- helpers ------------------------------------------------------------
+  function toast(msg: string): void {
+    const el = document.getElementById("toast");
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+    window.clearTimeout((el as any)._t);
+    (el as any)._t = window.setTimeout(() => { el.hidden = true; }, 1600);
+  }
+
+  function copy(text: string, label: string): void {
+    navigator.clipboard?.writeText(text).then(
+      () => toast(label),
+      () => toast("Copy failed"),
+    );
+  }
+
+  function escapeHtml(s: string): string {
+    return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+  }
+
+  const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  function relTime(ms: number): string {
+    const diff = Date.now() - ms;
+    const abs = Math.abs(diff);
+    const units: [number, string][] = [
+      [31536000000, "year"], [2592000000, "month"], [86400000, "day"],
+      [3600000, "hour"], [60000, "minute"], [1000, "second"],
+    ];
+    for (const [u, name] of units) {
+      if (abs >= u) {
+        const n = Math.round(abs / u);
+        const plural = n === 1 ? name : name + "s";
+        return diff >= 0 ? `${n} ${plural} ago` : `in ${n} ${plural}`;
+      }
+    }
+    return "just now";
+  }
+
+  // ISO-ish UTC: 2026-06-21 09:30:00 UTC
+  function fmtUtc(ms: number): string {
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return "out of range";
+    return d.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC").replace(/Z$/, " UTC");
+  }
+
+  // Local time with the viewer's timezone label
+  function fmtLocal(ms: number): string {
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return "out of range";
+    try {
+      return new Intl.DateTimeFormat(undefined, {
+        year: "numeric", month: "short", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false, timeZoneName: "short",
+      }).format(d);
+    } catch {
+      return d.toString();
+    }
+  }
+
+  // ---- timestamp -> date --------------------------------------------------
+  type Unit = "auto" | "s" | "ms" | "us" | "ns";
+  let tsUnit: Unit = "auto";
+
+  // pick a unit by digit count of the absolute integer part
+  function detectUnit(digits: number): Exclude<Unit, "auto"> {
+    if (digits <= 11) return "s";
+    if (digits <= 14) return "ms";
+    if (digits <= 17) return "us";
+    return "ns";
+  }
+
+  const UNIT_LABEL: Record<Exclude<Unit, "auto">, string> = {
+    s: "seconds", ms: "milliseconds", us: "microseconds", ns: "nanoseconds",
+  };
+
+  function toMillis(value: number, unit: Exclude<Unit, "auto">): number {
+    switch (unit) {
+      case "s": return value * 1000;
+      case "ms": return value;
+      case "us": return value / 1000;
+      case "ns": return value / 1e6;
+    }
+  }
+
+  type Row = { key: string; val: string; cls?: string; sub?: string; copy?: string };
+
+  function renderOut(panel: HTMLElement, rows: Row[], state: "ok" | "bad"): void {
+    panel.hidden = false;
+    panel.dataset.state = state;
+    panel.innerHTML = rows
+      .map((r) => {
+        const copyable = r.copy ? " copyable" : "";
+        const cls = "ep-dval" + (r.cls ? " " + r.cls : "") + copyable;
+        const sub = r.sub ? `<span class="ep-sub">${escapeHtml(r.sub)}</span>` : "";
+        const data = r.copy ? ` data-copy="${escapeHtml(r.copy)}"` : "";
+        return `<div class="ep-drow"><span class="ep-dkey">${escapeHtml(r.key)}</span><span class="${cls}"${data}>${escapeHtml(r.val)}${sub}</span></div>`;
+      })
+      .join("");
+    panel.querySelectorAll<HTMLElement>(".ep-dval.copyable").forEach((el) => {
+      el.addEventListener("click", () => copy(el.dataset.copy ?? el.textContent ?? "", "Copied"));
+    });
+  }
+
+  function runTs(): void {
+    const input = document.getElementById("ts-input") as HTMLInputElement | null;
+    const panel = document.getElementById("ts-out");
+    if (!input || !panel) return;
+    const raw = input.value.trim().replace(/[,_\s]/g, "");
+    if (raw === "") { panel.hidden = true; return; }
+
+    if (!/^-?\d+$/.test(raw)) {
+      renderOut(panel, [
+        { key: "Valid", val: "Not a number", cls: "bad" },
+        { key: "Expected", val: "A whole number of seconds, milliseconds, microseconds, or nanoseconds since 1970." },
+      ], "bad");
+      return;
+    }
+
+    const neg = raw.startsWith("-");
+    const digits = raw.replace("-", "").replace(/^0+(?=\d)/, "").length;
+    const unit: Exclude<Unit, "auto"> = tsUnit === "auto" ? detectUnit(digits) : tsUnit;
+    const value = Number(raw);
+    const ms = toMillis(value, unit);
+    const d = new Date(ms);
+
+    if (Number.isNaN(d.getTime()) || ms > 8.64e15 || ms < -8.64e15) {
+      renderOut(panel, [
+        { key: "Valid", val: "Out of range", cls: "bad" },
+        { key: "Note", val: "JavaScript dates span roughly 271,821 BC to 275,760 AD. This value falls outside that." },
+      ], "bad");
+      return;
+    }
+
+    const detected = tsUnit === "auto" ? `auto-detected as ${UNIT_LABEL[unit]}` : `read as ${UNIT_LABEL[unit]}`;
+    const rows: Row[] = [
+      { key: "Read as", val: UNIT_LABEL[unit], sub: tsUnit === "auto" ? "from digit count · tap a unit to override" : "manual override" },
+      { key: "UTC", val: fmtUtc(ms), cls: "ok mono", copy: fmtUtc(ms) },
+      { key: "Local", val: fmtLocal(ms), cls: "mono", copy: fmtLocal(ms) },
+      { key: "Day", val: WEEKDAYS[new Date(ms).getUTCDay()] + " (UTC)" },
+      { key: "Relative", val: relTime(ms) },
+      { key: "ISO 8601", val: new Date(ms).toISOString(), cls: "mono", copy: new Date(ms).toISOString() },
+    ];
+    void neg; void detected;
+    renderOut(panel, rows, "ok");
+  }
+
+  // ---- date -> timestamp --------------------------------------------------
+  let dateZone: "local" | "utc" = "local";
+
+  function runDate(): void {
+    const input = document.getElementById("date-input") as HTMLInputElement | null;
+    const panel = document.getElementById("date-out");
+    if (!input || !panel) return;
+    const v = input.value; // YYYY-MM-DDTHH:MM[:SS]
+    if (v === "") { panel.hidden = true; return; }
+
+    const m = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!m) {
+      renderOut(panel, [{ key: "Valid", val: "Could not read the date", cls: "bad" }], "bad");
+      return;
+    }
+    const [, yy, mo, dd, hh, mi, ss] = m;
+    const parts = [Number(yy), Number(mo) - 1, Number(dd), Number(hh), Number(mi), Number(ss ?? "0")] as const;
+    const ms = dateZone === "utc"
+      ? Date.UTC(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
+      : new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]).getTime();
+
+    if (Number.isNaN(ms)) {
+      renderOut(panel, [{ key: "Valid", val: "Could not read the date", cls: "bad" }], "bad");
+      return;
+    }
+
+    const secs = Math.floor(ms / 1000);
+    const rows: Row[] = [
+      { key: "Read as", val: dateZone === "utc" ? "UTC" : "your local time" },
+      { key: "Seconds", val: String(secs), cls: "ok mono", copy: String(secs) },
+      { key: "Milliseconds", val: String(ms), cls: "mono", copy: String(ms) },
+      { key: "UTC", val: fmtUtc(ms), cls: "mono" },
+      { key: "Relative", val: relTime(ms) },
+    ];
+    renderOut(panel, rows, "ok");
+  }
+
+  // ---- live now -----------------------------------------------------------
+  function tickNow(): void {
+    const now = Date.now();
+    const secEl = document.getElementById("now-sec-val");
+    const msEl = document.getElementById("now-ms-val");
+    if (secEl) secEl.textContent = String(Math.floor(now / 1000));
+    if (msEl) msEl.textContent = String(now);
+  }
+
+  // ---- wiring -------------------------------------------------------------
+  function setActive(group: NodeListOf<Element>, el: Element): void {
+    group.forEach((b) => b.classList.toggle("is-active", b === el));
+  }
+
+  function init(): void {
+    tickNow();
+    window.setInterval(tickNow, 1000);
+
+    document.getElementById("now-sec")?.addEventListener("click", () =>
+      copy(String(Math.floor(Date.now() / 1000)), "Copied seconds"));
+    document.getElementById("now-ms")?.addEventListener("click", () =>
+      copy(String(Date.now()), "Copied milliseconds"));
+
+    const tsInput = document.getElementById("ts-input") as HTMLInputElement | null;
+    tsInput?.addEventListener("input", runTs);
+
+    const unitBtns = document.querySelectorAll(".ep-unit[data-unit]");
+    unitBtns.forEach((b) => b.addEventListener("click", () => {
+      tsUnit = (b as HTMLElement).dataset.unit as Unit;
+      setActive(unitBtns, b);
+      runTs();
+    }));
+
+    const dateInput = document.getElementById("date-input") as HTMLInputElement | null;
+    dateInput?.addEventListener("input", runDate);
+
+    const zoneBtns = document.querySelectorAll(".ep-unit[data-zone]");
+    zoneBtns.forEach((b) => b.addEventListener("click", () => {
+      dateZone = (b as HTMLElement).dataset.zone as "local" | "utc";
+      setActive(zoneBtns, b);
+      runDate();
+    }));
+
+    document.getElementById("share-btn")?.addEventListener("click", () => {
+      const url = "https://truffleagent.com/epoch/";
+      if (navigator.share) navigator.share({ title: "Epoch", url }).catch(() => {});
+      else copy(url, "Link copied");
+    });
+
+    // seed the timestamp field with the current second so the page is never empty
+    if (tsInput) { tsInput.value = String(Math.floor(Date.now() / 1000)); runTs(); }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+</script>
