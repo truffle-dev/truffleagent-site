@@ -100,6 +100,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-tool" id="tool-upload" type="button" title="Upload images (U)">Upload</button>
           <button class="easel-tool" id="tool-zoom-fit" type="button" title="Fit board (F)">Fit</button>
           <button class="easel-tool" id="tool-grid" type="button" title="Snap to grid (G)" aria-pressed="false">Grid</button>
+          <button class="easel-tool" id="tool-present" type="button" title="Present frames as slides (Esc to exit)">Present</button>
           <button class="easel-tool" id="tool-keys" type="button" title="Keyboard shortcuts (?)" aria-haspopup="dialog" aria-expanded="false">?</button>
           <span class="easel-save-state" id="save-state" aria-live="polite">Saved</span>
           <div class="easel-export-wrap">
@@ -248,6 +249,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <dt><kbd>G</kbd></dt><dd>Toggle snap-to-grid: drag, resize, and new elements snap to a 20px grid (<kbd>Alt</kbd> bypasses)</dd>
             <dt>Minimap</dt><dd>Click or drag the bottom-left overview to move around a large board</dd>
             <dt><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>F</kbd></dt><dd>Find on board: type to locate elements by text, <kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd> to cycle matches</dd>
+            <dt>Present</dt><dd>Step through your frames as slides: click or <kbd>→</kbd> / <kbd>Space</kbd> to advance, <kbd>←</kbd> back, <kbd>Esc</kbd> to exit</dd>
             <dt>Text style</dt><dd>Select a text, sticky, or shape to set font size, bold, alignment, and colour from the top bar</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>C</kbd></dt><dd>Copy the selection</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>X</kbd></dt><dd>Cut the selection</dd>
@@ -324,6 +326,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <span class="easel-ctx-sep"></span>
           <button class="easel-ctx-item" type="button" role="menuitem" data-ctx="selectall">Select all<span class="easel-ctx-key">Ctrl+A</span></button>
           <button class="easel-ctx-item easel-ctx-danger" type="button" role="menuitem" data-ctx="delete">Delete<span class="easel-ctx-key">Del</span></button>
+        </div>
+        <div class="easel-present-overlay" id="present-overlay" role="dialog" aria-label="Presentation mode" hidden>
+          <button class="easel-present-backdrop" id="present-backdrop" type="button" aria-label="Next slide"></button>
+          <div class="easel-present-bar" id="present-bar">
+            <button class="easel-present-nav" id="present-prev" type="button" title="Previous slide (Left arrow)" aria-label="Previous slide"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg></button>
+            <span class="easel-present-count" id="present-count" aria-live="polite">1 / 1</span>
+            <button class="easel-present-nav" id="present-next" type="button" title="Next slide (Right arrow / Space)" aria-label="Next slide"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 3l5 5-5 5" /></svg></button>
+            <span class="easel-present-label" id="present-label"></span>
+            <span class="easel-align-sep"></span>
+            <button class="easel-present-exit" id="present-exit" type="button" title="Exit presentation (Esc)">Exit</button>
+          </div>
         </div>
       </div>
 
@@ -1182,6 +1195,111 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       stroke-width: 1.7;
       stroke-linecap: round;
       stroke-linejoin: round;
+    }
+    /* 5.21 presentation mode — step through frames as slides. While presenting,
+       .is-presenting hides every editing affordance (top bar, agent dock, minimap,
+       zoom badge, all contextual bars) so the board itself fills the screen. A
+       transparent full-stage backdrop advances on click; a floating control pill
+       carries prev / counter / next / label / exit. Human-only (the agent already
+       SEES the board and reads frames from the doc) — no MCP twin, same class as
+       the minimap and find bar. */
+    .easel-present-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 9;
+    }
+    .easel-present-backdrop {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .easel-present-bar {
+      position: absolute;
+      bottom: 1.4rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+    }
+    .easel-present-nav {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+    .easel-present-nav:hover { background: #f1f0ec; }
+    .easel-present-nav:disabled { color: rgba(0, 0, 0, 0.25); cursor: default; background: transparent; }
+    .easel-present-nav svg path {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .easel-present-count {
+      flex: none;
+      min-width: 3rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: rgba(0, 0, 0, 0.6);
+      font-variant-numeric: tabular-nums;
+    }
+    .easel-present-label {
+      max-width: 16rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.85rem;
+      color: #1a1a1a;
+      padding: 0 0.2rem;
+    }
+    .easel-present-label:empty { display: none; }
+    .easel-present-exit {
+      flex: none;
+      border: none;
+      border-radius: 999px;
+      background: #1a1a1a;
+      color: #fff;
+      font: inherit;
+      font-size: 0.82rem;
+      padding: 0.32rem 0.8rem;
+      cursor: pointer;
+    }
+    .easel-present-exit:hover { background: #333; }
+    /* Chrome hidden while presenting. The stage + world stay visible; only the
+       editing surfaces go away so the slides read clean. */
+    .easel-workspace.is-presenting .easel-topbar,
+    .easel-workspace.is-presenting .easel-agent,
+    .easel-workspace.is-presenting #minimap,
+    .easel-workspace.is-presenting #zoom-badge,
+    .easel-workspace.is-presenting #swatches,
+    .easel-workspace.is-presenting #alignbar,
+    .easel-workspace.is-presenting #connbar,
+    .easel-workspace.is-presenting #textbar,
+    .easel-workspace.is-presenting #drawbar,
+    .easel-workspace.is-presenting #findbar,
+    .easel-workspace.is-presenting #coach,
+    .easel-workspace.is-presenting #empty-hint {
+      display: none !important;
     }
     /* The wide invisible hit target that makes a thin connector clickable, plus
        the selected-connector highlight (CSS stroke-width + a glow; the line's
@@ -2144,6 +2262,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const findCount = $("find-count");
     const findPrev = $<HTMLButtonElement>("find-prev");
     const findNext = $<HTMLButtonElement>("find-next");
+    const presentOverlay = $("present-overlay");
+    const presentCount = $("present-count");
+    const presentLabel = $("present-label");
+    const presentPrev = $<HTMLButtonElement>("present-prev");
+    const presentNext = $<HTMLButtonElement>("present-next");
     const dropHint = $("drop-hint");
     const templatesModal = $("templates-modal");
     const keysOverlay = $("keys-overlay");
@@ -4411,8 +4534,116 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     findNext.addEventListener("click", () => goToMatch(findIdx + 1));
     $("find-close").addEventListener("click", () => setFindbar(false));
 
+    // ---------- presentation mode ----------
+    // Step through the board's frames as slides — the Figma/FigJam signature move,
+    // built directly on the existing frame primitive. Entering hides every editing
+    // affordance (.is-presenting), fits one frame to the viewport, and turns the
+    // board into a deck you advance with click / arrows / Space. Esc restores the
+    // exact pan/zoom you had. Human-only presentation reflex (the agent already
+    // SEES the board and reads frames from the doc) — no MCP twin, same class as
+    // the minimap and find bar. Pure view state: it never mutates the doc.
+    let presenting = false;
+    let presentIdx = 0;
+    let presentFrames: string[] = [];
+    let presentSavedView: { panX: number; panY: number; zoom: number } | null = null;
+    // Fit an arbitrary world box to the stage, centred, with breathing room. Same
+    // clamp/centre math as zoomToFit but scoped to one frame instead of the bbox.
+    const fitToBox = (minX: number, minY: number, maxX: number, maxY: number, pad: number) => {
+      const r = stage.getBoundingClientRect();
+      zoom = Math.min(2, Math.max(0.1, Math.min(
+        (r.width - pad * 2) / Math.max(maxX - minX, 1),
+        (r.height - pad * 2) / Math.max(maxY - minY, 1),
+      )));
+      panX = (r.width - (maxX - minX) * zoom) / 2 - minX * zoom;
+      panY = (r.height - (maxY - minY) * zoom) / 2 - minY * zoom;
+      applyView();
+    };
+    const showSlide = (i: number) => {
+      if (!presentFrames.length) return;
+      presentIdx = Math.max(0, Math.min(i, presentFrames.length - 1));
+      const fr = getEl(presentFrames[presentIdx]);
+      if (!fr) return;
+      // rAF so the chrome-hiding reflow lands before we measure the stage.
+      requestAnimationFrame(() => fitToBox(fr.x, fr.y, fr.x + fr.w, fr.y + fr.h, 48));
+      presentCount.textContent = `${presentIdx + 1} / ${presentFrames.length}`;
+      const label = typeof fr.props.label === "string" ? fr.props.label.trim() : "";
+      presentLabel.textContent = label;
+      presentPrev.disabled = presentIdx === 0;
+      presentNext.disabled = presentIdx === presentFrames.length - 1;
+    };
+    const startPresent = () => {
+      if (presenting) return;
+      // Frames in reading order are the slides. No frames → nothing to present.
+      presentFrames = doc.elements
+        .filter((e) => e.type === "frame")
+        .sort((a, b) => (a.y - b.y) || (a.x - b.x))
+        .map((e) => e.id);
+      if (!presentFrames.length) {
+        // Nothing to present without frames; nudge via the save-state pill and
+        // let it settle back on its own (no edit happened, so restore manually).
+        setSaveState("Add a frame (R) to present");
+        window.setTimeout(() => {
+          if (saveState.textContent === "Add a frame (R) to present") setSaveState("Saved");
+        }, 2600);
+        return;
+      }
+      presenting = true;
+      presentSavedView = { panX, panY, zoom };
+      // Drop every transient editing affordance so the deck reads clean.
+      selectEl(null);
+      clearConnectorSelection();
+      setFindbar(false);
+      if (connectMode) setConnectMode(false);
+      if (drawMode) setDrawMode(false);
+      hideCtxMenu();
+      workspace.classList.add("is-presenting");
+      presentOverlay.hidden = false;
+      showSlide(0);
+    };
+    const exitPresent = () => {
+      if (!presenting) return;
+      presenting = false;
+      workspace.classList.remove("is-presenting");
+      presentOverlay.hidden = true;
+      if (presentSavedView) {
+        ({ panX, panY, zoom } = presentSavedView);
+        presentSavedView = null;
+        applyView();
+      }
+    };
+    $("tool-present").addEventListener("click", startPresent);
+    $("present-backdrop").addEventListener("click", () => showSlide(presentIdx + 1));
+    presentPrev.addEventListener("click", () => showSlide(presentIdx - 1));
+    presentNext.addEventListener("click", () => showSlide(presentIdx + 1));
+    $("present-exit").addEventListener("click", exitPresent);
+    // The control pill is above the click-to-advance backdrop, but stop its own
+    // pointer events from leaking through to the backdrop just in case.
+    $("present-bar").addEventListener("pointerdown", (ev) => ev.stopPropagation());
+
     document.addEventListener("keydown", (ev) => {
       if (workspace.hidden) return;
+      // Presentation mode owns the keyboard entirely: arrows / Space / PageDown
+      // advance, Esc exits, and every other key is swallowed so no editing
+      // shortcut fires behind the deck.
+      if (presenting) {
+        if (ev.key === "ArrowRight" || ev.key === " " || ev.code === "Space" || ev.key === "PageDown") {
+          ev.preventDefault();
+          showSlide(presentIdx + 1);
+        } else if (ev.key === "ArrowLeft" || ev.key === "PageUp") {
+          ev.preventDefault();
+          showSlide(presentIdx - 1);
+        } else if (ev.key === "Home") {
+          ev.preventDefault();
+          showSlide(0);
+        } else if (ev.key === "End") {
+          ev.preventDefault();
+          showSlide(presentFrames.length - 1);
+        } else if (ev.key === "Escape") {
+          ev.preventDefault();
+          exitPresent();
+        }
+        return;
+      }
       // Escape closes the context menu first, before any other Escape handling.
       if (ev.key === "Escape" && !ctxmenu.hidden) {
         ev.preventDefault();
