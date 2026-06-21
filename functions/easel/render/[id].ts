@@ -63,7 +63,11 @@ function justifyFor(align: string): string {
 
 function elementHtml(el: EaselElement): string {
   const rot = el.rotation ? `transform:rotate(${Number(el.rotation)}deg);` : "";
-  const base = `left:${Number(el.x)}px;top:${Number(el.y)}px;width:${Number(el.w)}px;height:${Number(el.h)}px;z-index:${Number(el.z)};${rot}`;
+  // Element opacity (props.opacity, 0.1..1). Mirrors the canvas renderEl and the
+  // agent's update_elements props.opacity; full opacity emits nothing.
+  const opNum = Number((el.props ?? {}).opacity);
+  const op = Number.isFinite(opNum) && opNum < 1 ? `opacity:${Math.max(0.1, Math.min(1, opNum))};` : "";
+  const base = `left:${Number(el.x)}px;top:${Number(el.y)}px;width:${Number(el.w)}px;height:${Number(el.h)}px;z-index:${Number(el.z)};${rot}${op}`;
   const p = el.props ?? {};
   switch (el.type) {
     case "image": {

@@ -217,6 +217,11 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-draw-color" type="button" data-color="#9333ea" title="Purple" aria-label="Purple" style="background:#9333ea"></button>
           <input class="easel-color-custom" type="color" id="draw-color-custom" title="Custom color" aria-label="Custom pen color" value="#1f1d1a" />
         </div>
+        <div class="easel-opacitybar" id="opacitybar" role="group" aria-label="Opacity" hidden>
+          <svg class="easel-opacity-icon" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="8" cy="8" r="6" /><path d="M8 2a6 6 0 0 1 0 12z" /></svg>
+          <input class="easel-opacity-range" id="opacity-range" type="range" min="10" max="100" step="1" value="100" title="Element opacity" aria-label="Element opacity" />
+          <span class="easel-opacity-val" id="opacity-val" aria-live="polite">100%</span>
+        </div>
         <div class="easel-findbar" id="findbar" role="search" hidden>
           <svg class="easel-find-icon" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="7" cy="7" r="4.2" /><path d="M10.2 10.2 14 14" /></svg>
           <input class="easel-find-input" id="find-input" type="text" placeholder="Find on board" aria-label="Find on board" autocomplete="off" spellcheck="false" />
@@ -1129,6 +1134,73 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     .easel-draw-color.is-active {
       border-color: rgba(0, 0, 0, 0.55);
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(0, 0, 0, 0.4);
+    }
+    /* Opacity bar: a single universal pill shown for any lone non-connector
+       selection (the only style control that covers image and frame, which
+       have no type bar of their own). It stacks BELOW whichever type bars are
+       present — one row down for a text/draw box (.is-row1), two rows down for
+       a sticky/shape that already shows swatches + the stacked text bar
+       (.is-row2) — so the pills never overlap. */
+    .easel-opacitybar {
+      position: absolute;
+      top: 0.9rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.7rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+      z-index: 6;
+    }
+    .easel-opacitybar.is-row1 { top: 3.4rem; }
+    .easel-opacitybar.is-row2 { top: 5.9rem; }
+    .easel-opacity-icon {
+      color: #5b6472;
+      flex: 0 0 auto;
+    }
+    .easel-opacity-icon circle { fill: none; stroke: currentColor; stroke-width: 1.4; }
+    .easel-opacity-icon path { fill: currentColor; stroke: none; }
+    .easel-opacity-range {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 116px;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(to right, #c7ccd6, #1a1a1a);
+      cursor: pointer;
+      margin: 0;
+    }
+    .easel-opacity-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #1a1a1a;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    }
+    .easel-opacity-range::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #1a1a1a;
+      cursor: pointer;
+    }
+    .easel-opacity-range:disabled { cursor: not-allowed; opacity: 0.45; }
+    .easel-opacity-val {
+      min-width: 2.8em;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
     }
     /* Find on board (Ctrl+F): a search pill anchored top-right so it never
        collides with the top-centre contextual bars (swatches/align/conn/text/
@@ -2257,6 +2329,9 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const textColorCustom = $<HTMLInputElement>("text-color-custom");
     const drawbar = $("drawbar");
     const drawColorCustom = $<HTMLInputElement>("draw-color-custom");
+    const opacitybar = $("opacitybar");
+    const opacityRange = $<HTMLInputElement>("opacity-range");
+    const opacityVal = $("opacity-val");
     const findbar = $("findbar");
     const findInput = $<HTMLInputElement>("find-input");
     const findCount = $("find-count");
@@ -2693,6 +2768,15 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       node.style.height = `${el.h}px`;
       node.style.zIndex = String(el.z);
       node.style.transform = el.rotation ? `rotate(${el.rotation}deg)` : "";
+      // Element opacity (props.opacity, 0.1..1). Applied here on the canonical
+      // render path so it survives every move/resize/restyle and mirrors the
+      // render route + the agent's update_elements props.opacity. Full opacity
+      // (the default) clears the inline style so nothing is forced.
+      {
+        const op = Number(el.props.opacity);
+        node.style.opacity = el.props.opacity != null && Number.isFinite(op) && op < 1
+          ? String(Math.max(0.1, Math.min(1, op))) : "";
+      }
       if (el.type === "image") {
         const img = node.querySelector("img")!;
         const src = String(el.props.src || "");
@@ -3463,6 +3547,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       reflectSwatches();
       reflectTextbar();
       reflectDrawbar();
+      reflectOpacity(); // after the type bars — reads their .hidden for stacking
       updateAlignbar();
       updateLockTool();
       drawGroupBox();
@@ -3826,6 +3911,29 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       drawbar.querySelectorAll<HTMLButtonElement>(".easel-draw-width").forEach((b) => {
         b.classList.toggle("is-active", Number(b.dataset.width) === curWidth);
       });
+    };
+    // Opacity bar: the one style control that covers every non-connector type,
+    // including image and frame (which have no type bar). Shown for a lone box
+    // selection and stacked below whatever type bars are already up — each
+    // visible type bar takes one row from the top, so the row offset is just the
+    // count of visible type bars (swatches + textbar for sticky/shape = 2;
+    // textbar or drawbar alone for text/draw = 1; none for image/frame = 0).
+    const reflectOpacity = () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      const show = !!el && el.type !== "connector";
+      opacitybar.hidden = !show;
+      if (!el) return;
+      const rows = (swatches.hidden ? 0 : 1) + (textbar.hidden ? 0 : 1) + (drawbar.hidden ? 0 : 1);
+      opacitybar.classList.toggle("is-row1", rows === 1);
+      opacitybar.classList.toggle("is-row2", rows >= 2);
+      const op = Number(el.props.opacity);
+      const pct = el.props.opacity != null && Number.isFinite(op)
+        ? Math.round(Math.max(0.1, Math.min(1, op)) * 100) : 100;
+      opacityRange.value = String(pct);
+      opacityVal.textContent = `${pct}%`;
+      // A locked element is read-only to humans (parity with move/resize/edit),
+      // so the slider is disabled; the agent can still set props.opacity.
+      opacityRange.disabled = !!el.props.locked;
     };
 
     const wireElement = (node: HTMLElement) => {
@@ -5919,6 +6027,21 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const sel = selectedDraw();
       if (sel) { sel.props.stroke = drawColorCustom.value; renderEl(sel); scheduleSave(); }
       reflectDrawbar();
+    });
+    // ---------- opacity slider wiring ----------
+    // Live drag updates props.opacity on the lone selected box (parity with the
+    // agent's update_elements props.opacity). The bar's pointerdown stop keeps
+    // the element selected through the drag; a locked element's slider is
+    // disabled in reflectOpacity so no human edit lands on a locked box.
+    opacitybar.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    opacityRange.addEventListener("input", () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      if (!el || el.type === "connector" || el.props.locked) return;
+      const v = Math.max(0.1, Math.min(1, Number(opacityRange.value) / 100));
+      if (v >= 1) delete el.props.opacity; else el.props.opacity = v;
+      opacityVal.textContent = `${Math.round(v * 100)}%`;
+      renderEl(el);
+      scheduleSave();
     });
     $("tool-keys").addEventListener("click", () => { setKeysOverlay(keysOverlay.hidden); });
     // ---------- templates picker wiring ----------
