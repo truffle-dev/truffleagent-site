@@ -184,6 +184,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-conn-color" type="button" data-color="#e0564f" title="Red" aria-label="Red" style="background:#e0564f"></button>
           <button class="easel-conn-color" type="button" data-color="#2f6fed" title="Blue" aria-label="Blue" style="background:#2f6fed"></button>
           <button class="easel-conn-color" type="button" data-color="#3fa45b" title="Green" aria-label="Green" style="background:#3fa45b"></button>
+          <input class="easel-color-custom" type="color" id="conn-color-custom" title="Custom color" aria-label="Custom connector color" value="#5b6472" />
           <span class="easel-align-sep"></span>
           <button class="easel-conn-del" id="conn-del" type="button" title="Delete connector" aria-label="Delete connector"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3 4h10M6 4V2.6h4V4M5 4l.6 9h4.8L11 4" /></svg></button>
         </div>
@@ -201,6 +202,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-text-color" type="button" data-color="#e0564f" title="Red" aria-label="Red text" style="background:#e0564f"></button>
           <button class="easel-text-color" type="button" data-color="#2f6fed" title="Blue" aria-label="Blue text" style="background:#2f6fed"></button>
           <button class="easel-text-color" type="button" data-color="#3fa45b" title="Green" aria-label="Green text" style="background:#3fa45b"></button>
+          <input class="easel-color-custom" type="color" id="text-color-custom" title="Custom color" aria-label="Custom text color" value="#1a1a1a" />
         </div>
         <button class="easel-zoom-badge" id="zoom-badge" type="button" title="Reset zoom to 100%">100%</button>
         <div class="easel-minimap" id="minimap" hidden>
@@ -776,7 +778,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
        conic gradient (the "pick any colour" affordance); the chosen colour shows
        on the element, not the button. is-active rings it when the selection's
        colour is a custom (non-preset) value. */
-    .easel-swatch-custom {
+    .easel-swatch-custom,
+    .easel-color-custom {
       width: 20px;
       height: 20px;
       padding: 0;
@@ -788,11 +791,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       appearance: none;
       background: conic-gradient(from 90deg, #ff5757, #ffd166, #6ee7a8, #56b3ff, #b388ff, #ff5757);
     }
-    .easel-swatch-custom::-webkit-color-swatch-wrapper { padding: 0; }
-    .easel-swatch-custom::-webkit-color-swatch { border: none; display: none; }
-    .easel-swatch-custom::-moz-color-swatch { border: none; display: none; }
-    .easel-swatch-custom:hover { transform: scale(1.12); }
-    .easel-swatch-custom.is-active {
+    .easel-swatch-custom::-webkit-color-swatch-wrapper,
+    .easel-color-custom::-webkit-color-swatch-wrapper { padding: 0; }
+    .easel-swatch-custom::-webkit-color-swatch,
+    .easel-color-custom::-webkit-color-swatch { border: none; display: none; }
+    .easel-swatch-custom::-moz-color-swatch,
+    .easel-color-custom::-moz-color-swatch { border: none; display: none; }
+    .easel-swatch-custom:hover,
+    .easel-color-custom:hover { transform: scale(1.12); }
+    .easel-swatch-custom.is-active,
+    .easel-color-custom.is-active {
       border-color: rgba(0, 0, 0, 0.55);
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 3px rgba(0, 0, 0, 0.4);
     }
@@ -1981,8 +1989,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const connbar = $("connbar");
     const connStyleBtn = $<HTMLButtonElement>("conn-style");
     const connRouteBtn = $<HTMLButtonElement>("conn-route");
+    const connColorCustom = $<HTMLInputElement>("conn-color-custom");
     const textbar = $("textbar");
     const boldBtn = $<HTMLButtonElement>("text-bold");
+    const textColorCustom = $<HTMLInputElement>("text-color-custom");
     const dropHint = $("drop-hint");
     const templatesModal = $("templates-modal");
     const keysOverlay = $("keys-overlay");
@@ -3205,9 +3215,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (!c || c.type !== "connector") { connbar.hidden = true; return; }
       connbar.hidden = false;
       const cur = String(c.props.color || "#5b6472").toLowerCase();
+      let matchedPreset = false;
       connbar.querySelectorAll<HTMLButtonElement>(".easel-conn-color").forEach((b) => {
-        b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === cur);
+        const on = (b.dataset.color || "").toLowerCase() === cur;
+        if (on) matchedPreset = true;
+        b.classList.toggle("is-active", on);
       });
+      if (/^#[0-9a-f]{6}$/.test(cur)) connColorCustom.value = cur;
+      connColorCustom.classList.toggle("is-active", !matchedPreset);
       // Label shows the style a click switches TO.
       connStyleBtn.textContent = c.props.style === "line" ? "Arrow" : "Line";
       // Route button shows the CURRENT routing (the click cycles to the next).
@@ -3494,9 +3509,14 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const cur = String(
         el!.props.textColor || (el!.type === "text" ? el!.props.color || "#1a1a1a" : "#1a1a1a"),
       ).toLowerCase();
+      let matchedPreset = false;
       textbar.querySelectorAll<HTMLButtonElement>(".easel-text-color").forEach((b) => {
-        b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === cur);
+        const on = (b.dataset.color || "").toLowerCase() === cur;
+        if (on) matchedPreset = true;
+        b.classList.toggle("is-active", on);
       });
+      if (/^#[0-9a-f]{6}$/.test(cur)) textColorCustom.value = cur;
+      textColorCustom.classList.toggle("is-active", !matchedPreset);
       // Effective alignment: shape defaults to centre (CSS), text/sticky to left.
       const defaultAlign = el!.type === "shape" ? "center" : "left";
       const curAlign = typeof el!.props.align === "string" && el!.props.align ? el!.props.align : defaultAlign;
@@ -5284,6 +5304,18 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       reflectTextbar();
       scheduleSave();
     });
+    // Custom text-ink picker: any colour, fired live as the user drags in the OS
+    // picker. textColor is universal across text/sticky/shape; debounced save
+    // collapses the value stream. (The bar's pointerdown stop keeps selection.)
+    textColorCustom.addEventListener("input", () => {
+      if (!selectedId) return;
+      const el = getEl(selectedId);
+      if (!el || !(el.type === "text" || el.type === "sticky" || el.type === "shape")) return;
+      el.props.textColor = textColorCustom.value;
+      renderEl(el);
+      reflectTextbar();
+      scheduleSave();
+    });
     // Cycle the selected shape through rectangle -> ellipse -> diamond -> triangle.
     shapeKind.addEventListener("click", () => {
       if (!selectedId) return;
@@ -5331,6 +5363,16 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       }
       if (target.closest("#conn-label")) { startConnLabelEdit(c.id); return; }
       if (target.closest("#conn-del")) deleteConnector(c.id);
+    });
+    // Custom connector-colour picker: any colour, fired live on input. (The bar's
+    // pointerdown stop keeps the connector selected through the OS picker.)
+    connColorCustom.addEventListener("input", () => {
+      const c = selectedConnectorId ? getEl(selectedConnectorId) : null;
+      if (!c || c.type !== "connector") return;
+      c.props.color = connColorCustom.value;
+      drawConnectors();
+      reflectConnbar();
+      scheduleSave();
     });
     $("tool-keys").addEventListener("click", () => { setKeysOverlay(keysOverlay.hidden); });
     // ---------- templates picker wiring ----------
