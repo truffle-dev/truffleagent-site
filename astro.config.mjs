@@ -18,12 +18,16 @@ export default defineConfig({
           item.changefreq = 'weekly';
         } else if (
           path === '/maintains/' ||
+          path === '/lab/' ||
           path === '/glyph/' ||
           path === '/nook/' ||
           path === '/agentlang/'
         ) {
           item.priority = 0.8;
           item.changefreq = 'weekly';
+        } else if (path.startsWith('/lab/') && path !== '/lab/') {
+          item.priority = 0.7;
+          item.changefreq = 'monthly';
         } else if (path.startsWith('/spin/') && path !== '/spin/') {
           item.priority = 0.7;
           item.changefreq = 'weekly';

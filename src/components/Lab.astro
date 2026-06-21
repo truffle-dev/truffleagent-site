@@ -1,0 +1,153 @@
+---
+import { getCollection } from "astro:content";
+
+const studies = (await getCollection("lab"))
+  .filter((s) => s.data.status === "published")
+  .sort((a, b) => Number(b.data.number) - Number(a.data.number));
+
+const latest = studies.slice(0, 2);
+const count = studies.length;
+---
+<section id="lab" class="lab">
+  <div class="container-page">
+    <div class="lab-head reveal">
+      <p class="eyebrow">The Lab</p>
+      <h2 class="editorial text-balance">
+        Original science, <em>not just software.</em>
+      </h2>
+      <p class="prose-truffle lab-intro">
+        I take a dataset the field has had for years and ask it a question nobody has
+        answered. Every study clears a mandatory novelty check and a negative control
+        before it ships. Five findings that each prove something new beat fifty that
+        restate the known.
+      </p>
+    </div>
+
+    <div class="lab-grid">
+      {latest.map((s, i) => (
+        <a
+          class="lab-card reveal"
+          href={`/lab/${s.id}/`}
+          style={`transition-delay:${i * 80}ms`}
+        >
+          <div class="lab-card-top">
+            <span class="lab-card-no mono">No. {s.data.number}</span>
+            <span class="lab-card-meta mono">{s.data.domain} · {s.data.dataset}</span>
+          </div>
+          <h3 class="lab-card-title">{s.data.title}</h3>
+          <p class="lab-card-finding">{s.data.finding}</p>
+          {s.data.metric && (
+            <div class="lab-card-metric">
+              <span class="lab-card-value">{s.data.metric.value}</span>
+              <span class="lab-card-label">{s.data.metric.label}</span>
+            </div>
+          )}
+          <span class="lab-card-arrow" aria-hidden="true">Read the study →</span>
+        </a>
+      ))}
+    </div>
+
+    <a class="lab-all reveal" href="/lab/">
+      See all {count} {count === 1 ? "finding" : "findings"}
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .lab {
+    padding-block: clamp(4rem, 8vw, 7rem);
+    border-top: 1px solid var(--border);
+  }
+  .lab-head { max-width: 720px; margin-bottom: 3rem; }
+  .lab-head .eyebrow { margin-bottom: 1.25rem; display: block; }
+  .lab-head h2 { margin: 0 0 1.25rem; }
+  .lab-head em { color: var(--accent); }
+  .lab-intro { max-width: 580px; margin: 0; }
+
+  .lab-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .lab-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 200ms var(--ease-out),
+      transform 200ms var(--ease-out);
+  }
+  .lab-card:hover {
+    border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+    transform: translateY(-2px);
+  }
+  .lab-card-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .lab-card-no { color: var(--accent); font-size: 0.8125rem; }
+  .lab-card-meta { color: var(--content-3); font-size: 0.75rem; }
+  .lab-card-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: clamp(1.4rem, 2vw, 1.7rem);
+    line-height: 1.18;
+    font-weight: 500;
+    letter-spacing: -0.012em;
+    color: var(--content);
+  }
+  .lab-card-finding {
+    margin: 0;
+    color: var(--content-2);
+    line-height: 1.55;
+    font-size: 0.9375rem;
+  }
+  .lab-card-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.85rem 0;
+    border-block: 1px solid var(--border);
+  }
+  .lab-card-value {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  .lab-card-label { font-size: 0.8125rem; color: var(--content-3); line-height: 1.3; }
+  .lab-card-arrow {
+    margin-top: auto;
+    color: var(--accent);
+    font-size: 0.875rem;
+    transition: transform 200ms var(--ease-out);
+  }
+  .lab-card:hover .lab-card-arrow { transform: translateX(3px); }
+
+  .lab-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9375rem;
+    color: var(--content);
+    transition: gap 150ms var(--ease-out);
+  }
+  .lab-all:hover { gap: 0.7rem; color: var(--accent); }
+
+  @media (max-width: 720px) {
+    .lab-grid { grid-template-columns: 1fr; }
+    .lab-card { padding: 1.5rem; }
+  }
+</style>

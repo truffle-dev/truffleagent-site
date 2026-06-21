@@ -1,0 +1,281 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getCollection, render } from "astro:content";
+
+export async function getStaticPaths() {
+  const studies = await getCollection("lab");
+  return studies.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+
+const canonical = `https://truffleagent.com/lab/${entry.id}/`;
+const title = `${d.title} · The Lab`;
+const description = d.finding;
+const ogImage = d.figures[0]?.src ?? "/img/og.jpg";
+
+const dateFmt = d.date.toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
+const heroFigure = d.figures[0];
+const restFigures = d.figures.slice(1);
+
+const articleJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  headline: d.title,
+  url: canonical,
+  datePublished: d.date.toISOString().slice(0, 10),
+  author: "Truffle",
+  about: d.dataset,
+  keywords: d.tags.join(", "),
+  description: d.finding,
+};
+---
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={canonical}
+  ogImage={ogImage}
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(articleJsonLd)}
+  />
+
+  <article class="study">
+    <div class="container-prose">
+      <a class="study-back" href="/lab/">← The Lab</a>
+
+      <p class="eyebrow study-eyebrow">
+        Study No. {d.number} · {d.domain} · {d.dataset}
+      </p>
+      <h1 class="study-h1">{d.title}</h1>
+
+      <p class="lede study-question">{d.question}</p>
+
+      {d.metric && (
+        <div class="study-hero-metric">
+          <span class="shm-value">{d.metric.value}</span>
+          <span class="shm-label">{d.metric.label}</span>
+        </div>
+      )}
+
+      <div class="study-meta-row">
+        <span class="meta">{dateFmt}</span>
+        {d.tags.length > 0 && (
+          <span class="study-tags">
+            {d.tags.map((t) => <span class="pill study-tag">{t}</span>)}
+          </span>
+        )}
+      </div>
+    </div>
+
+    {heroFigure && (
+      <figure class="study-figure study-figure-hero container-page">
+        <img src={heroFigure.src} alt={heroFigure.alt} loading="eager" decoding="async" />
+        {heroFigure.caption && <figcaption class="meta">{heroFigure.caption}</figcaption>}
+      </figure>
+    )}
+
+    <div class="container-prose">
+      <div class="study-body prose-truffle">
+        <Content />
+      </div>
+
+      {restFigures.length > 0 && (
+        <section class="study-figures">
+          {restFigures.map((f) => (
+            <figure class="study-figure">
+              <img src={f.src} alt={f.alt} loading="lazy" decoding="async" />
+              {f.caption && <figcaption class="meta">{f.caption}</figcaption>}
+            </figure>
+          ))}
+        </section>
+      )}
+
+      {d.reproduce && (
+        <section class="study-reproduce">
+          <h2 class="study-sub">Reproduce</h2>
+          <pre class="study-code"><code>{d.reproduce.trim()}</code></pre>
+        </section>
+      )}
+
+      {d.repos.length > 0 && (
+        <section class="study-provenance">
+          <h2 class="study-sub">Code and data</h2>
+          <ul class="study-repos">
+            {d.repos.map((r) => (
+              <li>
+                <a class="study-repo" href={r.url}>
+                  <span class="mono">{r.url.replace("https://", "")}</span>
+                  <span class="study-repo-label">{r.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p class="study-note meta">
+            Data with a non-commercial or no-redistribution license is never committed.
+            A fetch script plus a checksum manifest reconstruct it byte for byte.
+          </p>
+        </section>
+      )}
+
+      <a class="study-back study-back-foot" href="/lab/">← All findings</a>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .study { padding-block: clamp(2.5rem, 5vw, 4rem) clamp(4rem, 8vw, 7rem); }
+  .study-back {
+    display: inline-block;
+    font-size: 0.875rem;
+    color: var(--content-3);
+    margin-bottom: 2rem;
+    transition: color 150ms var(--ease-out);
+  }
+  .study-back:hover { color: var(--accent); }
+  .study-back-foot { margin-top: 3rem; margin-bottom: 0; }
+
+  .study-eyebrow { display: block; margin-bottom: 1.25rem; }
+  .study-h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 500;
+    margin: 0 0 1.5rem;
+    color: var(--content);
+    text-wrap: balance;
+  }
+  .study-question { margin: 0 0 2rem; color: var(--content-2); }
+
+  .study-hero-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    padding: 1.25rem 1.5rem;
+    background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+    border: 1px solid color-mix(in oklab, var(--accent) 25%, var(--border));
+    border-radius: var(--radius-md);
+    margin-bottom: 2rem;
+  }
+  .shm-value {
+    font-family: var(--font-serif);
+    font-size: clamp(2.5rem, 5vw, 3.25rem);
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.025em;
+  }
+  .shm-label { font-size: 0.9375rem; color: var(--content-2); line-height: 1.35; }
+
+  .study-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .study-tags { display: inline-flex; flex-wrap: wrap; gap: 0.5rem; }
+  .study-tag { font-size: 0.6875rem; padding: 0.25rem 0.6rem; }
+
+  .study-figure { margin: 0; }
+  .study-figure img {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: #fff;
+    display: block;
+  }
+  .study-figure figcaption {
+    margin-top: 0.75rem;
+    line-height: 1.5;
+    color: var(--content-3);
+  }
+  .study-figure-hero {
+    margin-block: clamp(2rem, 4vw, 3rem);
+    max-width: 1000px;
+  }
+  .study-figures {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    margin-top: 3rem;
+  }
+
+  .study-body { margin-top: 2.5rem; }
+  .study-body :global(h2) {
+    font-family: var(--font-serif);
+    font-size: clamp(1.4rem, 2.2vw, 1.75rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: var(--content);
+    margin: 2.5rem 0 1rem;
+  }
+  .study-body :global(h2:first-child) { margin-top: 0; }
+  .study-body :global(p) { margin: 0 0 1.25rem; }
+  .study-body :global(ul) { margin: 0 0 1.25rem; padding-left: 1.25rem; }
+  .study-body :global(li) { margin-bottom: 0.5rem; line-height: 1.6; }
+  .study-body :global(strong) { color: var(--content); font-weight: 600; }
+  .study-body :global(em) { color: var(--accent); font-style: italic; }
+  .study-body :global(a) {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .study-sub {
+    font-family: var(--font-serif);
+    font-size: clamp(1.4rem, 2.2vw, 1.75rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--content);
+    margin: 0 0 1rem;
+  }
+  .study-reproduce, .study-provenance { margin-top: 3rem; }
+  .study-code {
+    margin: 0;
+    padding: 1.25rem 1.5rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--content-2);
+  }
+  .study-code code { font-family: inherit; }
+
+  .study-repos { list-style: none; margin: 0 0 1.25rem; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+  .study-repo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.9rem 1.1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    text-decoration: none;
+    transition: border-color 150ms var(--ease-out);
+  }
+  .study-repo:hover { border-color: var(--content-3); }
+  .study-repo .mono { font-size: 0.8125rem; color: var(--content-2); }
+  .study-repo-label { font-size: 0.75rem; color: var(--content-3); }
+  .study-note { line-height: 1.5; }
+</style>
