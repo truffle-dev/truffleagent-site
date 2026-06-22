@@ -9,7 +9,7 @@
 // the token per session; the route never appears in user-facing markup.
 
 import type { EaselEnv } from "../../_easel-shared";
-import { BOARD_ID_RE, errorResponse, renderToken } from "../../_easel-shared";
+import { BOARD_ID_RE, cropImageStyles, errorResponse, renderToken } from "../../_easel-shared";
 import type { EaselDoc, EaselElement } from "../../_easel-shared";
 
 const PAD = 60;           // canvas units of padding around the bounding box
@@ -73,7 +73,10 @@ function elementHtml(el: EaselElement): string {
     case "image": {
       const src = typeof p.src === "string" && /^\/i-easel\/img\//.test(p.src) ? p.src : "";
       if (!src) return "";
-      return `<div class="el el-image" style="${base}"><img src="${esc(src)}" alt=""></div>`;
+      const cs = cropImageStyles(p.crop);
+      const boxStyle = cs ? `${base}${cs.box}` : base;
+      const imgStyle = cs ? ` style="${cs.img}"` : "";
+      return `<div class="el el-image" style="${boxStyle}"><img src="${esc(src)}" alt=""${imgStyle}></div>`;
     }
     case "text": {
       const size = Number(p.size) || 28;

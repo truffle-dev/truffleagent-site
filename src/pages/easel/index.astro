@@ -224,6 +224,28 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <input class="easel-opacity-range" id="opacity-range" type="range" min="10" max="100" step="1" value="100" title="Element opacity" aria-label="Element opacity" />
           <span class="easel-opacity-val" id="opacity-val" aria-live="polite">100%</span>
         </div>
+        <div class="easel-imagebar" id="imagebar" role="group" aria-label="Image" hidden>
+          <button id="crop-btn" type="button" title="Crop image (or double-click it)" aria-label="Crop image">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 1v11h11M1 4h11v11" /></svg>
+            Crop
+          </button>
+        </div>
+        <div class="easel-cropmodal" id="cropmodal" role="dialog" aria-label="Crop image" hidden>
+          <div class="easel-cropsurface" id="cropsurface">
+            <img id="cropimg" alt="" />
+            <div class="easel-cropwin" id="cropwin">
+              <span class="easel-crophandle" data-h="nw"></span>
+              <span class="easel-crophandle" data-h="ne"></span>
+              <span class="easel-crophandle" data-h="se"></span>
+              <span class="easel-crophandle" data-h="sw"></span>
+            </div>
+          </div>
+          <div class="easel-cropbtns">
+            <button type="button" id="crop-reset">Reset</button>
+            <button type="button" id="crop-cancel">Cancel</button>
+            <button type="button" id="crop-apply" class="is-primary">Apply</button>
+          </div>
+        </div>
         <div class="easel-findbar" id="findbar" role="search" hidden>
           <svg class="easel-find-icon" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="7" cy="7" r="4.2" /><path d="M10.2 10.2 14 14" /></svg>
           <input class="easel-find-input" id="find-input" type="text" placeholder="Find on board" aria-label="Find on board" autocomplete="off" spellcheck="false" />
@@ -1167,6 +1189,87 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     }
     .easel-opacitybar.is-row1 { top: 3.4rem; }
     .easel-opacitybar.is-row2 { top: 5.9rem; }
+    /* Image bar: a small pill shown when exactly one image is selected (images
+       have no type bar). Carries the Crop entry. Sits at row 0; the opacity bar
+       stacks below it (reflectOpacity counts it like a type bar). */
+    .easel-imagebar {
+      position: absolute;
+      top: 0.9rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+      z-index: 6;
+    }
+    .easel-imagebar button {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      font: inherit; font-size: 0.82rem; color: #2a2f3a;
+      background: transparent; border: 0; border-radius: 7px;
+      padding: 0.25rem 0.55rem; cursor: pointer;
+    }
+    .easel-imagebar button:hover { background: rgba(70, 88, 224, 0.1); }
+    .easel-imagebar svg { color: #5b6472; }
+    /* Crop modal: a screen-space overlay (NOT in the world layer), so it never
+       touches the six canvas pan/zoom/marquee gestures. The surface is sized to
+       the image's natural aspect; the crop window is a fraction rectangle with
+       four corner handles and a draggable body. The window's huge outer
+       box-shadow dims everything outside it. Apply commits props.crop. */
+    .easel-cropmodal {
+      position: fixed; inset: 0; z-index: 60;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1rem;
+      background: rgba(20, 22, 28, 0.55);
+      backdrop-filter: blur(2px);
+    }
+    .easel-cropsurface {
+      position: relative;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
+      user-select: none; touch-action: none;
+    }
+    .easel-cropsurface img {
+      display: block; width: 100%; height: 100%;
+      object-fit: fill; pointer-events: none;
+      -webkit-user-drag: none;
+    }
+    .easel-cropwin {
+      position: absolute; cursor: move;
+      outline: 1px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 0 0 9999px rgba(20, 22, 28, 0.5);
+    }
+    .easel-crophandle {
+      position: absolute; width: 14px; height: 14px;
+      background: #fff; border: 2px solid #4658e0; border-radius: 3px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+    .easel-crophandle[data-h="nw"] { top: -8px; left: -8px; cursor: nwse-resize; }
+    .easel-crophandle[data-h="ne"] { top: -8px; right: -8px; cursor: nesw-resize; }
+    .easel-crophandle[data-h="se"] { bottom: -8px; right: -8px; cursor: nwse-resize; }
+    .easel-crophandle[data-h="sw"] { bottom: -8px; left: -8px; cursor: nesw-resize; }
+    .easel-cropbtns { display: flex; gap: 0.6rem; }
+    .easel-cropbtns button {
+      font: inherit; font-size: 0.9rem; cursor: pointer;
+      padding: 0.45rem 1.1rem; border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.12); color: #fff;
+    }
+    .easel-cropbtns button.is-primary {
+      background: #4658e0; border-color: #4658e0; font-weight: 600;
+    }
+    .easel-cropbtns button:hover { filter: brightness(1.08); }
+    /* Cropped image render (canvas side): the box clips and the img is an
+       oversized, offset layer (geometry set inline in renderEl). Mirrors
+       cropImageStyles() in functions/_easel-shared.ts (render route). */
+    .easel-el-image.is-cropped { overflow: hidden; border-radius: 6px; }
+    .easel-el-image.is-cropped img {
+      position: absolute; object-fit: fill;
+      border-radius: 0; box-shadow: none;
+    }
     .easel-opacity-icon {
       color: #5b6472;
       flex: 0 0 auto;
@@ -2341,6 +2444,15 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
     const opacitybar = $("opacitybar");
     const opacityRange = $<HTMLInputElement>("opacity-range");
     const opacityVal = $("opacity-val");
+    const imagebar = $("imagebar");
+    const cropBtn = $<HTMLButtonElement>("crop-btn");
+    const cropmodal = $("cropmodal");
+    const cropsurface = $("cropsurface");
+    const cropimg = $<HTMLImageElement>("cropimg");
+    const cropwin = $("cropwin");
+    const cropResetBtn = $<HTMLButtonElement>("crop-reset");
+    const cropCancelBtn = $<HTMLButtonElement>("crop-cancel");
+    const cropApplyBtn = $<HTMLButtonElement>("crop-apply");
     const findbar = $("findbar");
     const findInput = $<HTMLInputElement>("find-input");
     const findCount = $("find-count");
@@ -2762,6 +2874,26 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           align === "left" ? "flex-start" : align === "right" ? "flex-end" : align === "center" ? "center" : "";
       }
     };
+    // props.crop = {x,y,w,h} as fractions of the natural image (0..1). Returns the
+    // inline geometry that shows only that sub-rectangle filling the box, or null
+    // for the full image (default). The four numbers below MUST stay in lockstep
+    // with cropImageStyles() in functions/_easel-shared.ts (the render route) and
+    // the agent's update_elements props.crop — that helper is the canonical formula.
+    const cropStyles = (crop: unknown): { w: string; h: string; left: string; top: string } | null => {
+      if (!crop || typeof crop !== "object") return null;
+      const c = crop as Record<string, unknown>;
+      let x = Number(c.x), y = Number(c.y), w = Number(c.w), h = Number(c.h);
+      if (!Number.isFinite(x)) x = 0;
+      if (!Number.isFinite(y)) y = 0;
+      if (!Number.isFinite(w) || w <= 0) w = 1;
+      if (!Number.isFinite(h) || h <= 0) h = 1;
+      x = Math.max(0, Math.min(1, x));
+      y = Math.max(0, Math.min(1, y));
+      w = Math.max(0.02, Math.min(1 - x, w));
+      h = Math.max(0.02, Math.min(1 - y, h));
+      if (x <= 0.001 && y <= 0.001 && w >= 0.999 && h >= 0.999) return null;
+      return { w: `${100 / w}%`, h: `${100 / h}%`, left: `${-(x / w) * 100}%`, top: `${-(y / h) * 100}%` };
+    };
     const renderEl = (el: El, animate = false) => {
       // Connectors are not box nodes; they live in the SVG layer. Any call that
       // lands here (e.g. a move that touches a connector) just redraws the layer.
@@ -2791,6 +2923,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const src = String(el.props.src || "");
         if (img.getAttribute("src") !== src && src) img.src = src;
         node.classList.toggle("easel-el-ghost", !!el.props.ghost);
+        // Crop (props.crop). The box clips (.is-cropped) and the img is scaled up
+        // by 1/cropW x 1/cropH and offset so the cropped fraction fills the box.
+        const cs = cropStyles(el.props.crop);
+        node.classList.toggle("is-cropped", !!cs);
+        if (cs) {
+          img.style.width = cs.w; img.style.height = cs.h;
+          img.style.left = cs.left; img.style.top = cs.top;
+        } else {
+          img.style.width = ""; img.style.height = "";
+          img.style.left = ""; img.style.top = "";
+        }
       } else if (el.type === "text") {
         node.childNodes[0]?.nodeType === Node.TEXT_NODE
           ? (node.childNodes[0].textContent = String(el.props.text ?? ""))
@@ -3556,6 +3699,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       reflectSwatches();
       reflectTextbar();
       reflectDrawbar();
+      reflectImagebar(); // before reflectOpacity — its .hidden feeds the stacking count
       reflectOpacity(); // after the type bars — reads their .hidden for stacking
       updateAlignbar();
       updateLockTool();
@@ -3934,7 +4078,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       const show = !!el && el.type !== "connector";
       opacitybar.hidden = !show;
       if (!el) return;
-      const rows = (swatches.hidden ? 0 : 1) + (textbar.hidden ? 0 : 1) + (drawbar.hidden ? 0 : 1);
+      const rows = (swatches.hidden ? 0 : 1) + (textbar.hidden ? 0 : 1) + (drawbar.hidden ? 0 : 1)
+        + (imagebar.hidden ? 0 : 1);
       opacitybar.classList.toggle("is-row1", rows === 1);
       opacitybar.classList.toggle("is-row2", rows >= 2);
       const op = Number(el.props.opacity);
@@ -3946,6 +4091,154 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       // so the slider is disabled; the agent can still set props.opacity.
       opacityRange.disabled = !!el.props.locked;
     };
+    // Image bar: shown only for a single image selection (images have no type
+    // bar). reflectOpacity counts it as a row so the opacity pill stacks below.
+    const reflectImagebar = () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      imagebar.hidden = !(el && el.type === "image");
+    };
+
+    // ---------- image crop (5.27) ----------
+    // A screen-space modal, fully decoupled from the world canvas — it never
+    // touches the six protected pan/zoom/marquee gestures (those live on the
+    // stage handler). The crop window is a fraction rectangle {x,y,w,h} of the
+    // natural image; Apply writes it to props.crop, which renderEl + the render
+    // route + the agent's update_elements all honour via the same formula.
+    const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+    const normCropRect = (crop: unknown): { x: number; y: number; w: number; h: number } => {
+      const o = (crop && typeof crop === "object") ? (crop as Record<string, unknown>) : {};
+      let x = Number(o.x), y = Number(o.y), w = Number(o.w), h = Number(o.h);
+      if (!Number.isFinite(x)) x = 0;
+      if (!Number.isFinite(y)) y = 0;
+      if (!Number.isFinite(w) || w <= 0) w = 1;
+      if (!Number.isFinite(h) || h <= 0) h = 1;
+      x = clamp01(x); y = clamp01(y);
+      w = Math.max(0.04, Math.min(1 - x, w));
+      h = Math.max(0.04, Math.min(1 - y, h));
+      return { x, y, w, h };
+    };
+    let cropTargetId: string | null = null;
+    let cropRect = { x: 0, y: 0, w: 1, h: 1 };
+    const paintCropWin = () => {
+      cropwin.style.left = `${cropRect.x * 100}%`;
+      cropwin.style.top = `${cropRect.y * 100}%`;
+      cropwin.style.width = `${cropRect.w * 100}%`;
+      cropwin.style.height = `${cropRect.h * 100}%`;
+    };
+    const sizeCropSurface = () => {
+      const nw = cropimg.naturalWidth || 1, nh = cropimg.naturalHeight || 1;
+      const scale = Math.min((window.innerWidth * 0.78) / nw, (window.innerHeight * 0.72) / nh);
+      cropsurface.style.width = `${Math.round(nw * scale)}px`;
+      cropsurface.style.height = `${Math.round(nh * scale)}px`;
+      paintCropWin();
+    };
+    const enterCropMode = (el: El) => {
+      if (el.type !== "image" || el.props.locked) return;
+      const src = String(el.props.src || "");
+      if (!src) return;
+      cropTargetId = el.id;
+      cropRect = normCropRect(el.props.crop);
+      cropimg.onload = sizeCropSurface;
+      cropimg.src = src;
+      cropmodal.hidden = false;
+      if (cropimg.complete && cropimg.naturalWidth) sizeCropSurface();
+      paintCropWin();
+    };
+    const exitCropMode = () => { cropmodal.hidden = true; cropTargetId = null; };
+    // Corner resize: the opposite corner of the dragged handle stays fixed.
+    const resizeCrop = (handle: string, px: number, py: number, r: typeof cropRect) => {
+      const M = 0.04, right = r.x + r.w, bottom = r.y + r.h;
+      let x = r.x, y = r.y, w = r.w, h = r.h;
+      if (handle === "nw") {
+        x = Math.max(0, Math.min(px, right - M)); y = Math.max(0, Math.min(py, bottom - M));
+        w = right - x; h = bottom - y;
+      } else if (handle === "ne") {
+        y = Math.max(0, Math.min(py, bottom - M)); w = Math.min(1, Math.max(px, r.x + M)) - r.x; h = bottom - y;
+      } else if (handle === "se") {
+        w = Math.min(1, Math.max(px, r.x + M)) - r.x; h = Math.min(1, Math.max(py, r.y + M)) - r.y;
+      } else if (handle === "sw") {
+        x = Math.max(0, Math.min(px, right - M)); w = right - x; h = Math.min(1, Math.max(py, r.y + M)) - r.y;
+      }
+      return { x, y, w, h };
+    };
+    let cropDrag: string | null = null;
+    let cropStart = { px: 0, py: 0, rect: cropRect };
+    cropsurface.addEventListener("pointerdown", (ev) => {
+      const t = ev.target as HTMLElement;
+      if (t.classList.contains("easel-crophandle")) cropDrag = t.dataset.h || null;
+      else if (t === cropwin) cropDrag = "move";
+      else return;
+      ev.preventDefault();
+      // The crop modal lives inside #stage, whose own pointerdown handler starts
+      // a pan and grabs setPointerCapture — which would steal the capture from
+      // cropsurface mid-drag (only the first pointermove ever lands here).
+      // Stop the event before it reaches the stage so the crop drag owns capture.
+      ev.stopPropagation();
+      const rect = cropsurface.getBoundingClientRect();
+      cropStart = {
+        px: clamp01((ev.clientX - rect.left) / rect.width),
+        py: clamp01((ev.clientY - rect.top) / rect.height),
+        rect: { ...cropRect },
+      };
+      try { cropsurface.setPointerCapture(ev.pointerId); } catch { /* synthetic pointer */ }
+    });
+    cropsurface.addEventListener("pointermove", (ev) => {
+      if (!cropDrag) return;
+      const rect = cropsurface.getBoundingClientRect();
+      const px = clamp01((ev.clientX - rect.left) / rect.width);
+      const py = clamp01((ev.clientY - rect.top) / rect.height);
+      if (cropDrag === "move") {
+        const dx = px - cropStart.px, dy = py - cropStart.py;
+        cropRect = {
+          x: Math.max(0, Math.min(1 - cropStart.rect.w, cropStart.rect.x + dx)),
+          y: Math.max(0, Math.min(1 - cropStart.rect.h, cropStart.rect.y + dy)),
+          w: cropStart.rect.w, h: cropStart.rect.h,
+        };
+      } else {
+        cropRect = resizeCrop(cropDrag, px, py, cropStart.rect);
+      }
+      paintCropWin();
+    });
+    const endCropDrag = (ev: PointerEvent) => {
+      if (!cropDrag) return;
+      cropDrag = null;
+      try { cropsurface.releasePointerCapture(ev.pointerId); } catch { /* noop */ }
+    };
+    cropsurface.addEventListener("pointerup", endCropDrag);
+    cropsurface.addEventListener("pointercancel", endCropDrag);
+    // Belt-and-braces: the modal sits inside #stage, so a press anywhere in it
+    // (e.g. the dim backdrop) would otherwise bubble to the stage and pan the
+    // canvas behind the open modal. Swallow every pointerdown at the modal root
+    // — the cropsurface handler still runs first (it is deeper in the tree).
+    cropmodal.addEventListener("pointerdown", (ev) => { ev.stopPropagation(); });
+    cropBtn.addEventListener("click", () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      if (el && el.type === "image") enterCropMode(el);
+    });
+    cropResetBtn.addEventListener("click", () => { cropRect = { x: 0, y: 0, w: 1, h: 1 }; paintCropWin(); });
+    cropCancelBtn.addEventListener("click", exitCropMode);
+    cropApplyBtn.addEventListener("click", () => {
+      const el = cropTargetId ? getEl(cropTargetId) : null;
+      if (el) {
+        const r = cropRect;
+        const full = r.x <= 0.001 && r.y <= 0.001 && r.w >= 0.999 && r.h >= 0.999;
+        if (full) delete el.props.crop;
+        else el.props.crop = {
+          x: Math.round(r.x * 1e4) / 1e4, y: Math.round(r.y * 1e4) / 1e4,
+          w: Math.round(r.w * 1e4) / 1e4, h: Math.round(r.h * 1e4) / 1e4,
+        };
+        renderEl(el);
+        scheduleSave();
+      }
+      exitCropMode();
+    });
+    // Esc closes the crop modal (Enter applies) without the document Escape
+    // handler also deselecting — capture phase runs first and stops propagation.
+    document.addEventListener("keydown", (ev) => {
+      if (cropmodal.hidden) return;
+      if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); exitCropMode(); }
+      else if (ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); cropApplyBtn.click(); }
+    }, true);
 
     const wireElement = (node: HTMLElement) => {
       node.addEventListener("pointerdown", (ev) => {
@@ -4182,6 +4475,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           label.addEventListener("keydown", onKeyLabel);
           return;
         }
+        // Double-clicking an image opens the crop modal (mirrors the Crop pill).
+        if (el.type === "image") { enterCropMode(el); return; }
         if (el.type !== "text" && el.type !== "sticky" && el.type !== "shape") return;
         node.dataset.editing = "1";
         // Pull the resize handles out of the editable region while editing.

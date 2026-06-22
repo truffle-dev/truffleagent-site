@@ -131,6 +131,31 @@ export function imagePath(boardId: string, imageId: string, ext: string): string
   return `/i-easel/${imageKey(boardId, imageId, ext)}`;
 }
 
+// Canonical crop geometry. props.crop = {x,y,w,h} as fractions [0,1] of the
+// natural image. Render = overflow-hidden box + an oversized, offset img so the
+// crop sub-rectangle exactly fills the box. Returns null for absent/full crops
+// (those keep the default object-fit:cover). The client twin is cropStyles()
+// in src/pages/easel/index.astro — change the formula in BOTH or neither.
+export function cropImageStyles(crop: unknown): { box: string; img: string } | null {
+  if (!crop || typeof crop !== "object") return null;
+  const c = crop as Record<string, unknown>;
+  let x = Number(c.x), y = Number(c.y), w = Number(c.w), h = Number(c.h);
+  if (!Number.isFinite(x)) x = 0;
+  if (!Number.isFinite(y)) y = 0;
+  if (!Number.isFinite(w) || w <= 0) w = 1;
+  if (!Number.isFinite(h) || h <= 0) h = 1;
+  x = Math.max(0, Math.min(1, x));
+  y = Math.max(0, Math.min(1, y));
+  w = Math.max(0.02, Math.min(1 - x, w));
+  h = Math.max(0.02, Math.min(1 - y, h));
+  if (x <= 0.001 && y <= 0.001 && w >= 0.999 && h >= 0.999) return null;
+  return {
+    box: "overflow:hidden;",
+    img: `position:absolute;object-fit:fill;width:${100 / w}%;height:${100 / h}%;` +
+      `left:${-(x / w) * 100}%;top:${-(y / h) * 100}%;border-radius:0;box-shadow:none;`,
+  };
+}
+
 export const VALID_UPLOAD_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
