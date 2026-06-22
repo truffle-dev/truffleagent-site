@@ -173,6 +173,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           <button class="easel-align-btn" type="button" data-dist="h" title="Distribute horizontal spacing" aria-label="Distribute horizontal spacing"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 3v10M8 3v10M14 3v10" /></svg></button>
           <button class="easel-align-btn" type="button" data-dist="v" title="Distribute vertical spacing" aria-label="Distribute vertical spacing"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2h10M3 8h10M3 14h10" /></svg></button>
           <span class="easel-align-sep"></span>
+          <button class="easel-align-btn is-text" id="tidy-btn" type="button" title="Tidy up — pack the selection into an even grid">Tidy</button>
+          <span class="easel-align-sep"></span>
           <button class="easel-align-btn is-text" id="group-btn" type="button" title="Group (Ctrl/Cmd+G) — move and select as one">Group</button>
         </div>
         <div class="easel-connbar" id="connbar" role="group" aria-label="Connector style" hidden>
@@ -3689,6 +3691,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       alignbar.querySelectorAll<HTMLButtonElement>("[data-dist]").forEach((b) => {
         b.disabled = boxes.length < 3;
       });
+      // Tidy packs into a grid — only meaningful for 3+ boxes, like distribute.
+      $<HTMLButtonElement>("tidy-btn").disabled = boxes.length < 3;
       // The pill flips to "Ungroup" when every selected box already shares a
       // single persistent group, so one button toggles both directions.
       const allGrouped = boxes.length >= 2 &&
@@ -5463,6 +5467,44 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       scheduleSave();
     };
 
+    // Tidy up (5.25): pack a 3+ selection into an even grid in one click —
+    // the human mirror of the agent's arrange_elements(layout:"grid"). The
+    // geometry is byte-for-byte the same as easel-arrange.ts's arrangeGrid:
+    // uniform cells sized to the largest element, near-square column count,
+    // a fixed gutter, each element centred in its cell, anchored at the
+    // selection's current top-left — so a human Tidy and an agent grid pass
+    // produce the identical layout. Elements are taken in reading order
+    // (top-to-bottom, then left-to-right within a row band) so the visible
+    // sequence is preserved. Locked elements are held back, like align.
+    const tidySelected = () => {
+      const boxes = selectedBoxes().filter((e) => !e.props.locked);
+      if (boxes.length < 3) return;
+      const gap = 40; // matches the arrange_elements grid default gutter
+      const cellW = Math.max(...boxes.map((e) => e.w));
+      const cellH = Math.max(...boxes.map((e) => e.h));
+      const originX = Math.min(...boxes.map((e) => e.x));
+      const originY = Math.min(...boxes.map((e) => e.y));
+      // Reading order: band rows by half the tallest cell so a near-aligned
+      // row sorts left-to-right rather than by sub-pixel y jitter.
+      const band = Math.max(1, cellH / 2);
+      boxes.sort((a, b) => {
+        const ra = Math.round(a.y / band), rb = Math.round(b.y / band);
+        return ra !== rb ? ra - rb : a.x - b.x;
+      });
+      const cols = Math.max(1, Math.min(Math.ceil(Math.sqrt(boxes.length)), boxes.length));
+      boxes.forEach((el, i) => {
+        const col = i % cols, row = Math.floor(i / cols);
+        const cellX = originX + col * (cellW + gap);
+        const cellY = originY + row * (cellH + gap);
+        el.x = Math.round(cellX + (cellW - el.w) / 2);
+        el.y = Math.round(cellY + (cellH - el.h) / 2);
+        renderEl(el);
+      });
+      drawConnectors();
+      drawGroupBox();
+      scheduleSave();
+    };
+
     const zoomToFit = () => {
       // Connectors have placeholder 0-geometry; fit to the real boxes only.
       const boxes = doc.elements.filter((e) => e.type !== "connector");
@@ -5958,6 +6000,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       if (!btn || btn.disabled) return;
       if (btn.dataset.align) alignSelected(btn.dataset.align as AlignMode);
       else if (btn.dataset.dist) distributeSelected(btn.dataset.dist as "h" | "v");
+      else if (btn.id === "tidy-btn") tidySelected();
       else if (btn.id === "group-btn") {
         const boxes = selectedBoxes();
         const grouped = boxes.length >= 2 &&
