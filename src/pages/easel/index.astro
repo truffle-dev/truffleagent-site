@@ -229,6 +229,10 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 1v11h11M1 4h11v11" /></svg>
             Crop
           </button>
+          <button id="replace-btn" type="button" title="Replace image (swap the picture, keep the box)" aria-label="Replace image">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 6.5a5 5 0 0 1 9-2.5M11 2v3.2H7.8M14 9.5a5 5 0 0 1-9 2.5M5 14v-3.2h3.2" /></svg>
+            Replace
+          </button>
         </div>
         <div class="easel-cropmodal" id="cropmodal" role="dialog" aria-label="Crop image" hidden>
           <div class="easel-cropsurface" id="cropsurface">
@@ -398,6 +402,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       </aside>
 
       <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden />
+      <!-- Dedicated single-file picker for Replace — keeps the multi-add flow above untouched. -->
+      <input type="file" id="replace-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
     </section>
   </main>
 
@@ -6014,6 +6020,49 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         img.onerror = () => { resolve({ w: 400, h: 300 }); URL.revokeObjectURL(url); };
         img.src = url;
       });
+
+    // ---------- replace image (5.27b) ----------
+    // Swap the picture inside an existing image element while keeping its box
+    // geometry (x,y,w,h). Reuses the same raw-body upload endpoint as add-image.
+    const replaceBtn = $<HTMLButtonElement>("replace-btn");
+    const replaceInput = $<HTMLInputElement>("replace-input");
+    let replaceTargetId: string | null = null;
+    replaceBtn.addEventListener("click", () => {
+      const el = selectedId ? getEl(selectedId) : null;
+      if (!el || el.type !== "image" || el.props.locked) return;
+      replaceTargetId = el.id;
+      replaceInput.value = "";
+      replaceInput.click();
+    });
+    replaceInput.addEventListener("change", async () => {
+      const file = replaceInput.files?.[0];
+      replaceInput.value = "";
+      const el = replaceTargetId ? getEl(replaceTargetId) : null;
+      replaceTargetId = null;
+      if (!file || !el || el.type !== "image" || !boardId) return;
+      if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { setSaveState("Only PNG, JPG, WebP or GIF"); return; }
+      try {
+        setSaveState("Uploading…");
+        const res = await fetch(`/api/easel/upload?board=${boardId}`, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        const body = await res.json();
+        if (!res.ok || !body.ok) throw new Error(body?.error?.message || String(res.status));
+        const dims = await imageDims(file);
+        // Keep x/y/w/h; swap src + natural size; drop any crop (it indexed the OLD image).
+        el.props.src = body.src;
+        el.props.natural_w = dims.w;
+        el.props.natural_h = dims.h;
+        delete el.props.crop;
+        renderEl(el);
+        scheduleSave();
+        setSaveState("Saved");
+      } catch (err: any) {
+        setSaveState(err?.message?.includes("quota") ? "Upload quota hit" : "Upload failed");
+      }
+    });
 
     let dragDepth = 0;
     stage.addEventListener("dragenter", (ev) => { ev.preventDefault(); dragDepth++; dropHint.hidden = false; });
