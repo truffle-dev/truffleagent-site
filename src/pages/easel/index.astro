@@ -3951,8 +3951,8 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
       node.addEventListener("pointerdown", (ev) => {
         if (ev.button !== 0 || node.dataset.editing === "1") return;
         ev.stopPropagation();
-        const id = node.dataset.elId!;
-        const el = getEl(id);
+        let id = node.dataset.elId!;
+        let el = getEl(id);
         if (!el) return;
         // Which resize handle (if any) was grabbed. data-rz holds the direction
         // (nw/n/ne/e/se/s/sw/w); empty string means a body grab (drag). Computed
@@ -3973,6 +3973,32 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         // it the sole selection — expanded to the full persistent group when
         // the element carries a groupId.
         if (!selectedIds.has(id)) setSelection([...expandToGroups([id])]);
+
+        // Alt-drag duplicates the selection in place and drags the COPY, leaving
+        // the originals put — the Figma/Miro fan-out gesture. Only a plain body
+        // grab qualifies (never a resize handle, never connect mode); locked
+        // members are excluded from the copy. The grabbed element's clone becomes
+        // the drag primary so the rest of this handler moves the copy. cloneInto
+        // returns ids in z-sorted order, so map the grabbed id through the same
+        // sort. If the pointer never actually moves (an Alt *click*), onUp tears
+        // the copy back out so a stray click can't litter the board. Alt also
+        // bypasses snap during the move, composing with its existing modifier role.
+        let dupCloneIds: string[] | null = null;
+        let dupOrigIds: string[] = [];
+        let moved = false;
+        if (ev.altKey && !rzTarget && !connectMode) {
+          const movable = selectedBoxes().filter((b) => !b.props.locked);
+          if (movable.length) {
+            dupOrigIds = movable.map((b) => b.id);
+            const conns = internalConnectors(new Set(dupOrigIds));
+            const cloneIds = cloneInto(movable, conns, 0, 0);
+            const sorted = [...movable].sort((a, b) => a.z - b.z);
+            const k = sorted.findIndex((b) => b.id === id);
+            setSelection(cloneIds);
+            dupCloneIds = cloneIds;
+            if (k >= 0) { id = cloneIds[k]; el = getEl(id)!; }
+          }
+        }
 
         // A group move slides every selected box together; single select keeps
         // the rich single-element behaviour (resize, snap guides, z-bump).
@@ -4012,6 +4038,7 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
         const onMove = (mv: PointerEvent) => {
           const p = stagePoint(mv.clientX, mv.clientY);
           const dx = p.x - start.x, dy = p.y - start.y;
+          if (!moved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) moved = true;
           // Grid snapping (5.11) applies to drag/resize when grid mode is on,
           // unless Alt is held — exactly like the alignment-guide bypass.
           const gsnap = gridOn && !mv.altKey;
@@ -4105,6 +4132,17 @@ const maxUploadMb = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
           node.classList.remove("is-grabbing");
           node.removeEventListener("pointermove", onMove);
           node.removeEventListener("pointerup", onUp);
+          // An Alt *click* with no real drag should not leave a stacked copy:
+          // remove the just-made clones (plus their internal connectors) and
+          // reselect the originals so the board looks untouched.
+          if (dupCloneIds && !moved) {
+            const cloneSet = new Set(dupCloneIds);
+            doc.elements = doc.elements.filter((e) =>
+              !cloneSet.has(e.id) &&
+              !(e.type === "connector" && (cloneSet.has(e.props.from) || cloneSet.has(e.props.to))));
+            setSelection(dupOrigIds);
+            renderDoc();
+          }
           scheduleSave();
         };
         node.addEventListener("pointermove", onMove);
