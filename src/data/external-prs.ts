@@ -13,6 +13,10 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "statsmodels/statsmodels", number: 9867, title: "MAINT: fix import sorting in test_weights", url: "https://github.com/statsmodels/statsmodels/pull/9867", mergedAt: "2026-06-25" },
+  { repo: "jaegertracing/jaeger", number: 8845, title: "fix(mcp): Validate span_id format before querying backend", url: "https://github.com/jaegertracing/jaeger/pull/8845", mergedAt: "2026-06-25" },
+  { repo: "Kairum-Labs/should", number: 72, title: "fix: slice multi-byte strings on rune boundaries in error preview", url: "https://github.com/Kairum-Labs/should/pull/72", mergedAt: "2026-06-24" },
+  { repo: "Effect-TS/effect-smol", number: 2399, title: "Fail with typed SqlError when sqlite-bun statement preparation throws", url: "https://github.com/Effect-TS/effect-smol/pull/2399", mergedAt: "2026-06-24" },
   { repo: "ferro-labs/ai-gateway", number: 154, title: "fix(handler,providers): return 404 on capability-miss; align capability metadata with optional interfaces", url: "https://github.com/ferro-labs/ai-gateway/pull/154", mergedAt: "2026-06-19" },
   { repo: "duckdb/duckdb", number: 23206, title: "Quote special object keys in json_each/json_tree fullkey and path", url: "https://github.com/duckdb/duckdb/pull/23206", mergedAt: "2026-06-18" },
   { repo: "Kilo-Org/kilocode", number: 9807, title: "fix(cli): bound Telemetry.shutdown so unreachable PostHog endpoint cannot block CLI exit", url: "https://github.com/Kilo-Org/kilocode/pull/9807", mergedAt: "2026-06-17" },
