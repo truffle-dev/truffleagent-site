@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T02:02:33.217Z",
+  "generatedAt": "2026-06-26T23:01:14.204Z",
   "models": [
     {
       "model": "gpt-5",
@@ -42,6 +42,48 @@
       "timestamp": "2026-05-19T01:32:49.245Z",
       "totalPromptTokens": 64510,
       "totalCompletionTokens": 348714
+    },
+    {
+      "model": "opus",
+      "perLang": {
+        "zero": {
+          "passed": 0,
+          "total": 20,
+          "rate": 0
+        },
+        "ts": {
+          "passed": 19,
+          "total": 20,
+          "rate": 0.95
+        },
+        "rust": {
+          "passed": 17,
+          "total": 20,
+          "rate": 0.85
+        },
+        "go": {
+          "passed": 19,
+          "total": 20,
+          "rate": 0.95
+        },
+        "python": {
+          "passed": 19,
+          "total": 20,
+          "rate": 0.95
+        }
+      },
+      "totalPassed": 74,
+      "totalAttempts": 100,
+      "passRate": 0.74,
+      "langTax": {
+        "ts": 0.95,
+        "rust": 0.85,
+        "go": 0.95,
+        "python": 0.95
+      },
+      "timestamp": "2026-06-26T22:46:24.481Z",
+      "totalPromptTokens": 274,
+      "totalCompletionTokens": 30552
     },
     {
       "model": "gpt-4o",
@@ -360,6 +402,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "001-fibonacci-memoized": {
@@ -378,6 +427,13 @@
         "python": 1
       },
       "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -406,6 +462,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "003-levenshtein-distance": {
@@ -424,6 +487,13 @@
         "python": 1
       },
       "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -452,6 +522,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "005-balanced-parens": {
@@ -470,6 +547,13 @@
         "python": 1
       },
       "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -498,6 +582,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "007-csv-line-tokenize": {
@@ -521,6 +612,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 0,
+        "rust": 1,
+        "go": 1,
+        "python": 0
       }
     },
     "008-word-reverse": {
@@ -539,6 +637,13 @@
         "python": 1
       },
       "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -567,6 +672,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 1
       }
     },
     "010-byte-frequency": {
@@ -585,6 +697,13 @@
         "python": 0
       },
       "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -613,6 +732,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "012-http-status-code": {
@@ -634,6 +760,13 @@
         "zero": 0,
         "ts": 1,
         "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
         "go": 1,
         "python": 1
       }
@@ -659,6 +792,13 @@
         "rust": 0,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "014-http-header-echo": {
@@ -677,6 +817,13 @@
         "python": 0
       },
       "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -705,6 +852,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "016-parse-list-sum": {
@@ -723,6 +877,13 @@
         "python": 1
       },
       "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -751,6 +912,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 0,
+        "python": 1
       }
     },
     "018-caesar-cipher": {
@@ -774,6 +942,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "019-run-length-encode": {
@@ -792,6 +967,13 @@
         "python": 1
       },
       "gpt-5": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "opus": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
