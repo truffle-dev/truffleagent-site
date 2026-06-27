@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T23:01:14.221Z",
+  "generatedAt": "2026-06-27T22:54:22.329Z",
   "tasks": [
     {
       "slug": "000-hello-stdout",
@@ -18,7 +18,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "pub fun main(world: World) -> Void raises {\n    check world.out.write(\"hello\\n\")\n}\n",
+        "zero": "",
         "ts": "process.stdout.write(\"hello\\n\");\n",
         "rust": "// ref.rs\nfn main() {\n    print!(\"hello\\n\");\n}\n",
         "go": "// ref.go\npackage main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Print(\"hello\\n\")\n}\n",
@@ -284,6 +284,71 @@
           "execMs": 30,
           "promptTokens": 3,
           "completionTokens": 22
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 2,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 11025,
+          "execMs": 0,
+          "promptTokens": 2,
+          "completionTokens": 30
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 2,
+          "numPassed": 2,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 10781,
+          "execMs": 96,
+          "promptTokens": 3,
+          "completionTokens": 18
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 2,
+          "numPassed": 2,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 10815,
+          "execMs": 3,
+          "promptTokens": 3,
+          "completionTokens": 43
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 2,
+          "numPassed": 2,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11781,
+          "execMs": 4,
+          "promptTokens": 3,
+          "completionTokens": 66
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 2,
+          "numPassed": 2,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12333,
+          "execMs": 40,
+          "promptTokens": 3,
+          "completionTokens": 21
         }
       ],
       "hardestLang": "zero",
@@ -308,7 +373,7 @@
         "requires_memoization": true
       },
       "refs": {
-        "zero": "// Fibonacci with memoization, Zero 0.1.2 direct backend.\n//\n// Two notable adaptations vs the other language references, both\n// dictated by Zero 0.1.2's direct ELF64 MVP backend (CGEN004):\n//   1. The CLI input is read from argv[1] instead of stdin. Zero 0.1.2\n//      exposes World.out and World.err but no World.in capability, so\n//      stdin is not yet reachable from a hosted-world program.\n//   2. The u64 memo is stored as two parallel [N]u32 arrays. The MVP\n//      backend's fixed-array local element types are limited to i32,\n//      u32, and u8, so a [N]u64 array is rejected.\n// All logic stays inside `pub fun main` because the direct backend\n// also rejects Span<u8> and MutSpan<u8> as function parameter types\n// in the single-file run path used by `zero run`.\npub fun main(world: World) -> Void raises {\n    let arg = std.args.get(1)\n    if arg.has == false {\n        check world.err.write(\"usage: pass N as argv[1] (Zero 0.1.2 has no stdin capability)\\n\")\n        return\n    }\n\n    // Parse the argv[1] decimal digits into a u32 N. std.parse.parseU32\n    // is gated behind a literal-text requirement in the MVP backend, so\n    // we walk the bytes manually.\n    let arg_bytes: Span<u8> = std.mem.span(arg.value)\n    let arg_len: usize = std.mem.len(arg_bytes)\n    if arg_len == 0 {\n        check world.err.write(\"N must be a non-negative integer\\n\")\n        return\n    }\n    let mut parse_i: usize = 0\n    let mut n: u32 = 0_u32\n    while parse_i < arg_len {\n        let ch: u8 = arg_bytes[parse_i]\n        if ch < 48_u8 || ch > 57_u8 {\n            check world.err.write(\"N must be a non-negative integer\\n\")\n            return\n        }\n        n = n * 10_u32 + ((ch - 48_u8) as u32)\n        parse_i = parse_i + 1\n    }\n    if n >= 64_u32 {\n        check world.err.write(\"N must be < 64 for the u64 memo to remain in-range\\n\")\n        return\n    }\n\n    // Memoized fib. memo_hi[i] and memo_lo[i] together form fib(i) as a\n    // u64: fib(i) = memo_hi[i] * 2^32 + memo_lo[i]. The recurrence is\n    // computed in u64 to capture the carry across the u32 boundary,\n    // then split back into hi/lo for storage. 4294967296 = 2^32.\n    let mut memo_lo: [64]u32 = [0_u32; 64]\n    let mut memo_hi: [64]u32 = [0_u32; 64]\n    memo_lo[0] = 0_u32\n    memo_hi[0] = 0_u32\n    memo_lo[1] = 1_u32\n    memo_hi[1] = 0_u32\n    let mut i: u32 = 2_u32\n    while i <= n {\n        let idx: usize = i as usize\n        let a_hi: u64 = memo_hi[idx - 1] as u64\n        let a_lo: u64 = memo_lo[idx - 1] as u64\n        let b_hi: u64 = memo_hi[idx - 2] as u64\n        let b_lo: u64 = memo_lo[idx - 2] as u64\n        let a: u64 = a_hi * 4294967296_u64 + a_lo\n        let b: u64 = b_hi * 4294967296_u64 + b_lo\n        let sum: u64 = a + b\n        let sum_hi: u64 = sum / 4294967296_u64\n        let sum_lo: u64 = sum % 4294967296_u64\n        memo_hi[idx] = sum_hi as u32\n        memo_lo[idx] = sum_lo as u32\n        i = i + 1_u32\n    }\n    let n_idx: usize = n as usize\n    let v_hi: u64 = memo_hi[n_idx] as u64\n    let v_lo: u64 = memo_lo[n_idx] as u64\n    let value: u64 = v_hi * 4294967296_u64 + v_lo\n\n    // Render value followed by '\\n' into a fixed buffer.\n    let mut buf: [32]u8 = [0_u8; 32]\n    let mut written: usize = 0\n    if value == 0_u64 {\n        buf[0] = 48_u8\n        buf[1] = 10_u8\n        written = 2\n    } else {\n        let mut digits: [24]u8 = [0_u8; 24]\n        let mut rem: u64 = value\n        let mut count: usize = 0\n        while rem > 0_u64 {\n            let dq: u64 = rem / 10_u64\n            let dr: u64 = rem % 10_u64\n            let drb: u8 = dr as u8\n            digits[count] = drb + 48_u8\n            rem = dq\n            count = count + 1\n        }\n        let mut j: usize = 0\n        while j < count {\n            buf[j] = digits[count - 1 - j]\n            j = j + 1\n        }\n        buf[count] = 10_u8\n        written = count + 1\n    }\n\n    let out: Span<u8> = buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Fibonacci with memoization, TypeScript reference.\n// Reads N from stdin, caches fib(i) in a Map, writes fib(N) + newline.\n// BigInt sidesteps the 2^53 precision limit of JS number for large N.\n// Annotations are kept minimal so the same source also runs under plain\n// `node` (TS type stripping varies by runner — tsx/bun handle it, older\n// nodes don't). The Map's value type is documented in the comment instead.\n\nconst chunks = [];\nprocess.stdin.on(\"data\", (c) => chunks.push(c));\nprocess.stdin.on(\"end\", () => {\n  const input = Buffer.concat(chunks).toString(\"utf8\").trim();\n  const n = Number.parseInt(input, 10);\n  if (!Number.isFinite(n) || n < 0) {\n    process.stderr.write(\"N must be a non-negative integer\\n\");\n    process.exit(1);\n  }\n  // memo: Map<number, bigint>\n  const memo = new Map();\n  memo.set(0, 0n);\n  memo.set(1, 1n);\n  const fib = (k) => {\n    const cached = memo.get(k);\n    if (cached !== undefined) return cached;\n    const v = fib(k - 1) + fib(k - 2);\n    memo.set(k, v);\n    return v;\n  };\n  process.stdout.write(fib(n).toString() + \"\\n\");\n});\n",
         "rust": "// Fibonacci with memoization, Rust reference.\n// Reads N from stdin, caches fib(i) in a HashMap<u32, u64>.\n// u64 holds fib(N) for N up to 93 (fib(93) = 12200160415121876738).\nuse std::collections::HashMap;\nuse std::io::{self, Read, Write};\n\nfn fib(k: u32, memo: &mut HashMap<u32, u64>) -> u64 {\n    if let Some(&v) = memo.get(&k) {\n        return v;\n    }\n    let v = fib(k - 1, memo) + fib(k - 2, memo);\n    memo.insert(k, v);\n    v\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).expect(\"read stdin\");\n    let n: u32 = input\n        .trim()\n        .parse()\n        .expect(\"N must be a non-negative integer\");\n    let mut memo: HashMap<u32, u64> = HashMap::new();\n    memo.insert(0, 0);\n    memo.insert(1, 1);\n    let v = fib(n, &mut memo);\n    let stdout = io::stdout();\n    let mut out = stdout.lock();\n    write!(out, \"{}\\n\", v).expect(\"write stdout\");\n}\n",
         "go": "// Fibonacci with memoization, Go reference.\n// Reads N from stdin, caches fib(i) in a map[int]uint64.\n// uint64 holds fib(N) for N up to 93.\npackage main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n)\n\nfunc fib(k int, memo map[int]uint64) uint64 {\n\tif v, ok := memo[k]; ok {\n\t\treturn v\n\t}\n\tv := fib(k-1, memo) + fib(k-2, memo)\n\tmemo[k] = v\n\treturn v\n}\n\nfunc main() {\n\treader := bufio.NewReader(os.Stdin)\n\tline, _ := reader.ReadString('\\n')\n\tn, err := strconv.Atoi(strings.TrimSpace(line))\n\tif err != nil || n < 0 {\n\t\tfmt.Fprintln(os.Stderr, \"N must be a non-negative integer\")\n\t\tos.Exit(1)\n\t}\n\tmemo := map[int]uint64{0: 0, 1: 1}\n\tfmt.Print(fib(n, memo), \"\\n\")\n}\n",
@@ -574,6 +639,71 @@
           "execMs": 76,
           "promptTokens": 3,
           "completionTokens": 115
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 5,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 35151,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 5,
+          "numPassed": 5,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11985,
+          "execMs": 148,
+          "promptTokens": 3,
+          "completionTokens": 179
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 5,
+          "numPassed": 5,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11877,
+          "execMs": 8,
+          "promptTokens": 3,
+          "completionTokens": 172
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 5,
+          "numPassed": 5,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13339,
+          "execMs": 8,
+          "promptTokens": 3,
+          "completionTokens": 260
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 5,
+          "numPassed": 5,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13444,
+          "execMs": 94,
+          "promptTokens": 3,
+          "completionTokens": 109
         }
       ],
       "hardestLang": "zero",
@@ -598,7 +728,7 @@
         "requires_sieve": true
       },
       "refs": {
-        "zero": "// Prime count via Sieve of Eratosthenes, Zero 0.1.2 direct backend.\n//\n// Same input convention as task 001: N is read from argv[1] because\n// Zero 0.1.2 has no exposed stdin capability. All logic stays inside\n// `pub fun main` to avoid the Span/MutSpan-as-parameter restriction.\n//\n// The composite-flag table is fixed-size [10001]u8 so the spec cap\n// of N <= 10000 is enforced at the type level. Element type is u8\n// to stay inside the direct backend's allowed local-array element\n// types (u8, u32, i32).\npub fun main(world: World) -> Void raises {\n    let arg = std.args.get(1)\n    if arg.has == false {\n        check world.err.write(\"usage: pass N as argv[1] (Zero 0.1.2 has no stdin capability)\\n\")\n        return\n    }\n\n    let arg_bytes: Span<u8> = std.mem.span(arg.value)\n    let arg_len: usize = std.mem.len(arg_bytes)\n    if arg_len == 0 {\n        check world.err.write(\"N must be a non-negative integer\\n\")\n        return\n    }\n    let mut parse_i: usize = 0\n    let mut n: u32 = 0_u32\n    while parse_i < arg_len {\n        let ch: u8 = arg_bytes[parse_i]\n        if ch < 48_u8 || ch > 57_u8 {\n            check world.err.write(\"N must be a non-negative integer\\n\")\n            return\n        }\n        n = n * 10_u32 + ((ch - 48_u8) as u32)\n        parse_i = parse_i + 1\n    }\n    if n > 10000_u32 {\n        check world.err.write(\"N must be <= 10000\\n\")\n        return\n    }\n\n    let mut count: u32 = 0_u32\n    if n >= 2_u32 {\n        let mut composite: [10001]u8 = [0_u8; 10001]\n        let mut i: u32 = 2_u32\n        while i * i <= n {\n            if composite[i as usize] == 0_u8 {\n                let mut j: u32 = i * i\n                while j <= n {\n                    composite[j as usize] = 1_u8\n                    j = j + i\n                }\n            }\n            i = i + 1_u32\n        }\n        let mut k: u32 = 2_u32\n        while k <= n {\n            if composite[k as usize] == 0_u8 {\n                count = count + 1_u32\n            }\n            k = k + 1_u32\n        }\n    }\n\n    let mut buf: [16]u8 = [0_u8; 16]\n    let mut written: usize = 0\n    if count == 0_u32 {\n        buf[0] = 48_u8\n        buf[1] = 10_u8\n        written = 2\n    } else {\n        let mut digits: [16]u8 = [0_u8; 16]\n        let mut rem: u32 = count\n        let mut digit_count: usize = 0\n        while rem > 0_u32 {\n            let dq: u32 = rem / 10_u32\n            let dr: u32 = rem % 10_u32\n            digits[digit_count] = (dr as u8) + 48_u8\n            rem = dq\n            digit_count = digit_count + 1\n        }\n        let mut o: usize = 0\n        while o < digit_count {\n            buf[o] = digits[digit_count - 1 - o]\n            o = o + 1\n        }\n        buf[digit_count] = 10_u8\n        written = digit_count + 1\n    }\n    let out: Span<u8> = buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Prime count via Sieve of Eratosthenes, TypeScript reference.\n// Reads N from stdin, runs a byte-flag sieve, counts unmarked [2, N].\nimport { readFileSync } from \"node:fs\";\n\nconst input = readFileSync(0, \"utf8\").trim();\nconst n = Number.parseInt(input, 10);\nif (!Number.isInteger(n) || n < 0) {\n  process.stderr.write(\"N must be a non-negative integer\\n\");\n  process.exit(1);\n}\n\nif (n < 2) {\n  process.stdout.write(\"0\\n\");\n} else {\n  const composite = new Uint8Array(n + 1);\n  for (let i = 2; i * i <= n; i++) {\n    if (composite[i] === 0) {\n      for (let j = i * i; j <= n; j += i) {\n        composite[j] = 1;\n      }\n    }\n  }\n  let count = 0;\n  for (let k = 2; k <= n; k++) {\n    if (composite[k] === 0) count++;\n  }\n  process.stdout.write(`${count}\\n`);\n}\n",
         "rust": "// Prime count via Sieve of Eratosthenes, Rust reference.\n// Reads N from stdin, runs a byte-flag sieve, counts unmarked [2, N].\nuse std::io::{self, Read, Write};\nuse std::process::ExitCode;\n\nfn main() -> ExitCode {\n    let mut input = String::new();\n    if io::stdin().read_to_string(&mut input).is_err() {\n        let _ = writeln!(io::stderr(), \"failed to read stdin\");\n        return ExitCode::from(1);\n    }\n    let n: i64 = match input.trim().parse() {\n        Ok(v) if v >= 0 => v,\n        _ => {\n            let _ = writeln!(io::stderr(), \"N must be a non-negative integer\");\n            return ExitCode::from(1);\n        }\n    };\n    let n_usize = n as usize;\n    let count = if n < 2 {\n        0\n    } else {\n        let mut composite = vec![0u8; n_usize + 1];\n        let mut i: usize = 2;\n        while i * i <= n_usize {\n            if composite[i] == 0 {\n                let mut j = i * i;\n                while j <= n_usize {\n                    composite[j] = 1;\n                    j += i;\n                }\n            }\n            i += 1;\n        }\n        (2..=n_usize).filter(|&k| composite[k] == 0).count()\n    };\n    let _ = writeln!(io::stdout(), \"{}\", count);\n    ExitCode::SUCCESS\n}\n",
         "go": "// Prime count via Sieve of Eratosthenes, Go reference.\n// Reads N from stdin, runs a byte-flag sieve, counts unmarked [2, N].\npackage main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n)\n\nfunc main() {\n\treader := bufio.NewReader(os.Stdin)\n\tline, _ := reader.ReadString('\\n')\n\tn, err := strconv.Atoi(strings.TrimSpace(line))\n\tif err != nil || n < 0 {\n\t\tfmt.Fprintln(os.Stderr, \"N must be a non-negative integer\")\n\t\tos.Exit(1)\n\t}\n\tif n < 2 {\n\t\tfmt.Print(\"0\\n\")\n\t\treturn\n\t}\n\tcomposite := make([]byte, n+1)\n\tfor i := 2; i*i <= n; i++ {\n\t\tif composite[i] == 0 {\n\t\t\tfor j := i * i; j <= n; j += i {\n\t\t\t\tcomposite[j] = 1\n\t\t\t}\n\t\t}\n\t}\n\tcount := 0\n\tfor k := 2; k <= n; k++ {\n\t\tif composite[k] == 0 {\n\t\t\tcount++\n\t\t}\n\t}\n\tfmt.Print(count, \"\\n\")\n}\n",
@@ -864,6 +994,71 @@
           "execMs": 101,
           "promptTokens": 3,
           "completionTokens": 156
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 20538,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14119,
+          "execMs": 249,
+          "promptTokens": 3,
+          "completionTokens": 260
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12581,
+          "execMs": 9,
+          "promptTokens": 3,
+          "completionTokens": 251
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12716,
+          "execMs": 11,
+          "promptTokens": 3,
+          "completionTokens": 290
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11798,
+          "execMs": 83,
+          "promptTokens": 3,
+          "completionTokens": 159
         }
       ],
       "hardestLang": "zero",
@@ -887,7 +1082,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Levenshtein edit distance, Zero 0.1.2 direct backend.\n//\n// Same input convention as tasks 001 and 002: arguments come from argv\n// because Zero 0.1.2 has no exposed stdin capability. A comes from\n// argv[1] and B from argv[2]. All logic stays inside `pub fun main` to\n// avoid the Span/MutSpan-as-parameter restriction.\n//\n// Two rolling [51]u32 buffers form the DP row (current and previous).\n// Spec caps each string at 50 characters so a 51-cell row covers it.\npub fun main(world: World) -> Void raises {\n    let a_opt = std.args.get(1)\n    let b_opt = std.args.get(2)\n    if a_opt.has == false || b_opt.has == false {\n        check world.err.write(\"usage: pass A as argv[1] and B as argv[2] (Zero 0.1.2 has no stdin capability)\\n\")\n        return\n    }\n\n    let a_bytes: Span<u8> = std.mem.span(a_opt.value)\n    let b_bytes: Span<u8> = std.mem.span(b_opt.value)\n    let a_len: usize = std.mem.len(a_bytes)\n    let b_len: usize = std.mem.len(b_bytes)\n    if a_len > 50 || b_len > 50 {\n        check world.err.write(\"each string must be at most 50 characters\\n\")\n        return\n    }\n\n    let mut prev: [51]u32 = [0_u32; 51]\n    let mut curr: [51]u32 = [0_u32; 51]\n\n    let mut j: usize = 0\n    while j <= b_len {\n        prev[j] = j as u32\n        j = j + 1\n    }\n\n    let mut i: usize = 0\n    while i < a_len {\n        curr[0] = (i + 1) as u32\n        let ai: u8 = a_bytes[i]\n        let mut k: usize = 0\n        while k < b_len {\n            let bk: u8 = b_bytes[k]\n            let del_cost: u32 = prev[k + 1] + 1_u32\n            let ins_cost: u32 = curr[k] + 1_u32\n            let mut sub_cost: u32 = prev[k]\n            if ai != bk {\n                sub_cost = sub_cost + 1_u32\n            }\n            let mut best: u32 = del_cost\n            if ins_cost < best {\n                best = ins_cost\n            }\n            if sub_cost < best {\n                best = sub_cost\n            }\n            curr[k + 1] = best\n            k = k + 1\n        }\n        let mut copy_i: usize = 0\n        while copy_i <= b_len {\n            prev[copy_i] = curr[copy_i]\n            copy_i = copy_i + 1\n        }\n        i = i + 1\n    }\n\n    let distance: u32 = prev[b_len]\n\n    let mut buf: [16]u8 = [0_u8; 16]\n    let mut written: usize = 0\n    if distance == 0_u32 {\n        buf[0] = 48_u8\n        buf[1] = 10_u8\n        written = 2\n    } else {\n        let mut digits: [16]u8 = [0_u8; 16]\n        let mut rem: u32 = distance\n        let mut digit_count: usize = 0\n        while rem > 0_u32 {\n            let dq: u32 = rem / 10_u32\n            let dr: u32 = rem % 10_u32\n            digits[digit_count] = (dr as u8) + 48_u8\n            rem = dq\n            digit_count = digit_count + 1\n        }\n        let mut o: usize = 0\n        while o < digit_count {\n            buf[o] = digits[digit_count - 1 - o]\n            o = o + 1\n        }\n        buf[digit_count] = 10_u8\n        written = digit_count + 1\n    }\n    let out: Span<u8> = buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Levenshtein edit distance, TypeScript reference.\n// Reads A and B from stdin (one per line), runs a two-row DP.\nimport { readFileSync } from \"node:fs\";\n\nconst raw = readFileSync(0, \"utf8\");\nconst lines = raw.split(\"\\n\");\nconst a = lines[0] ?? \"\";\nconst b = lines[1] ?? \"\";\nif (a.length > 50 || b.length > 50) {\n  process.stderr.write(\"each string must be at most 50 characters\\n\");\n  process.exit(1);\n}\n\nconst m = a.length;\nconst n = b.length;\nlet prev = new Array<number>(n + 1);\nlet curr = new Array<number>(n + 1);\nfor (let j = 0; j <= n; j++) prev[j] = j;\nfor (let i = 0; i < m; i++) {\n  curr[0] = i + 1;\n  const ai = a.charCodeAt(i);\n  for (let k = 0; k < n; k++) {\n    const delCost = prev[k + 1] + 1;\n    const insCost = curr[k] + 1;\n    const subCost = prev[k] + (ai === b.charCodeAt(k) ? 0 : 1);\n    curr[k + 1] = Math.min(delCost, insCost, subCost);\n  }\n  [prev, curr] = [curr, prev];\n}\nprocess.stdout.write(`${prev[n]}\\n`);\n",
         "rust": "// Levenshtein edit distance, Rust reference.\n// Reads A and B from stdin (one per line), runs a two-row DP.\nuse std::io::{self, Read, Write};\nuse std::process::ExitCode;\n\nfn main() -> ExitCode {\n    let mut input = String::new();\n    if io::stdin().read_to_string(&mut input).is_err() {\n        let _ = writeln!(io::stderr(), \"failed to read stdin\");\n        return ExitCode::from(1);\n    }\n    let mut lines = input.split('\\n');\n    let a = lines.next().unwrap_or(\"\");\n    let b = lines.next().unwrap_or(\"\");\n    if a.chars().count() > 50 || b.chars().count() > 50 {\n        let _ = writeln!(io::stderr(), \"each string must be at most 50 characters\");\n        return ExitCode::from(1);\n    }\n    let a_bytes = a.as_bytes();\n    let b_bytes = b.as_bytes();\n    let m = a_bytes.len();\n    let n = b_bytes.len();\n    let mut prev: Vec<u32> = (0..=n as u32).collect();\n    let mut curr: Vec<u32> = vec![0; n + 1];\n    for i in 0..m {\n        curr[0] = (i + 1) as u32;\n        for k in 0..n {\n            let del_cost = prev[k + 1] + 1;\n            let ins_cost = curr[k] + 1;\n            let sub_cost = prev[k] + if a_bytes[i] == b_bytes[k] { 0 } else { 1 };\n            curr[k + 1] = del_cost.min(ins_cost).min(sub_cost);\n        }\n        std::mem::swap(&mut prev, &mut curr);\n    }\n    let _ = writeln!(io::stdout(), \"{}\", prev[n]);\n    ExitCode::SUCCESS\n}\n",
         "go": "// Levenshtein edit distance, Go reference.\n// Reads A and B from stdin (one per line), runs a two-row DP.\npackage main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n\t\"strings\"\n)\n\nfunc main() {\n\traw, err := io.ReadAll(bufio.NewReader(os.Stdin))\n\tif err != nil {\n\t\tfmt.Fprintln(os.Stderr, \"failed to read stdin\")\n\t\tos.Exit(1)\n\t}\n\tlines := strings.SplitN(string(raw), \"\\n\", 3)\n\tvar a, b string\n\tif len(lines) >= 1 {\n\t\ta = lines[0]\n\t}\n\tif len(lines) >= 2 {\n\t\tb = lines[1]\n\t}\n\tif len(a) > 50 || len(b) > 50 {\n\t\tfmt.Fprintln(os.Stderr, \"each string must be at most 50 characters\")\n\t\tos.Exit(1)\n\t}\n\tm, n := len(a), len(b)\n\tprev := make([]int, n+1)\n\tcurr := make([]int, n+1)\n\tfor j := 0; j <= n; j++ {\n\t\tprev[j] = j\n\t}\n\tfor i := 0; i < m; i++ {\n\t\tcurr[0] = i + 1\n\t\tfor k := 0; k < n; k++ {\n\t\t\tdelCost := prev[k+1] + 1\n\t\t\tinsCost := curr[k] + 1\n\t\t\tsubCost := prev[k]\n\t\t\tif a[i] != b[k] {\n\t\t\t\tsubCost++\n\t\t\t}\n\t\t\tbest := delCost\n\t\t\tif insCost < best {\n\t\t\t\tbest = insCost\n\t\t\t}\n\t\t\tif subCost < best {\n\t\t\t\tbest = subCost\n\t\t\t}\n\t\t\tcurr[k+1] = best\n\t\t}\n\t\tprev, curr = curr, prev\n\t}\n\tfmt.Print(prev[n], \"\\n\")\n}\n",
@@ -1153,6 +1348,71 @@
           "execMs": 128,
           "promptTokens": 3,
           "completionTokens": 222
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 50771,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13134,
+          "execMs": 234,
+          "promptTokens": 3,
+          "completionTokens": 267
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13203,
+          "execMs": 9,
+          "promptTokens": 3,
+          "completionTokens": 340
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14195,
+          "execMs": 10,
+          "promptTokens": 3,
+          "completionTokens": 504
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13569,
+          "execMs": 86,
+          "promptTokens": 3,
+          "completionTokens": 235
         }
       ],
       "hardestLang": "zero",
@@ -1176,7 +1436,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Square integer matrix multiply, Zero 0.1.2 direct backend.\n//\n// Same input convention as 001-003: arguments come from argv because\n// Zero 0.1.2 has no exposed stdin capability. argv[1] is N; the next\n// N*N args are A row-major; the next N*N args are B row-major. All\n// logic stays inside `pub fun main` to avoid the Span/MutSpan\n// parameter restriction.\n//\n// Matrices are stored as flat [25]i32 buffers (the spec caps N at 5\n// so 5*5 = 25 fixes both upper bound and stack size). Element type\n// i32 because entries are in [-99, 99] and worst-case product sum is\n// 5 * 99 * 99 = 49005, comfortably inside i32 range. The decimal\n// renderer handles negative values and emits N lines of space-\n// separated decimals terminated by \\n.\npub fun main(world: World) -> Void raises {\n    let n_opt = std.args.get(1)\n    if n_opt.has == false {\n        check world.err.write(\"usage: pass N as argv[1] and the matrix entries as argv[2..]\\n\")\n        return\n    }\n    let n_bytes: Span<u8> = std.mem.span(n_opt.value)\n    let n_str_len: usize = std.mem.len(n_bytes)\n    if n_str_len == 0 {\n        check world.err.write(\"N must be in [1, 5]\\n\")\n        return\n    }\n    let mut np: usize = 0\n    let mut n_val: u32 = 0_u32\n    while np < n_str_len {\n        let ch: u8 = n_bytes[np]\n        if ch < 48_u8 || ch > 57_u8 {\n            check world.err.write(\"N must be in [1, 5]\\n\")\n            return\n        }\n        n_val = n_val * 10_u32 + ((ch - 48_u8) as u32)\n        np = np + 1\n    }\n    if n_val < 1_u32 || n_val > 5_u32 {\n        check world.err.write(\"N must be in [1, 5]\\n\")\n        return\n    }\n    let n: usize = n_val as usize\n    let nn: usize = n * n\n\n    let mut a: [25]i32 = [0_i32; 25]\n    let mut b: [25]i32 = [0_i32; 25]\n\n    let mut idx: usize = 0\n    while idx < nn {\n        let arg = std.args.get(2_usize + idx)\n        if arg.has == false {\n            check world.err.write(\"missing matrix entry\\n\")\n            return\n        }\n        let bytes: Span<u8> = std.mem.span(arg.value)\n        let bl: usize = std.mem.len(bytes)\n        if bl == 0 {\n            check world.err.write(\"empty matrix entry\\n\")\n            return\n        }\n        let mut p: usize = 0\n        let mut neg: Bool = false\n        if bytes[0] == 45_u8 {\n            neg = true\n            p = 1\n        }\n        if p >= bl {\n            check world.err.write(\"invalid matrix entry\\n\")\n            return\n        }\n        let mut v: i32 = 0_i32\n        while p < bl {\n            let c: u8 = bytes[p]\n            if c < 48_u8 || c > 57_u8 {\n                check world.err.write(\"invalid matrix entry\\n\")\n                return\n            }\n            v = v * 10_i32 + ((c - 48_u8) as i32)\n            p = p + 1\n        }\n        if neg {\n            v = 0_i32 - v\n        }\n        a[idx] = v\n        idx = idx + 1\n    }\n\n    let mut jdx: usize = 0\n    while jdx < nn {\n        let arg = std.args.get(2_usize + nn + jdx)\n        if arg.has == false {\n            check world.err.write(\"missing matrix entry\\n\")\n            return\n        }\n        let bytes: Span<u8> = std.mem.span(arg.value)\n        let bl: usize = std.mem.len(bytes)\n        if bl == 0 {\n            check world.err.write(\"empty matrix entry\\n\")\n            return\n        }\n        let mut p: usize = 0\n        let mut neg: Bool = false\n        if bytes[0] == 45_u8 {\n            neg = true\n            p = 1\n        }\n        if p >= bl {\n            check world.err.write(\"invalid matrix entry\\n\")\n            return\n        }\n        let mut v: i32 = 0_i32\n        while p < bl {\n            let c: u8 = bytes[p]\n            if c < 48_u8 || c > 57_u8 {\n                check world.err.write(\"invalid matrix entry\\n\")\n                return\n            }\n            v = v * 10_i32 + ((c - 48_u8) as i32)\n            p = p + 1\n        }\n        if neg {\n            v = 0_i32 - v\n        }\n        b[jdx] = v\n        jdx = jdx + 1\n    }\n\n    let mut out_buf: [512]u8 = [0_u8; 512]\n    let mut written: usize = 0\n\n    let mut i: usize = 0\n    while i < n {\n        let mut j: usize = 0\n        while j < n {\n            let mut s: i32 = 0_i32\n            let mut k: usize = 0\n            while k < n {\n                s = s + a[i * n + k] * b[k * n + j]\n                k = k + 1\n            }\n            // Render s into the buffer.\n            if j > 0 {\n                out_buf[written] = 32_u8\n                written = written + 1\n            }\n            let mut is_neg: Bool = false\n            let mut u: u32 = 0_u32\n            if s < 0_i32 {\n                is_neg = true\n                u = (0_i32 - s) as u32\n            } else {\n                u = s as u32\n            }\n            if is_neg {\n                out_buf[written] = 45_u8\n                written = written + 1\n            }\n            if u == 0_u32 {\n                out_buf[written] = 48_u8\n                written = written + 1\n            } else {\n                let mut digits: [16]u8 = [0_u8; 16]\n                let mut rem: u32 = u\n                let mut dc: usize = 0\n                while rem > 0_u32 {\n                    let dq: u32 = rem / 10_u32\n                    let dr: u32 = rem % 10_u32\n                    digits[dc] = (dr as u8) + 48_u8\n                    rem = dq\n                    dc = dc + 1\n                }\n                let mut o: usize = 0\n                while o < dc {\n                    out_buf[written] = digits[dc - 1 - o]\n                    written = written + 1\n                    o = o + 1\n                }\n            }\n            j = j + 1\n        }\n        out_buf[written] = 10_u8\n        written = written + 1\n        i = i + 1\n    }\n\n    let out: Span<u8> = out_buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Square integer matrix multiply, TypeScript reference.\n// Reads N, then N rows of A, then N rows of B, prints rows of C = A * B.\nimport { readFileSync } from \"node:fs\";\n\nconst raw = readFileSync(0, \"utf8\");\nconst tokens = raw.split(/\\s+/).filter((t) => t.length > 0);\nlet pos = 0;\nconst n = Number.parseInt(tokens[pos++], 10);\nif (!Number.isInteger(n) || n < 1 || n > 5) {\n  process.stderr.write(\"N must be in [1, 5]\\n\");\n  process.exit(1);\n}\n\nconst a: number[][] = [];\nconst b: number[][] = [];\nfor (let i = 0; i < n; i++) {\n  const row: number[] = [];\n  for (let j = 0; j < n; j++) row.push(Number.parseInt(tokens[pos++], 10));\n  a.push(row);\n}\nfor (let i = 0; i < n; i++) {\n  const row: number[] = [];\n  for (let j = 0; j < n; j++) row.push(Number.parseInt(tokens[pos++], 10));\n  b.push(row);\n}\n\nconst rows: string[] = [];\nfor (let i = 0; i < n; i++) {\n  const cells: string[] = [];\n  for (let j = 0; j < n; j++) {\n    let s = 0;\n    for (let k = 0; k < n; k++) s += a[i][k] * b[k][j];\n    cells.push(String(s));\n  }\n  rows.push(cells.join(\" \"));\n}\nprocess.stdout.write(rows.join(\"\\n\") + \"\\n\");\n",
         "rust": "// Square integer matrix multiply, Rust reference.\n// Reads N, then N rows of A, then N rows of B, prints C = A * B.\nuse std::io::{self, Read, Write};\nuse std::process::ExitCode;\n\nfn main() -> ExitCode {\n    let mut input = String::new();\n    if io::stdin().read_to_string(&mut input).is_err() {\n        let _ = writeln!(io::stderr(), \"failed to read stdin\");\n        return ExitCode::from(1);\n    }\n    let mut iter = input.split_ascii_whitespace();\n    let n: i64 = match iter.next().and_then(|t| t.parse().ok()) {\n        Some(v) if (1..=5).contains(&v) => v,\n        _ => {\n            let _ = writeln!(io::stderr(), \"N must be in [1, 5]\");\n            return ExitCode::from(1);\n        }\n    };\n    let n = n as usize;\n    let read_matrix = |it: &mut std::str::SplitAsciiWhitespace| -> Option<Vec<Vec<i32>>> {\n        let mut m = vec![vec![0i32; n]; n];\n        for i in 0..n {\n            for j in 0..n {\n                let v: i32 = it.next()?.parse().ok()?;\n                m[i][j] = v;\n            }\n        }\n        Some(m)\n    };\n    let a = match read_matrix(&mut iter) {\n        Some(m) => m,\n        None => {\n            let _ = writeln!(io::stderr(), \"failed to read A\");\n            return ExitCode::from(1);\n        }\n    };\n    let b = match read_matrix(&mut iter) {\n        Some(m) => m,\n        None => {\n            let _ = writeln!(io::stderr(), \"failed to read B\");\n            return ExitCode::from(1);\n        }\n    };\n    let mut out = String::new();\n    for i in 0..n {\n        for j in 0..n {\n            let mut s: i32 = 0;\n            for k in 0..n {\n                s += a[i][k] * b[k][j];\n            }\n            if j > 0 {\n                out.push(' ');\n            }\n            out.push_str(&s.to_string());\n        }\n        out.push('\\n');\n    }\n    let _ = io::stdout().write_all(out.as_bytes());\n    ExitCode::SUCCESS\n}\n",
         "go": "// Square integer matrix multiply, Go reference.\n// Reads N, then N rows of A, then N rows of B, prints C = A * B.\npackage main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n)\n\nfunc main() {\n\traw, err := io.ReadAll(bufio.NewReader(os.Stdin))\n\tif err != nil {\n\t\tfmt.Fprintln(os.Stderr, \"failed to read stdin\")\n\t\tos.Exit(1)\n\t}\n\ttokens := strings.Fields(string(raw))\n\tpos := 0\n\tif len(tokens) == 0 {\n\t\tfmt.Fprintln(os.Stderr, \"missing input\")\n\t\tos.Exit(1)\n\t}\n\tn, err := strconv.Atoi(tokens[pos])\n\tif err != nil || n < 1 || n > 5 {\n\t\tfmt.Fprintln(os.Stderr, \"N must be in [1, 5]\")\n\t\tos.Exit(1)\n\t}\n\tpos++\n\ta := make([][]int, n)\n\tb := make([][]int, n)\n\tfor i := 0; i < n; i++ {\n\t\ta[i] = make([]int, n)\n\t\tfor j := 0; j < n; j++ {\n\t\t\ta[i][j], err = strconv.Atoi(tokens[pos])\n\t\t\tif err != nil {\n\t\t\t\tfmt.Fprintln(os.Stderr, \"failed to read A\")\n\t\t\t\tos.Exit(1)\n\t\t\t}\n\t\t\tpos++\n\t\t}\n\t}\n\tfor i := 0; i < n; i++ {\n\t\tb[i] = make([]int, n)\n\t\tfor j := 0; j < n; j++ {\n\t\t\tb[i][j], err = strconv.Atoi(tokens[pos])\n\t\t\tif err != nil {\n\t\t\t\tfmt.Fprintln(os.Stderr, \"failed to read B\")\n\t\t\t\tos.Exit(1)\n\t\t\t}\n\t\t\tpos++\n\t\t}\n\t}\n\tvar sb strings.Builder\n\tfor i := 0; i < n; i++ {\n\t\tfor j := 0; j < n; j++ {\n\t\t\ts := 0\n\t\t\tfor k := 0; k < n; k++ {\n\t\t\t\ts += a[i][k] * b[k][j]\n\t\t\t}\n\t\t\tif j > 0 {\n\t\t\t\tsb.WriteByte(' ')\n\t\t\t}\n\t\t\tsb.WriteString(strconv.Itoa(s))\n\t\t}\n\t\tsb.WriteByte('\\n')\n\t}\n\tfmt.Print(sb.String())\n}\n",
@@ -1442,6 +1702,71 @@
           "execMs": 99,
           "promptTokens": 3,
           "completionTokens": 243
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 61100,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 16478,
+          "execMs": 243,
+          "promptTokens": 3,
+          "completionTokens": 334
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13532,
+          "execMs": 7,
+          "promptTokens": 3,
+          "completionTokens": 397
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13114,
+          "execMs": 12,
+          "promptTokens": 3,
+          "completionTokens": 376
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12414,
+          "execMs": 98,
+          "promptTokens": 3,
+          "completionTokens": 233
         }
       ],
       "hardestLang": "zero",
@@ -1465,7 +1790,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Balanced bracket checker, Zero 0.1.2 direct backend.\n//\n// Same input convention as 001-004: argv[1] is the line to check, because\n// Zero 0.1.2 has no exposed stdin capability. All logic stays inside\n// `pub fun main` to avoid Span/MutSpan parameter restrictions.\n//\n// Stack of openers is a flat [1000]u8 buffer (the spec caps the input at\n// 1000 printable-ASCII characters, so the stack depth cannot exceed that).\n// Bracket bytes: '(' 40, ')' 41, '[' 91, ']' 93, '{' 123, '}' 125.\npub fun main(world: World) -> Void raises {\n    let line_opt = std.args.get(1)\n    let mut bytes: Span<u8> = std.mem.span(\"\")\n    if line_opt.has {\n        bytes = std.mem.span(line_opt.value)\n    }\n    let n: usize = std.mem.len(bytes)\n\n    let mut stack: [1000]u8 = [0_u8; 1000]\n    let mut top: usize = 0\n    let mut balanced: Bool = true\n\n    let mut i: usize = 0\n    while i < n {\n        let ch: u8 = bytes[i]\n        if ch == 40_u8 || ch == 91_u8 || ch == 123_u8 {\n            stack[top] = ch\n            top = top + 1\n        } else {\n            if ch == 41_u8 {\n                if top == 0 {\n                    balanced = false\n                } else {\n                    if stack[top - 1] != 40_u8 {\n                        balanced = false\n                    } else {\n                        top = top - 1\n                    }\n                }\n            } else {\n                if ch == 93_u8 {\n                    if top == 0 {\n                        balanced = false\n                    } else {\n                        if stack[top - 1] != 91_u8 {\n                            balanced = false\n                        } else {\n                            top = top - 1\n                        }\n                    }\n                } else {\n                    if ch == 125_u8 {\n                        if top == 0 {\n                            balanced = false\n                        } else {\n                            if stack[top - 1] != 123_u8 {\n                                balanced = false\n                            } else {\n                                top = top - 1\n                            }\n                        }\n                    }\n                }\n            }\n        }\n        if balanced == false {\n            i = n\n        } else {\n            i = i + 1\n        }\n    }\n\n    let mut out_buf: [4]u8 = [0_u8; 4]\n    let mut written: usize = 0\n    if balanced && top == 0 {\n        out_buf[0] = 121_u8\n        out_buf[1] = 101_u8\n        out_buf[2] = 115_u8\n        out_buf[3] = 10_u8\n        written = 4\n    } else {\n        out_buf[0] = 110_u8\n        out_buf[1] = 111_u8\n        out_buf[2] = 10_u8\n        written = 3\n    }\n    let out: Span<u8> = out_buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Balanced bracket checker, TypeScript reference.\n// Reads one line of printable ASCII (up to 1000 chars), prints `yes` or `no`.\n\nimport { readFileSync } from \"node:fs\";\n\nfunction main(): void {\n  let line = readFileSync(0, \"utf8\");\n  if (line.endsWith(\"\\n\")) line = line.slice(0, -1);\n  const stack: string[] = [];\n  const pairs: Record<string, string> = { \")\": \"(\", \"]\": \"[\", \"}\": \"{\" };\n  let balanced = true;\n  for (const ch of line) {\n    if (ch === \"(\" || ch === \"[\" || ch === \"{\") {\n      stack.push(ch);\n    } else if (ch === \")\" || ch === \"]\" || ch === \"}\") {\n      if (stack.length === 0 || stack[stack.length - 1] !== pairs[ch]) {\n        balanced = false;\n        break;\n      }\n      stack.pop();\n    }\n  }\n  if (balanced && stack.length === 0) {\n    process.stdout.write(\"yes\\n\");\n  } else {\n    process.stdout.write(\"no\\n\");\n  }\n}\n\nmain();\n",
         "rust": "// Balanced bracket checker, Rust reference.\n// Reads one line of printable ASCII (up to 1000 chars), prints `yes` or `no`.\n\nuse std::io::{self, Read, Write};\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    if input.ends_with('\\n') {\n        input.pop();\n    }\n    let mut stack: Vec<char> = Vec::new();\n    let mut balanced = true;\n    for ch in input.chars() {\n        match ch {\n            '(' | '[' | '{' => stack.push(ch),\n            ')' => {\n                if stack.pop() != Some('(') {\n                    balanced = false;\n                    break;\n                }\n            }\n            ']' => {\n                if stack.pop() != Some('[') {\n                    balanced = false;\n                    break;\n                }\n            }\n            '}' => {\n                if stack.pop() != Some('{') {\n                    balanced = false;\n                    break;\n                }\n            }\n            _ => {}\n        }\n    }\n    let out = io::stdout();\n    let mut h = out.lock();\n    if balanced && stack.is_empty() {\n        h.write_all(b\"yes\\n\").unwrap();\n    } else {\n        h.write_all(b\"no\\n\").unwrap();\n    }\n}\n",
         "go": "// Balanced bracket checker, Go reference.\n// Reads one line of printable ASCII (up to 1000 chars), prints `yes` or `no`.\n\npackage main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strings\"\n)\n\nfunc main() {\n\treader := bufio.NewReader(os.Stdin)\n\tline, _ := reader.ReadString('\\n')\n\tline = strings.TrimRight(line, \"\\n\")\n\tstack := make([]byte, 0, 1024)\n\tbalanced := true\n\tfor i := 0; i < len(line); i++ {\n\t\tch := line[i]\n\t\tswitch ch {\n\t\tcase '(', '[', '{':\n\t\t\tstack = append(stack, ch)\n\t\tcase ')':\n\t\t\tif len(stack) == 0 || stack[len(stack)-1] != '(' {\n\t\t\t\tbalanced = false\n\t\t\t} else {\n\t\t\t\tstack = stack[:len(stack)-1]\n\t\t\t}\n\t\tcase ']':\n\t\t\tif len(stack) == 0 || stack[len(stack)-1] != '[' {\n\t\t\t\tbalanced = false\n\t\t\t} else {\n\t\t\t\tstack = stack[:len(stack)-1]\n\t\t\t}\n\t\tcase '}':\n\t\t\tif len(stack) == 0 || stack[len(stack)-1] != '{' {\n\t\t\t\tbalanced = false\n\t\t\t} else {\n\t\t\t\tstack = stack[:len(stack)-1]\n\t\t\t}\n\t\t}\n\t\tif !balanced {\n\t\t\tbreak\n\t\t}\n\t}\n\tif balanced && len(stack) == 0 {\n\t\tfmt.Print(\"yes\\n\")\n\t} else {\n\t\tfmt.Print(\"no\\n\")\n\t}\n}\n",
@@ -1731,6 +2056,71 @@
           "execMs": 90,
           "promptTokens": 3,
           "completionTokens": 147
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 77514,
+          "execMs": 0,
+          "promptTokens": 2,
+          "completionTokens": 4958
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12840,
+          "execMs": 209,
+          "promptTokens": 3,
+          "completionTokens": 222
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12418,
+          "execMs": 8,
+          "promptTokens": 3,
+          "completionTokens": 289
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14143,
+          "execMs": 9,
+          "promptTokens": 3,
+          "completionTokens": 298
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11964,
+          "execMs": 94,
+          "promptTokens": 3,
+          "completionTokens": 147
         }
       ],
       "hardestLang": "zero",
@@ -1754,7 +2144,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Non-overlapping substring count, Zero 0.1.2 direct backend.\n//\n// Same input convention as 001-005: arguments come from argv because\n// Zero 0.1.2 has no exposed stdin capability. argv[1] is the pattern P\n// and argv[2] is the text T. All logic stays inside `pub fun main`\n// to avoid Span/MutSpan parameter restrictions.\n//\n// Greedy non-overlapping scan: once a match starts at index i, the\n// next candidate starts at i + m. The count is rendered with the\n// small-divisor u32 divmod renderer (avoids the 2^32-divisor SIGFPE).\npub fun main(world: World) -> Void raises {\n    let p_opt = std.args.get(1)\n    let t_opt = std.args.get(2)\n    let mut p_bytes: Span<u8> = std.mem.span(\"\")\n    let mut t_bytes: Span<u8> = std.mem.span(\"\")\n    if p_opt.has {\n        p_bytes = std.mem.span(p_opt.value)\n    }\n    if t_opt.has {\n        t_bytes = std.mem.span(t_opt.value)\n    }\n    let m: usize = std.mem.len(p_bytes)\n    let n: usize = std.mem.len(t_bytes)\n\n    let mut count: u32 = 0_u32\n    if m > 0 && m <= n {\n        let mut i: usize = 0\n        while i + m <= n {\n            let mut k: usize = 0\n            let mut equal: Bool = true\n            while k < m {\n                if t_bytes[i + k] != p_bytes[k] {\n                    equal = false\n                    k = m\n                } else {\n                    k = k + 1\n                }\n            }\n            if equal {\n                count = count + 1_u32\n                i = i + m\n            } else {\n                i = i + 1\n            }\n        }\n    }\n\n    let mut out_buf: [16]u8 = [0_u8; 16]\n    let mut written: usize = 0\n    if count == 0_u32 {\n        out_buf[0] = 48_u8\n        written = 1\n    } else {\n        let mut digits: [16]u8 = [0_u8; 16]\n        let mut rem: u32 = count\n        let mut dc: usize = 0\n        while rem > 0_u32 {\n            let dq: u32 = rem / 10_u32\n            let dr: u32 = rem % 10_u32\n            digits[dc] = (dr as u8) + 48_u8\n            rem = dq\n            dc = dc + 1\n        }\n        let mut o: usize = 0\n        while o < dc {\n            out_buf[written] = digits[dc - 1 - o]\n            written = written + 1\n            o = o + 1\n        }\n    }\n    out_buf[written] = 10_u8\n    written = written + 1\n\n    let out: Span<u8> = out_buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Non-overlapping substring count, TypeScript reference.\n// Reads pattern P from line 1 of stdin and text T from line 2.\n\nimport { readFileSync } from \"node:fs\";\n\nfunction main(): void {\n  const raw = readFileSync(0, \"utf8\");\n  const lines = raw.split(\"\\n\");\n  const p = lines[0] ?? \"\";\n  const t = lines[1] ?? \"\";\n  let count = 0;\n  if (p.length > 0) {\n    let i = 0;\n    const n = t.length;\n    const m = p.length;\n    while (i + m <= n) {\n      if (t.substring(i, i + m) === p) {\n        count++;\n        i += m;\n      } else {\n        i++;\n      }\n    }\n  }\n  process.stdout.write(`${count}\\n`);\n}\n\nmain();\n",
         "rust": "// Non-overlapping substring count, Rust reference.\n// Reads pattern P from line 1 of stdin and text T from line 2.\n\nuse std::io::{self, Read, Write};\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut lines = input.split('\\n');\n    let p = lines.next().unwrap_or(\"\");\n    let t = lines.next().unwrap_or(\"\");\n    let mut count: u64 = 0;\n    if !p.is_empty() {\n        let pb = p.as_bytes();\n        let tb = t.as_bytes();\n        let m = pb.len();\n        let n = tb.len();\n        if m <= n {\n            let mut i = 0;\n            while i + m <= n {\n                if &tb[i..i + m] == pb {\n                    count += 1;\n                    i += m;\n                } else {\n                    i += 1;\n                }\n            }\n        }\n    }\n    let out = io::stdout();\n    let mut h = out.lock();\n    writeln!(h, \"{}\", count).unwrap();\n}\n",
         "go": "// Non-overlapping substring count, Go reference.\n// Reads pattern P from line 1 of stdin and text T from line 2.\n\npackage main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n\t\"strings\"\n)\n\nfunc main() {\n\traw, _ := io.ReadAll(bufio.NewReader(os.Stdin))\n\tparts := strings.SplitN(string(raw), \"\\n\", 3)\n\tvar p, t string\n\tif len(parts) >= 1 {\n\t\tp = parts[0]\n\t}\n\tif len(parts) >= 2 {\n\t\tt = parts[1]\n\t}\n\tcount := 0\n\tif len(p) > 0 {\n\t\tm := len(p)\n\t\tn := len(t)\n\t\ti := 0\n\t\tfor i+m <= n {\n\t\t\tif t[i:i+m] == p {\n\t\t\t\tcount++\n\t\t\t\ti += m\n\t\t\t} else {\n\t\t\t\ti++\n\t\t\t}\n\t\t}\n\t}\n\tfmt.Printf(\"%d\\n\", count)\n}\n",
@@ -2020,6 +2410,71 @@
           "execMs": 85,
           "promptTokens": 3,
           "completionTokens": 143
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 35757,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12831,
+          "execMs": 224,
+          "promptTokens": 3,
+          "completionTokens": 184
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13243,
+          "execMs": 10,
+          "promptTokens": 3,
+          "completionTokens": 244
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12726,
+          "execMs": 10,
+          "promptTokens": 3,
+          "completionTokens": 226
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12249,
+          "execMs": 85,
+          "promptTokens": 3,
+          "completionTokens": 155
         }
       ],
       "hardestLang": "zero",
@@ -2043,7 +2498,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// CSV line tokenizer (RFC 4180 subset), Zero 0.1.2 direct backend.\n//\n// argv[1] is the CSV line (Zero 0.1.2 has no exposed stdin capability).\n// All logic stays inside `pub fun main` to avoid Span/MutSpan parameter\n// restrictions.\n//\n// State machine over input bytes:\n//   0 FIELD_START          - start of a field, may begin quoted or not\n//   1 IN_UNQUOTED          - inside an unquoted field\n//   2 IN_QUOTED            - inside a quoted field\n//   3 AFTER_CLOSING_QUOTE  - saw a `\"` in a quoted field; deciding\n//                            whether it was an escape (\"\") or the close\n//\n// Output is written byte-by-byte into a stack [1200]u8 (max 1000 input\n// chars plus one newline per field; a worst-case `,,,...,,` is 501\n// fields => 501 newlines, fits in 1200 with headroom).\npub fun main(world: World) -> Void raises {\n    let line_opt = std.args.get(1)\n    let mut bytes: Span<u8> = std.mem.span(\"\")\n    if line_opt.has {\n        bytes = std.mem.span(line_opt.value)\n    }\n    let n: usize = std.mem.len(bytes)\n\n    let mut out_buf: [1200]u8 = [0_u8; 1200]\n    let mut written: usize = 0\n\n    if n > 0 {\n        let mut state: u32 = 0_u32\n        let mut i: usize = 0\n        while i < n {\n            let ch: u8 = bytes[i]\n            if state == 0_u32 {\n                if ch == 34_u8 {\n                    state = 2_u32\n                } else {\n                    if ch == 44_u8 {\n                        out_buf[written] = 10_u8\n                        written = written + 1\n                    } else {\n                        out_buf[written] = ch\n                        written = written + 1\n                        state = 1_u32\n                    }\n                }\n            } else {\n                if state == 1_u32 {\n                    if ch == 44_u8 {\n                        out_buf[written] = 10_u8\n                        written = written + 1\n                        state = 0_u32\n                    } else {\n                        out_buf[written] = ch\n                        written = written + 1\n                    }\n                } else {\n                    if state == 2_u32 {\n                        if ch == 34_u8 {\n                            state = 3_u32\n                        } else {\n                            out_buf[written] = ch\n                            written = written + 1\n                        }\n                    } else {\n                        // state == 3 (AFTER_CLOSING_QUOTE)\n                        if ch == 34_u8 {\n                            out_buf[written] = 34_u8\n                            written = written + 1\n                            state = 2_u32\n                        } else {\n                            if ch == 44_u8 {\n                                out_buf[written] = 10_u8\n                                written = written + 1\n                                state = 0_u32\n                            }\n                        }\n                    }\n                }\n            }\n            i = i + 1\n        }\n        out_buf[written] = 10_u8\n        written = written + 1\n    }\n\n    let out: Span<u8> = out_buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// CSV line tokenizer (RFC 4180 subset), TypeScript reference.\n// Reads one line of CSV from stdin and writes each field on its own line.\n\nimport { readFileSync } from \"node:fs\";\n\nconst FIELD_START = 0;\nconst IN_UNQUOTED = 1;\nconst IN_QUOTED = 2;\nconst AFTER_CLOSING_QUOTE = 3;\n\nfunction main(): void {\n  let line = readFileSync(0, \"utf8\");\n  if (line.endsWith(\"\\n\")) line = line.slice(0, -1);\n  const out: string[] = [];\n  let state = FIELD_START;\n  if (line.length > 0) {\n    for (const ch of line) {\n      if (state === FIELD_START) {\n        if (ch === '\"') {\n          state = IN_QUOTED;\n        } else if (ch === \",\") {\n          out.push(\"\\n\");\n        } else {\n          out.push(ch);\n          state = IN_UNQUOTED;\n        }\n      } else if (state === IN_UNQUOTED) {\n        if (ch === \",\") {\n          out.push(\"\\n\");\n          state = FIELD_START;\n        } else {\n          out.push(ch);\n        }\n      } else if (state === IN_QUOTED) {\n        if (ch === '\"') {\n          state = AFTER_CLOSING_QUOTE;\n        } else {\n          out.push(ch);\n        }\n      } else if (state === AFTER_CLOSING_QUOTE) {\n        if (ch === '\"') {\n          out.push('\"');\n          state = IN_QUOTED;\n        } else if (ch === \",\") {\n          out.push(\"\\n\");\n          state = FIELD_START;\n        }\n      }\n    }\n    out.push(\"\\n\");\n  }\n  process.stdout.write(out.join(\"\"));\n}\n\nmain();\n",
         "rust": "// CSV line tokenizer (RFC 4180 subset), Rust reference.\n\nuse std::io::{self, Read, Write};\n\nconst FIELD_START: u8 = 0;\nconst IN_UNQUOTED: u8 = 1;\nconst IN_QUOTED: u8 = 2;\nconst AFTER_CLOSING_QUOTE: u8 = 3;\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    if input.ends_with('\\n') {\n        input.pop();\n    }\n    let mut out: Vec<u8> = Vec::with_capacity(input.len() + 64);\n    let mut state = FIELD_START;\n    if !input.is_empty() {\n        for ch in input.bytes() {\n            match state {\n                FIELD_START => {\n                    if ch == b'\"' {\n                        state = IN_QUOTED;\n                    } else if ch == b',' {\n                        out.push(b'\\n');\n                    } else {\n                        out.push(ch);\n                        state = IN_UNQUOTED;\n                    }\n                }\n                IN_UNQUOTED => {\n                    if ch == b',' {\n                        out.push(b'\\n');\n                        state = FIELD_START;\n                    } else {\n                        out.push(ch);\n                    }\n                }\n                IN_QUOTED => {\n                    if ch == b'\"' {\n                        state = AFTER_CLOSING_QUOTE;\n                    } else {\n                        out.push(ch);\n                    }\n                }\n                AFTER_CLOSING_QUOTE => {\n                    if ch == b'\"' {\n                        out.push(b'\"');\n                        state = IN_QUOTED;\n                    } else if ch == b',' {\n                        out.push(b'\\n');\n                        state = FIELD_START;\n                    }\n                }\n                _ => unreachable!(),\n            }\n        }\n        out.push(b'\\n');\n    }\n    let stdout = io::stdout();\n    let mut h = stdout.lock();\n    h.write_all(&out).unwrap();\n}\n",
         "go": "// CSV line tokenizer (RFC 4180 subset), Go reference.\n\npackage main\n\nimport (\n\t\"bufio\"\n\t\"os\"\n\t\"strings\"\n)\n\nconst (\n\tfieldStart        = 0\n\tinUnquoted        = 1\n\tinQuoted          = 2\n\tafterClosingQuote = 3\n)\n\nfunc main() {\n\treader := bufio.NewReader(os.Stdin)\n\tline, _ := reader.ReadString('\\n')\n\tline = strings.TrimRight(line, \"\\n\")\n\tvar out strings.Builder\n\tstate := fieldStart\n\tif len(line) > 0 {\n\t\tfor i := 0; i < len(line); i++ {\n\t\t\tch := line[i]\n\t\t\tswitch state {\n\t\t\tcase fieldStart:\n\t\t\t\tif ch == '\"' {\n\t\t\t\t\tstate = inQuoted\n\t\t\t\t} else if ch == ',' {\n\t\t\t\t\tout.WriteByte('\\n')\n\t\t\t\t} else {\n\t\t\t\t\tout.WriteByte(ch)\n\t\t\t\t\tstate = inUnquoted\n\t\t\t\t}\n\t\t\tcase inUnquoted:\n\t\t\t\tif ch == ',' {\n\t\t\t\t\tout.WriteByte('\\n')\n\t\t\t\t\tstate = fieldStart\n\t\t\t\t} else {\n\t\t\t\t\tout.WriteByte(ch)\n\t\t\t\t}\n\t\t\tcase inQuoted:\n\t\t\t\tif ch == '\"' {\n\t\t\t\t\tstate = afterClosingQuote\n\t\t\t\t} else {\n\t\t\t\t\tout.WriteByte(ch)\n\t\t\t\t}\n\t\t\tcase afterClosingQuote:\n\t\t\t\tif ch == '\"' {\n\t\t\t\t\tout.WriteByte('\"')\n\t\t\t\t\tstate = inQuoted\n\t\t\t\t} else if ch == ',' {\n\t\t\t\t\tout.WriteByte('\\n')\n\t\t\t\t\tstate = fieldStart\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\tout.WriteByte('\\n')\n\t}\n\tos.Stdout.WriteString(out.String())\n}\n",
@@ -2309,6 +2764,71 @@
           "execMs": 128,
           "promptTokens": 3,
           "completionTokens": 312
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 90026,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 18033,
+          "execMs": 211,
+          "promptTokens": 3,
+          "completionTokens": 482
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 15277,
+          "execMs": 7,
+          "promptTokens": 3,
+          "completionTokens": 450
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 15025,
+          "execMs": 10,
+          "promptTokens": 3,
+          "completionTokens": 502
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13018,
+          "execMs": 90,
+          "promptTokens": 3,
+          "completionTokens": 304
         }
       ],
       "hardestLang": "zero",
@@ -2332,7 +2852,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Reverse the order of words on a line, Zero 0.1.2 direct backend.\n//\n// argv[1] is the line (Zero 0.1.2 has no exposed stdin capability).\n// All logic stays inside `pub fun main` to avoid Span/MutSpan parameter\n// restrictions.\n//\n// Two-pass design: first pass scans the input and records each word's\n// (start, length) into two parallel [500]u32 arrays. Second pass walks\n// from last word to first, appending bytes to an output buffer with\n// single-space separators and a trailing newline. If zero words were\n// found, nothing is written.\n//\n// Zero's `&&` is not assumed to short-circuit, so the inner loops are\n// split into a `while true` with an explicit early-exit setting the\n// loop index to n.\npub fun main(world: World) -> Void raises {\n    let line_opt = std.args.get(1)\n    let mut bytes: Span<u8> = std.mem.span(\"\")\n    if line_opt.has {\n        bytes = std.mem.span(line_opt.value)\n    }\n    let n: usize = std.mem.len(bytes)\n\n    let mut starts: [500]u32 = [0_u32; 500]\n    let mut lens: [500]u32 = [0_u32; 500]\n    let mut nw: usize = 0\n\n    let mut i: usize = 0\n    while i < n {\n        // Skip spaces. Inner loop avoids relying on && short-circuit.\n        let mut skipping: Bool = true\n        while skipping {\n            if i >= n {\n                skipping = false\n            } else {\n                if bytes[i] == 32_u8 {\n                    i = i + 1\n                } else {\n                    skipping = false\n                }\n            }\n        }\n        if i < n {\n            let start: usize = i\n            let mut scanning: Bool = true\n            while scanning {\n                if i >= n {\n                    scanning = false\n                } else {\n                    if bytes[i] != 32_u8 {\n                        i = i + 1\n                    } else {\n                        scanning = false\n                    }\n                }\n            }\n            let len: usize = i - start\n            starts[nw] = start as u32\n            lens[nw] = len as u32\n            nw = nw + 1\n        }\n    }\n\n    if nw == 0 {\n        return\n    }\n\n    let mut out_buf: [1024]u8 = [0_u8; 1024]\n    let mut written: usize = 0\n\n    let mut w: usize = nw\n    while w > 0 {\n        w = w - 1\n        if written > 0 {\n            out_buf[written] = 32_u8\n            written = written + 1\n        }\n        let s: usize = starts[w] as usize\n        let l: usize = lens[w] as usize\n        let mut k: usize = 0\n        while k < l {\n            out_buf[written] = bytes[s + k]\n            written = written + 1\n            k = k + 1\n        }\n    }\n    out_buf[written] = 10_u8\n    written = written + 1\n\n    let out: Span<u8> = out_buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Reverse the order of words on a line, TypeScript reference.\n\nimport { readFileSync } from \"node:fs\";\n\nfunction main(): void {\n  let line = readFileSync(0, \"utf8\");\n  if (line.endsWith(\"\\n\")) line = line.slice(0, -1);\n  const words = line.split(\" \").filter((w) => w.length > 0);\n  if (words.length === 0) return;\n  words.reverse();\n  process.stdout.write(words.join(\" \") + \"\\n\");\n}\n\nmain();\n",
         "rust": "// Reverse the order of words on a line, Rust reference.\n\nuse std::io::{self, Read, Write};\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    if input.ends_with('\\n') {\n        input.pop();\n    }\n    let words: Vec<&str> = input.split(' ').filter(|w| !w.is_empty()).collect();\n    if words.is_empty() {\n        return;\n    }\n    let mut out = String::with_capacity(input.len() + 1);\n    for (i, w) in words.iter().rev().enumerate() {\n        if i > 0 {\n            out.push(' ');\n        }\n        out.push_str(w);\n    }\n    out.push('\\n');\n    let stdout = io::stdout();\n    let mut h = stdout.lock();\n    h.write_all(out.as_bytes()).unwrap();\n}\n",
         "go": "// Reverse the order of words on a line, Go reference.\n\npackage main\n\nimport (\n\t\"bufio\"\n\t\"os\"\n\t\"strings\"\n)\n\nfunc main() {\n\treader := bufio.NewReader(os.Stdin)\n\tline, _ := reader.ReadString('\\n')\n\tline = strings.TrimRight(line, \"\\n\")\n\tparts := strings.Split(line, \" \")\n\twords := parts[:0]\n\tfor _, w := range parts {\n\t\tif w != \"\" {\n\t\t\twords = append(words, w)\n\t\t}\n\t}\n\tif len(words) == 0 {\n\t\treturn\n\t}\n\tvar b strings.Builder\n\tfor i := len(words) - 1; i >= 0; i-- {\n\t\tif i != len(words)-1 {\n\t\t\tb.WriteByte(' ')\n\t\t}\n\t\tb.WriteString(words[i])\n\t}\n\tb.WriteByte('\\n')\n\tos.Stdout.WriteString(b.String())\n}\n",
@@ -2598,6 +3118,71 @@
           "execMs": 83,
           "promptTokens": 3,
           "completionTokens": 44
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 119846,
+          "execMs": 0,
+          "promptTokens": 2,
+          "completionTokens": 7743
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11507,
+          "execMs": 241,
+          "promptTokens": 3,
+          "completionTokens": 115
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12518,
+          "execMs": 8,
+          "promptTokens": 3,
+          "completionTokens": 150
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12017,
+          "execMs": 10,
+          "promptTokens": 3,
+          "completionTokens": 207
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 10734,
+          "execMs": 82,
+          "promptTokens": 3,
+          "completionTokens": 44
         }
       ],
       "hardestLang": "zero",
@@ -2621,7 +3206,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Count whitespace-separated tokens in input, Zero 0.1.2 direct backend.\n//\n// argv[1] is the input bytes (Zero 0.1.2 has no exposed stdin capability).\n// All logic stays inside `pub fun main` to avoid Span/MutSpan parameter\n// restrictions.\n//\n// One-pass state machine: track `in_word`. Each transition from\n// whitespace to non-whitespace increments the count. Whitespace bytes\n// are 0x20, 0x09, 0x0A, 0x0D.\n//\n// Decimal renderer uses small-divisor u32 divmod (avoids the 2^32-\n// divisor SIGFPE narrowing-cast bug surfaced in earlier corpus work).\npub fun main(world: World) -> Void raises {\n    let line_opt = std.args.get(1)\n    let mut bytes: Span<u8> = std.mem.span(\"\")\n    if line_opt.has {\n        bytes = std.mem.span(line_opt.value)\n    }\n    let n: usize = std.mem.len(bytes)\n\n    let mut count: u32 = 0_u32\n    let mut in_word: Bool = false\n    let mut i: usize = 0\n    while i < n {\n        let b: u8 = bytes[i]\n        let mut is_ws: Bool = false\n        if b == 32_u8 {\n            is_ws = true\n        }\n        if b == 9_u8 {\n            is_ws = true\n        }\n        if b == 10_u8 {\n            is_ws = true\n        }\n        if b == 13_u8 {\n            is_ws = true\n        }\n        if is_ws {\n            in_word = false\n        } else {\n            if in_word == false {\n                count = count + 1_u32\n                in_word = true\n            }\n        }\n        i = i + 1\n    }\n\n    let mut out_buf: [16]u8 = [0_u8; 16]\n    let mut written: usize = 0\n    if count == 0_u32 {\n        out_buf[0] = 48_u8\n        written = 1\n    } else {\n        let mut tmp: [16]u8 = [0_u8; 16]\n        let mut tn: usize = 0\n        let mut c: u32 = count\n        while c > 0_u32 {\n            let d: u32 = c % 10_u32\n            tmp[tn] = (48_u32 + d) as u8\n            tn = tn + 1\n            c = c / 10_u32\n        }\n        let mut j: usize = 0\n        while j < tn {\n            out_buf[j] = tmp[tn - 1 - j]\n            j = j + 1\n        }\n        written = tn\n    }\n    out_buf[written] = 10_u8\n    written = written + 1\n\n    let out: Span<u8> = out_buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Count whitespace-separated tokens in input, TypeScript reference.\n\nimport { readFileSync } from \"node:fs\";\n\nfunction main(): void {\n  const data = readFileSync(0);\n  let count = 0;\n  let inWord = false;\n  for (let i = 0; i < data.length; i++) {\n    const b = data[i];\n    const isWS = b === 32 || b === 9 || b === 10 || b === 13;\n    if (isWS) {\n      inWord = false;\n    } else if (!inWord) {\n      count++;\n      inWord = true;\n    }\n  }\n  process.stdout.write(`${count}\\n`);\n}\n\nmain();\n",
         "rust": "// Count whitespace-separated tokens in input, Rust reference.\n\nuse std::io::{self, Read, Write};\n\nfn main() {\n    let mut data = Vec::new();\n    io::stdin().read_to_end(&mut data).expect(\"read stdin\");\n    let mut count: u32 = 0;\n    let mut in_word = false;\n    for &b in &data {\n        let is_ws = b == 32 || b == 9 || b == 10 || b == 13;\n        if is_ws {\n            in_word = false;\n        } else if !in_word {\n            count += 1;\n            in_word = true;\n        }\n    }\n    let mut stdout = io::stdout();\n    writeln!(stdout, \"{}\", count).expect(\"write stdout\");\n}\n",
         "go": "// Count whitespace-separated tokens in input, Go reference.\n\npackage main\n\nimport (\n\t\"io\"\n\t\"os\"\n\t\"strconv\"\n)\n\nfunc main() {\n\tdata, err := io.ReadAll(os.Stdin)\n\tif err != nil {\n\t\tos.Exit(1)\n\t}\n\tcount := 0\n\tinWord := false\n\tfor _, b := range data {\n\t\tisWS := b == 32 || b == 9 || b == 10 || b == 13\n\t\tif isWS {\n\t\t\tinWord = false\n\t\t} else if !inWord {\n\t\t\tcount++\n\t\t\tinWord = true\n\t\t}\n\t}\n\tos.Stdout.WriteString(strconv.Itoa(count) + \"\\n\")\n}\n",
@@ -2887,6 +3472,71 @@
           "execMs": 96,
           "promptTokens": 3,
           "completionTokens": 23
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 15166,
+          "execMs": 0,
+          "promptTokens": 2,
+          "completionTokens": 356
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12762,
+          "execMs": 237,
+          "promptTokens": 3,
+          "completionTokens": 178
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11796,
+          "execMs": 7,
+          "promptTokens": 3,
+          "completionTokens": 94
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12265,
+          "execMs": 9,
+          "promptTokens": 3,
+          "completionTokens": 201
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 10847,
+          "execMs": 98,
+          "promptTokens": 3,
+          "completionTokens": 23
         }
       ],
       "hardestLang": "zero",
@@ -2911,7 +3561,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Per-byte frequency table, Zero 0.1.2 direct backend.\n//\n// argv[1] is the input bytes (Zero 0.1.2 has no exposed stdin capability).\n// All logic stays inside `pub fun main` to avoid Span/MutSpan parameter\n// restrictions.\n//\n// One pass to populate a [256]u32 counts table, then walk byte values\n// 0..255 in ascending order and emit `<byte_decimal> <count>\\n` per\n// non-zero entry. Decimal renderer uses small-divisor u32 divmod\n// (avoids the 2^32-divisor narrowing-cast SIGFPE) and lives inline in\n// both rendering sites because Zero 0.1.2 does not support Span/MutSpan\n// parameters and the buffer-write style is tightest as inline blocks.\npub fun main(world: World) -> Void raises {\n    let line_opt = std.args.get(1)\n    let mut bytes: Span<u8> = std.mem.span(\"\")\n    if line_opt.has {\n        bytes = std.mem.span(line_opt.value)\n    }\n    let n: usize = std.mem.len(bytes)\n\n    let mut counts: [256]u32 = [0_u32; 256]\n    let mut i: usize = 0\n    while i < n {\n        let idx: usize = bytes[i] as usize\n        counts[idx] = counts[idx] + 1_u32\n        i = i + 1\n    }\n\n    let mut out_buf: [4096]u8 = [0_u8; 4096]\n    let mut written: usize = 0\n    let mut bi: usize = 0\n    while bi < 256 {\n        let c: u32 = counts[bi]\n        if c > 0_u32 {\n            let b_val: u32 = bi as u32\n            if b_val == 0_u32 {\n                out_buf[written] = 48_u8\n                written = written + 1\n            } else {\n                let mut tmp: [4]u8 = [0_u8; 4]\n                let mut tn: usize = 0\n                let mut v: u32 = b_val\n                while v > 0_u32 {\n                    tmp[tn] = (48_u32 + (v % 10_u32)) as u8\n                    tn = tn + 1\n                    v = v / 10_u32\n                }\n                let mut j: usize = 0\n                while j < tn {\n                    out_buf[written] = tmp[tn - 1 - j]\n                    written = written + 1\n                    j = j + 1\n                }\n            }\n            out_buf[written] = 32_u8\n            written = written + 1\n\n            let mut tmp2: [16]u8 = [0_u8; 16]\n            let mut tn2: usize = 0\n            let mut v2: u32 = c\n            while v2 > 0_u32 {\n                tmp2[tn2] = (48_u32 + (v2 % 10_u32)) as u8\n                tn2 = tn2 + 1\n                v2 = v2 / 10_u32\n            }\n            let mut j2: usize = 0\n            while j2 < tn2 {\n                out_buf[written] = tmp2[tn2 - 1 - j2]\n                written = written + 1\n                j2 = j2 + 1\n            }\n\n            out_buf[written] = 10_u8\n            written = written + 1\n        }\n        bi = bi + 1\n    }\n\n    let out: Span<u8> = out_buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Per-byte frequency table, TypeScript reference.\n\nimport { readFileSync } from \"node:fs\";\n\nfunction main(): void {\n  const data = readFileSync(0);\n  const counts = new Uint32Array(256);\n  for (let i = 0; i < data.length; i++) {\n    counts[data[i]]++;\n  }\n  const out: string[] = [];\n  for (let b = 0; b < 256; b++) {\n    const c = counts[b];\n    if (c > 0) {\n      out.push(`${b} ${c}\\n`);\n    }\n  }\n  process.stdout.write(out.join(\"\"));\n}\n\nmain();\n",
         "rust": "// Per-byte frequency table, Rust reference.\n\nuse std::io::{self, Read, Write};\n\nfn main() {\n    let mut data = Vec::new();\n    io::stdin().read_to_end(&mut data).expect(\"read stdin\");\n    let mut counts = [0u32; 256];\n    for &b in &data {\n        counts[b as usize] += 1;\n    }\n    let stdout = io::stdout();\n    let mut stdout = stdout.lock();\n    for (b, &c) in counts.iter().enumerate() {\n        if c > 0 {\n            writeln!(stdout, \"{} {}\", b, c).expect(\"write stdout\");\n        }\n    }\n}\n",
         "go": "// Per-byte frequency table, Go reference.\n\npackage main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n)\n\nfunc main() {\n\tdata, err := io.ReadAll(os.Stdin)\n\tif err != nil {\n\t\tos.Exit(1)\n\t}\n\tvar counts [256]uint32\n\tfor _, b := range data {\n\t\tcounts[b]++\n\t}\n\tw := bufio.NewWriter(os.Stdout)\n\tdefer w.Flush()\n\tfor b := 0; b < 256; b++ {\n\t\tif counts[b] > 0 {\n\t\t\tfmt.Fprintf(w, \"%d %d\\n\", b, counts[b])\n\t\t}\n\t}\n}\n",
@@ -3177,6 +3827,71 @@
           "execMs": 92,
           "promptTokens": 3,
           "completionTokens": 94
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 58018,
+          "execMs": 0,
+          "promptTokens": 2,
+          "completionTokens": 4075
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14306,
+          "execMs": 221,
+          "promptTokens": 3,
+          "completionTokens": 145
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12319,
+          "execMs": 7,
+          "promptTokens": 3,
+          "completionTokens": 183
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13116,
+          "execMs": 10,
+          "promptTokens": 3,
+          "completionTokens": 212
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11632,
+          "execMs": 149,
+          "promptTokens": 3,
+          "completionTokens": 68
         }
       ],
       "hardestLang": "zero",
@@ -3201,7 +3916,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Run-length encode the input, Zero 0.1.2 direct backend.\n//\n// argv[1] is the input bytes (Zero 0.1.2 has no exposed stdin capability).\n// All logic stays inside `pub fun main` to avoid Span/MutSpan parameter\n// restrictions.\n//\n// Outer loop steps run-by-run: pick up the current byte, walk forward\n// while it matches, then emit `<count> <byte_decimal>\\n`. Inner scan\n// uses the explicit-flag pattern (no `&&` short-circuit available in\n// Zero 0.1.2). Two inline decimal renderers per run because the MVP\n// subset cannot factor them into a function that writes back into the\n// outer output buffer (no MutSpan parameters).\npub fun main(world: World) -> Void raises {\n    let line_opt = std.args.get(1)\n    let mut bytes: Span<u8> = std.mem.span(\"\")\n    if line_opt.has {\n        bytes = std.mem.span(line_opt.value)\n    }\n    let n: usize = std.mem.len(bytes)\n\n    let mut out_buf: [8192]u8 = [0_u8; 8192]\n    let mut written: usize = 0\n\n    let mut i: usize = 0\n    while i < n {\n        let cur_byte: u8 = bytes[i]\n        let mut cur_count: u32 = 1_u32\n        i = i + 1\n        let mut scanning: Bool = true\n        while scanning {\n            if i >= n {\n                scanning = false\n            } else {\n                if bytes[i] == cur_byte {\n                    cur_count = cur_count + 1_u32\n                    i = i + 1\n                } else {\n                    scanning = false\n                }\n            }\n        }\n\n        let mut tmp: [16]u8 = [0_u8; 16]\n        let mut tn: usize = 0\n        let mut v: u32 = cur_count\n        while v > 0_u32 {\n            tmp[tn] = (48_u32 + (v % 10_u32)) as u8\n            tn = tn + 1\n            v = v / 10_u32\n        }\n        let mut j: usize = 0\n        while j < tn {\n            out_buf[written] = tmp[tn - 1 - j]\n            written = written + 1\n            j = j + 1\n        }\n        out_buf[written] = 32_u8\n        written = written + 1\n\n        let b_val: u32 = cur_byte as u32\n        if b_val == 0_u32 {\n            out_buf[written] = 48_u8\n            written = written + 1\n        } else {\n            let mut tmp2: [4]u8 = [0_u8; 4]\n            let mut tn2: usize = 0\n            let mut v2: u32 = b_val\n            while v2 > 0_u32 {\n                tmp2[tn2] = (48_u32 + (v2 % 10_u32)) as u8\n                tn2 = tn2 + 1\n                v2 = v2 / 10_u32\n            }\n            let mut j2: usize = 0\n            while j2 < tn2 {\n                out_buf[written] = tmp2[tn2 - 1 - j2]\n                written = written + 1\n                j2 = j2 + 1\n            }\n        }\n        out_buf[written] = 10_u8\n        written = written + 1\n    }\n\n    let out: Span<u8> = out_buf[0..written]\n    check world.out.write(out)\n    return\n}\n",
+        "zero": "",
         "ts": "// Run-length encode the input, TypeScript reference.\n\nimport { readFileSync } from \"node:fs\";\n\nfunction main(): void {\n  const data = readFileSync(0);\n  if (data.length === 0) return;\n  const out: string[] = [];\n  let curByte = data[0];\n  let curCount = 1;\n  for (let i = 1; i < data.length; i++) {\n    const b = data[i];\n    if (b === curByte) {\n      curCount++;\n    } else {\n      out.push(`${curCount} ${curByte}\\n`);\n      curByte = b;\n      curCount = 1;\n    }\n  }\n  out.push(`${curCount} ${curByte}\\n`);\n  process.stdout.write(out.join(\"\"));\n}\n\nmain();\n",
         "rust": "// Run-length encode the input, Rust reference.\n\nuse std::io::{self, Read, Write};\n\nfn main() {\n    let mut data = Vec::new();\n    io::stdin().read_to_end(&mut data).expect(\"read stdin\");\n    if data.is_empty() {\n        return;\n    }\n    let stdout = io::stdout();\n    let mut stdout = stdout.lock();\n    let mut cur_byte: u8 = data[0];\n    let mut cur_count: u32 = 1;\n    for &b in &data[1..] {\n        if b == cur_byte {\n            cur_count += 1;\n        } else {\n            writeln!(stdout, \"{} {}\", cur_count, cur_byte).expect(\"write\");\n            cur_byte = b;\n            cur_count = 1;\n        }\n    }\n    writeln!(stdout, \"{} {}\", cur_count, cur_byte).expect(\"write\");\n}\n",
         "go": "// Run-length encode the input, Go reference.\n\npackage main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n)\n\nfunc main() {\n\tdata, err := io.ReadAll(os.Stdin)\n\tif err != nil {\n\t\tos.Exit(1)\n\t}\n\tif len(data) == 0 {\n\t\treturn\n\t}\n\tw := bufio.NewWriter(os.Stdout)\n\tdefer w.Flush()\n\tcurByte := data[0]\n\tcurCount := 1\n\tfor i := 1; i < len(data); i++ {\n\t\tb := data[i]\n\t\tif b == curByte {\n\t\t\tcurCount++\n\t\t} else {\n\t\t\tfmt.Fprintf(w, \"%d %d\\n\", curCount, curByte)\n\t\t\tcurByte = b\n\t\t\tcurCount = 1\n\t\t}\n\t}\n\tfmt.Fprintf(w, \"%d %d\\n\", curCount, curByte)\n}\n",
@@ -3467,6 +4182,71 @@
           "execMs": 96,
           "promptTokens": 3,
           "completionTokens": 128
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 14584,
+          "execMs": 0,
+          "promptTokens": 2,
+          "completionTokens": 272
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12092,
+          "execMs": 229,
+          "promptTokens": 3,
+          "completionTokens": 163
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13282,
+          "execMs": 12,
+          "promptTokens": 3,
+          "completionTokens": 195
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12963,
+          "execMs": 8,
+          "promptTokens": 3,
+          "completionTokens": 216
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 11213,
+          "execMs": 89,
+          "promptTokens": 3,
+          "completionTokens": 111
         }
       ],
       "hardestLang": "zero",
@@ -3490,7 +4270,7 @@
         "wall_time_max_ms": 10000
       },
       "refs": {
-        "zero": "// HTTP GET status-code reference for AgentLang Index.\n//\n// Zero 0.1.2 has no exposed stdin, so the URL is read from argv[1].\n// std.http.fetch is invoked with a `GET <url>\\n\\n` envelope and a\n// 5000 ms timeout. On transport success the HTTP status code is\n// written to stdout as decimal+newline; on any transport failure the\n// literal string `error\\n` is written instead. Exit is always 0.\n\npub fun main(world: World) -> Void raises {\n    let maybe_url = std.args.get(1)\n    if maybe_url.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let url_arg = maybe_url.value\n\n    // Build the request envelope: \"GET <url>\\n\\n\" in a fixed buffer.\n    // 256 bytes URL cap + 6 bytes overhead leaves room comfortably.\n    let mut envelope: [320]u8 = [0_u8; 320]\n    let mut env_n: usize = 0\n    envelope[0] = 71_u8\n    envelope[1] = 69_u8\n    envelope[2] = 84_u8\n    envelope[3] = 32_u8\n    env_n = 4\n    let mut i: usize = 0\n    let url_n = std.mem.len(url_arg)\n    while i < url_n {\n        let b = url_arg[i]\n        if b == 10_u8 {\n            i = url_n\n        } else {\n            if b == 13_u8 {\n                i = url_n\n            } else {\n                envelope[env_n] = b\n                env_n = env_n + 1\n                i = i + 1\n            }\n        }\n    }\n    envelope[env_n] = 10_u8\n    env_n = env_n + 1\n    envelope[env_n] = 10_u8\n    env_n = env_n + 1\n\n    let net = std.net.host()\n    let client = std.http.client(net)\n    let mut response: [8192]u8 = [0_u8; 8192]\n    let result = std.http.fetch(client, envelope[0..env_n], response, std.time.ms(5000))\n    let err = std.http.resultError(result)\n\n    let mut out: [32]u8 = [0_u8; 32]\n    let mut out_n: usize = 0\n    if err == std.http.errorNone() {\n        let status = std.http.resultStatus(result)\n        let mut v: u32 = status as u32\n        if v == 0_u32 {\n            out[0] = 48_u8\n            out_n = 1\n        } else {\n            let mut tmp: [16]u8 = [0_u8; 16]\n            let mut tn: usize = 0\n            while v > 0_u32 {\n                tmp[tn] = (48_u32 + (v % 10_u32)) as u8\n                tn = tn + 1\n                v = v / 10_u32\n            }\n            let mut j: usize = 0\n            while j < tn {\n                out[out_n] = tmp[tn - 1 - j]\n                out_n = out_n + 1\n                j = j + 1\n            }\n        }\n        out[out_n] = 10_u8\n        out_n = out_n + 1\n    } else {\n        out[0] = 101_u8\n        out[1] = 114_u8\n        out[2] = 114_u8\n        out[3] = 111_u8\n        out[4] = 114_u8\n        out[5] = 10_u8\n        out_n = 6\n    }\n    check world.out.write(out[0..out_n])\n    return\n}\n",
+        "zero": "",
         "ts": "async function main(): Promise<void> {\n  const chunks: Buffer[] = [];\n  for await (const chunk of process.stdin) {\n    chunks.push(chunk as Buffer);\n  }\n  const url = Buffer.concat(chunks).toString(\"utf-8\").trim();\n\n  const controller = new AbortController();\n  const timer = setTimeout(() => controller.abort(), 5000);\n  try {\n    const response = await fetch(url, {\n      method: \"GET\",\n      signal: controller.signal,\n      redirect: \"manual\",\n    });\n    process.stdout.write(`${response.status}\\n`);\n  } catch {\n    process.stdout.write(\"error\\n\");\n  } finally {\n    clearTimeout(timer);\n  }\n}\n\nmain();\n",
         "rust": "use std::io::{self, Read, Write};\nuse std::time::Duration;\n\nfn main() {\n    let mut url = String::new();\n    if io::stdin().read_to_string(&mut url).is_err() {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    }\n    let url = url.trim();\n\n    let agent = ureq::Agent::config_builder()\n        .timeout_global(Some(Duration::from_secs(5)))\n        .build()\n        .new_agent();\n\n    let result = agent.get(url).call();\n    let stdout = io::stdout();\n    let mut handle = stdout.lock();\n    match result {\n        Ok(response) => {\n            let _ = writeln!(handle, \"{}\", response.status().as_u16());\n        }\n        Err(ureq::Error::StatusCode(code)) => {\n            let _ = writeln!(handle, \"{}\", code);\n        }\n        Err(_) => {\n            let _ = handle.write_all(b\"error\\n\");\n        }\n    }\n}\n",
         "go": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"net/http\"\n\t\"os\"\n\t\"strings\"\n\t\"time\"\n)\n\nfunc main() {\n\turlBytes, err := io.ReadAll(os.Stdin)\n\tif err != nil {\n\t\tos.Stdout.WriteString(\"error\\n\")\n\t\treturn\n\t}\n\turl := strings.TrimSpace(string(urlBytes))\n\n\tclient := &http.Client{\n\t\tTimeout: 5 * time.Second,\n\t\tCheckRedirect: func(req *http.Request, via []*http.Request) error {\n\t\t\treturn http.ErrUseLastResponse\n\t\t},\n\t}\n\tresp, err := client.Get(url)\n\tif err != nil {\n\t\tos.Stdout.WriteString(\"error\\n\")\n\t\treturn\n\t}\n\tdefer resp.Body.Close()\n\tfmt.Printf(\"%d\\n\", resp.StatusCode)\n}\n",
@@ -3756,10 +4536,75 @@
           "execMs": 379,
           "promptTokens": 3,
           "completionTokens": 134
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 13169,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13047,
+          "execMs": 361,
+          "promptTokens": 3,
+          "completionTokens": 276
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 12591,
+          "execMs": 0,
+          "promptTokens": 3,
+          "completionTokens": 220
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12281,
+          "execMs": 33,
+          "promptTokens": 3,
+          "completionTokens": 216
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 3,
+          "failureMode": "other",
+          "failureExcerpt": "",
+          "apiMs": 11921,
+          "execMs": 363,
+          "promptTokens": 3,
+          "completionTokens": 90
         }
       ],
       "hardestLang": "zero",
-      "mostCommonFailureMode": "compile"
+      "mostCommonFailureMode": "wrong-output"
     },
     {
       "slug": "013-http-json-sum",
@@ -3780,7 +4625,7 @@
         "wall_time_max_ms": 10000
       },
       "refs": {
-        "zero": "// HTTP POST + JSON sum reference for AgentLang Index.\n//\n// Zero 0.1.2 has no exposed stdin, so URL/a/b come from argv[1..3].\n// std.http.fetch is invoked with a POST envelope (method-line + JSON\n// content-type header + JSON body). On HTTP 200 we scan the response\n// body for `\"sum\":<digits>` and write that integer + newline. On any\n// transport, status, or parse failure we write `error\\n`.\n//\n// The direct backend MVP forbids user functions taking Span<u8>,\n// MutSpan<u8>, or returning shape locals, so the i32 parse, envelope\n// rendering, response scan, and output rendering are all inline here.\n\npub fun main(world: World) -> Void raises {\n    let maybe_url = std.args.get(1)\n    let maybe_a = std.args.get(2)\n    let maybe_b = std.args.get(3)\n    if maybe_url.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if maybe_a.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if maybe_b.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    let url_s = std.mem.span(maybe_url.value)\n    let a_s = std.mem.span(maybe_a.value)\n    let b_s = std.mem.span(maybe_b.value)\n\n    // ---- Parse a as i32 from trimmed ASCII digits ----\n    let a_n = std.mem.len(a_s)\n    let mut a_i: usize = 0\n    let mut a_skip_flag: Bool = true\n    while a_skip_flag {\n        if a_i >= a_n {\n            a_skip_flag = false\n        } else {\n            let c = a_s[a_i]\n            if c == 32_u8 {\n                a_i = a_i + 1\n            } else {\n                if c == 9_u8 {\n                    a_i = a_i + 1\n                } else {\n                    a_skip_flag = false\n                }\n            }\n        }\n    }\n    if a_i >= a_n {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut a_neg: Bool = false\n    if a_s[a_i] == 45_u8 {\n        a_neg = true\n        a_i = a_i + 1\n    }\n    if a_i >= a_n {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut a_have_digit: Bool = false\n    let mut a_acc: u32 = 0_u32\n    let mut a_digit_flag: Bool = true\n    while a_digit_flag {\n        if a_i >= a_n {\n            a_digit_flag = false\n        } else {\n            let c = a_s[a_i]\n            if c >= 48_u8 {\n                if c <= 57_u8 {\n                    let d: u32 = (c - 48_u8) as u32\n                    a_acc = a_acc * 10_u32 + d\n                    a_have_digit = true\n                    a_i = a_i + 1\n                } else {\n                    a_digit_flag = false\n                }\n            } else {\n                a_digit_flag = false\n            }\n        }\n    }\n    let mut a_tail_flag: Bool = true\n    let mut a_tail_ok: Bool = true\n    while a_tail_flag {\n        if a_i >= a_n {\n            a_tail_flag = false\n        } else {\n            let c = a_s[a_i]\n            if c == 32_u8 {\n                a_i = a_i + 1\n            } else {\n                if c == 9_u8 {\n                    a_i = a_i + 1\n                } else {\n                    if c == 10_u8 {\n                        a_i = a_i + 1\n                    } else {\n                        if c == 13_u8 {\n                            a_i = a_i + 1\n                        } else {\n                            a_tail_ok = false\n                            a_tail_flag = false\n                        }\n                    }\n                }\n            }\n        }\n    }\n    if a_tail_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if a_have_digit == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if a_acc > 2147483647_u32 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut a_val: i32 = a_acc as i32\n    if a_neg {\n        a_val = 0_i32 - a_val\n    }\n\n    // ---- Parse b as i32 from trimmed ASCII digits ----\n    let b_n = std.mem.len(b_s)\n    let mut b_i: usize = 0\n    let mut b_skip_flag: Bool = true\n    while b_skip_flag {\n        if b_i >= b_n {\n            b_skip_flag = false\n        } else {\n            let c = b_s[b_i]\n            if c == 32_u8 {\n                b_i = b_i + 1\n            } else {\n                if c == 9_u8 {\n                    b_i = b_i + 1\n                } else {\n                    b_skip_flag = false\n                }\n            }\n        }\n    }\n    if b_i >= b_n {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut b_neg: Bool = false\n    if b_s[b_i] == 45_u8 {\n        b_neg = true\n        b_i = b_i + 1\n    }\n    if b_i >= b_n {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut b_have_digit: Bool = false\n    let mut b_acc: u32 = 0_u32\n    let mut b_digit_flag: Bool = true\n    while b_digit_flag {\n        if b_i >= b_n {\n            b_digit_flag = false\n        } else {\n            let c = b_s[b_i]\n            if c >= 48_u8 {\n                if c <= 57_u8 {\n                    let d: u32 = (c - 48_u8) as u32\n                    b_acc = b_acc * 10_u32 + d\n                    b_have_digit = true\n                    b_i = b_i + 1\n                } else {\n                    b_digit_flag = false\n                }\n            } else {\n                b_digit_flag = false\n            }\n        }\n    }\n    let mut b_tail_flag: Bool = true\n    let mut b_tail_ok: Bool = true\n    while b_tail_flag {\n        if b_i >= b_n {\n            b_tail_flag = false\n        } else {\n            let c = b_s[b_i]\n            if c == 32_u8 {\n                b_i = b_i + 1\n            } else {\n                if c == 9_u8 {\n                    b_i = b_i + 1\n                } else {\n                    if c == 10_u8 {\n                        b_i = b_i + 1\n                    } else {\n                        if c == 13_u8 {\n                            b_i = b_i + 1\n                        } else {\n                            b_tail_ok = false\n                            b_tail_flag = false\n                        }\n                    }\n                }\n            }\n        }\n    }\n    if b_tail_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if b_have_digit == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if b_acc > 2147483647_u32 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut b_val: i32 = b_acc as i32\n    if b_neg {\n        b_val = 0_i32 - b_val\n    }\n\n    // ---- Build POST envelope: POST <url>\\n + Content-Type header + body ----\n    let mut envelope: [1024]u8 = [0_u8; 1024]\n    let mut env_n: usize = 0\n\n    let prefix = std.mem.span(\"POST \")\n    let pre_n = std.mem.len(prefix)\n    let mut pi: usize = 0\n    while pi < pre_n {\n        envelope[env_n] = prefix[pi]\n        env_n = env_n + 1\n        pi = pi + 1\n    }\n\n    let url_n = std.mem.len(url_s)\n    let mut ui: usize = 0\n    let mut url_flag: Bool = true\n    while url_flag {\n        if ui >= url_n {\n            url_flag = false\n        } else {\n            let c = url_s[ui]\n            if c == 10_u8 {\n                url_flag = false\n            } else {\n                if c == 13_u8 {\n                    url_flag = false\n                } else {\n                    envelope[env_n] = c\n                    env_n = env_n + 1\n                    ui = ui + 1\n                }\n            }\n        }\n    }\n    envelope[env_n] = 10_u8\n    env_n = env_n + 1\n\n    let ct = std.mem.span(\"Content-Type: application/json\\n\")\n    let ct_n = std.mem.len(ct)\n    let mut ci: usize = 0\n    while ci < ct_n {\n        envelope[env_n] = ct[ci]\n        env_n = env_n + 1\n        ci = ci + 1\n    }\n    envelope[env_n] = 10_u8\n    env_n = env_n + 1\n\n    // Body: {\"a\":<a>,\"b\":<b>}\n    envelope[env_n] = 123_u8\n    env_n = env_n + 1\n    envelope[env_n] = 34_u8\n    env_n = env_n + 1\n    envelope[env_n] = 97_u8\n    env_n = env_n + 1\n    envelope[env_n] = 34_u8\n    env_n = env_n + 1\n    envelope[env_n] = 58_u8\n    env_n = env_n + 1\n\n    // Inline writeI32 for a_val\n    let mut a_write_neg: Bool = false\n    let mut a_write_v: u32 = 0_u32\n    if a_val < 0_i32 {\n        envelope[env_n] = 45_u8\n        env_n = env_n + 1\n        a_write_neg = true\n        a_write_v = (0_i32 - a_val) as u32\n    } else {\n        a_write_v = a_val as u32\n    }\n    if a_write_v == 0_u32 {\n        envelope[env_n] = 48_u8\n        env_n = env_n + 1\n    } else {\n        let mut a_tmp: [16]u8 = [0_u8; 16]\n        let mut a_tn: usize = 0\n        while a_write_v > 0_u32 {\n            let digit_u32: u32 = 48_u32 + (a_write_v % 10_u32)\n            a_tmp[a_tn] = digit_u32 as u8\n            a_tn = a_tn + 1\n            a_write_v = a_write_v / 10_u32\n        }\n        let mut a_wj: usize = 0\n        while a_wj < a_tn {\n            envelope[env_n] = a_tmp[a_tn - 1 - a_wj]\n            env_n = env_n + 1\n            a_wj = a_wj + 1\n        }\n    }\n\n    envelope[env_n] = 44_u8\n    env_n = env_n + 1\n    envelope[env_n] = 34_u8\n    env_n = env_n + 1\n    envelope[env_n] = 98_u8\n    env_n = env_n + 1\n    envelope[env_n] = 34_u8\n    env_n = env_n + 1\n    envelope[env_n] = 58_u8\n    env_n = env_n + 1\n\n    // Inline writeI32 for b_val\n    let mut b_write_neg: Bool = false\n    let mut b_write_v: u32 = 0_u32\n    if b_val < 0_i32 {\n        envelope[env_n] = 45_u8\n        env_n = env_n + 1\n        b_write_neg = true\n        b_write_v = (0_i32 - b_val) as u32\n    } else {\n        b_write_v = b_val as u32\n    }\n    if b_write_v == 0_u32 {\n        envelope[env_n] = 48_u8\n        env_n = env_n + 1\n    } else {\n        let mut b_tmp: [16]u8 = [0_u8; 16]\n        let mut b_tn: usize = 0\n        while b_write_v > 0_u32 {\n            let digit_u32: u32 = 48_u32 + (b_write_v % 10_u32)\n            b_tmp[b_tn] = digit_u32 as u8\n            b_tn = b_tn + 1\n            b_write_v = b_write_v / 10_u32\n        }\n        let mut b_wj: usize = 0\n        while b_wj < b_tn {\n            envelope[env_n] = b_tmp[b_tn - 1 - b_wj]\n            env_n = env_n + 1\n            b_wj = b_wj + 1\n        }\n    }\n\n    envelope[env_n] = 125_u8\n    env_n = env_n + 1\n\n    // ---- Fetch ----\n    let net = std.net.host()\n    let client = std.http.client(net)\n    let mut response: [8192]u8 = [0_u8; 8192]\n    let result = std.http.fetch(client, envelope[0..env_n], response, std.time.ms(5000))\n    if std.http.resultOk(result) == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if std.http.resultStatus(result) != 200 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let body_len = std.http.resultBodyLen(result)\n    let body_offset = std.http.responseBodyOffset(response)\n\n    // ---- Scan body for `\"sum\":<digits>` ----\n    let needle = std.mem.span(\"\\\"sum\\\":\")\n    let needle_n = std.mem.len(needle)\n    let end: usize = body_offset + body_len\n    if needle_n == 0_usize {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if end < needle_n {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let stop: usize = end - needle_n\n    let mut found_at: usize = 0_usize\n    let mut found: Bool = false\n    let mut si: usize = body_offset\n    let mut search_flag: Bool = true\n    while search_flag {\n        if si > stop {\n            search_flag = false\n        } else {\n            let mut j: usize = 0\n            let mut matched: Bool = true\n            let mut inner_flag: Bool = true\n            while inner_flag {\n                if j >= needle_n {\n                    inner_flag = false\n                } else {\n                    if response[si + j] != needle[j] {\n                        matched = false\n                        inner_flag = false\n                    } else {\n                        j = j + 1\n                    }\n                }\n            }\n            if matched {\n                found_at = si + needle_n\n                found = true\n                search_flag = false\n            } else {\n                si = si + 1\n            }\n        }\n    }\n    if found == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // Parse digits (with optional leading `-`) at found_at.\n    let mut k = found_at\n    let mut k_ws_flag: Bool = true\n    while k_ws_flag {\n        if k >= end {\n            k_ws_flag = false\n        } else {\n            let c = response[k]\n            if c == 32_u8 {\n                k = k + 1\n            } else {\n                if c == 9_u8 {\n                    k = k + 1\n                } else {\n                    k_ws_flag = false\n                }\n            }\n        }\n    }\n    if k >= end {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut sum_neg: Bool = false\n    if response[k] == 45_u8 {\n        sum_neg = true\n        k = k + 1\n    }\n    if k >= end {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut sum_have_digit: Bool = false\n    let mut sum_acc: u32 = 0_u32\n    let mut sum_digit_flag: Bool = true\n    while sum_digit_flag {\n        if k >= end {\n            sum_digit_flag = false\n        } else {\n            let c = response[k]\n            if c >= 48_u8 {\n                if c <= 57_u8 {\n                    let d: u32 = (c - 48_u8) as u32\n                    sum_acc = sum_acc * 10_u32 + d\n                    sum_have_digit = true\n                    k = k + 1\n                } else {\n                    sum_digit_flag = false\n                }\n            } else {\n                sum_digit_flag = false\n            }\n        }\n    }\n    if sum_have_digit == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    // After digits, next byte must be a JSON terminator or end.\n    let mut term_ok: Bool = true\n    if k < end {\n        let c = response[k]\n        if c == 44_u8 {\n            // ok\n        } else {\n            if c == 125_u8 {\n                // ok\n            } else {\n                if c == 93_u8 {\n                    // ok\n                } else {\n                    if c == 32_u8 {\n                        // ok\n                    } else {\n                        if c == 9_u8 {\n                            // ok\n                        } else {\n                            if c == 10_u8 {\n                                // ok\n                            } else {\n                                if c == 13_u8 {\n                                    // ok\n                                } else {\n                                    term_ok = false\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n    if term_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if sum_acc > 2147483647_u32 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut sum_val: i32 = sum_acc as i32\n    if sum_neg {\n        sum_val = 0_i32 - sum_val\n    }\n\n    // ---- Render sum_val + newline ----\n    let mut out: [16]u8 = [0_u8; 16]\n    let mut out_n: usize = 0\n    let mut out_v: u32 = 0_u32\n    if sum_val < 0_i32 {\n        out[out_n] = 45_u8\n        out_n = out_n + 1\n        out_v = (0_i32 - sum_val) as u32\n    } else {\n        out_v = sum_val as u32\n    }\n    if out_v == 0_u32 {\n        out[out_n] = 48_u8\n        out_n = out_n + 1\n    } else {\n        let mut out_tmp: [16]u8 = [0_u8; 16]\n        let mut out_tn: usize = 0\n        while out_v > 0_u32 {\n            let digit_u32: u32 = 48_u32 + (out_v % 10_u32)\n            out_tmp[out_tn] = digit_u32 as u8\n            out_tn = out_tn + 1\n            out_v = out_v / 10_u32\n        }\n        let mut out_wj: usize = 0\n        while out_wj < out_tn {\n            out[out_n] = out_tmp[out_tn - 1 - out_wj]\n            out_n = out_n + 1\n            out_wj = out_wj + 1\n        }\n    }\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n",
+        "zero": "",
         "ts": "// HTTP POST + JSON sum reference for AgentLang Index.\n//\n// Reads three stdin lines: URL, a, b. POSTs `{\"a\":<a>,\"b\":<b>}` to URL\n// with Content-Type: application/json and 5000 ms timeout. On HTTP 200\n// with a JSON body containing an integer `sum`, writes the sum and\n// newline. Otherwise writes `error\\n`. Always exits 0.\n\nasync function readStdin(): Promise<string> {\n  const chunks: Buffer[] = [];\n  for await (const chunk of process.stdin as AsyncIterable<Buffer>) {\n    chunks.push(chunk);\n  }\n  return Buffer.concat(chunks).toString(\"utf-8\");\n}\n\nfunction fail(): void {\n  process.stdout.write(\"error\\n\");\n}\n\nasync function main(): Promise<void> {\n  let url: string;\n  let a: number;\n  let b: number;\n  try {\n    const lines = (await readStdin()).split(/\\r?\\n/);\n    url = (lines[0] ?? \"\").trim();\n    a = parseInt((lines[1] ?? \"\").trim(), 10);\n    b = parseInt((lines[2] ?? \"\").trim(), 10);\n    if (!url || !Number.isInteger(a) || !Number.isInteger(b)) {\n      fail();\n      return;\n    }\n  } catch {\n    fail();\n    return;\n  }\n\n  const controller = new AbortController();\n  const timeout = setTimeout(() => controller.abort(), 5000);\n  let resp: Response;\n  try {\n    resp = await fetch(url, {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: `{\"a\":${a},\"b\":${b}}`,\n      signal: controller.signal,\n      redirect: \"manual\",\n    });\n  } catch {\n    clearTimeout(timeout);\n    fail();\n    return;\n  }\n  clearTimeout(timeout);\n\n  if (resp.status !== 200) {\n    fail();\n    return;\n  }\n\n  let bodyText: string;\n  try {\n    bodyText = await resp.text();\n  } catch {\n    fail();\n    return;\n  }\n\n  let parsed: unknown;\n  try {\n    parsed = JSON.parse(bodyText);\n  } catch {\n    fail();\n    return;\n  }\n\n  if (\n    typeof parsed !== \"object\" ||\n    parsed === null ||\n    !(\"sum\" in parsed) ||\n    typeof (parsed as { sum: unknown }).sum !== \"number\" ||\n    !Number.isInteger((parsed as { sum: number }).sum)\n  ) {\n    fail();\n    return;\n  }\n  const s = (parsed as { sum: number }).sum;\n  process.stdout.write(`${s}\\n`);\n}\n\nmain();\n",
         "rust": "// HTTP POST + JSON sum reference for AgentLang Index.\n\nuse std::io::{self, Read};\nuse std::time::Duration;\n\nfn fail() {\n    print!(\"error\\n\");\n}\n\nfn run() -> Option<i64> {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).ok()?;\n    let mut lines = input.lines();\n    let url = lines.next()?.trim().to_string();\n    let a: i64 = lines.next()?.trim().parse().ok()?;\n    let b: i64 = lines.next()?.trim().parse().ok()?;\n    let body = format!(\"{{\\\"a\\\":{},\\\"b\\\":{}}}\", a, b);\n\n    let agent = ureq::Agent::config_builder()\n        .timeout_global(Some(Duration::from_secs(5)))\n        .build()\n        .new_agent();\n\n    let response = agent\n        .post(&url)\n        .header(\"Content-Type\", \"application/json\")\n        .send(body.as_bytes());\n\n    let mut response = match response {\n        Ok(r) => r,\n        Err(_) => return None,\n    };\n    if response.status().as_u16() != 200 {\n        return None;\n    }\n    let body_text = response.body_mut().read_to_string().ok()?;\n    let parsed: serde_json::Value = serde_json::from_str(&body_text).ok()?;\n    let obj = parsed.as_object()?;\n    let sum_val = obj.get(\"sum\")?;\n    let s = sum_val.as_i64()?;\n    Some(s)\n}\n\nfn main() {\n    match run() {\n        Some(s) => print!(\"{}\\n\", s),\n        None => fail(),\n    }\n}\n",
         "go": "// HTTP POST + JSON sum reference for AgentLang Index.\n\npackage main\n\nimport (\n\t\"bufio\"\n\t\"bytes\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"net/http\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n\t\"time\"\n)\n\nfunc fail() {\n\tfmt.Print(\"error\\n\")\n}\n\nfunc run() bool {\n\tscanner := bufio.NewScanner(os.Stdin)\n\tscanner.Buffer(make([]byte, 0, 4096), 1<<20)\n\tvar lines []string\n\tfor scanner.Scan() {\n\t\tlines = append(lines, scanner.Text())\n\t\tif len(lines) == 3 {\n\t\t\tbreak\n\t\t}\n\t}\n\tif len(lines) < 3 {\n\t\treturn false\n\t}\n\turl := strings.TrimSpace(lines[0])\n\ta, err := strconv.Atoi(strings.TrimSpace(lines[1]))\n\tif err != nil {\n\t\treturn false\n\t}\n\tb, err := strconv.Atoi(strings.TrimSpace(lines[2]))\n\tif err != nil {\n\t\treturn false\n\t}\n\tif url == \"\" {\n\t\treturn false\n\t}\n\n\tbody := []byte(fmt.Sprintf(`{\"a\":%d,\"b\":%d}`, a, b))\n\treq, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))\n\tif err != nil {\n\t\treturn false\n\t}\n\treq.Header.Set(\"Content-Type\", \"application/json\")\n\n\tclient := &http.Client{\n\t\tTimeout: 5 * time.Second,\n\t\tCheckRedirect: func(req *http.Request, via []*http.Request) error {\n\t\t\treturn http.ErrUseLastResponse\n\t\t},\n\t}\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\treturn false\n\t}\n\tdefer resp.Body.Close()\n\tif resp.StatusCode != 200 {\n\t\treturn false\n\t}\n\n\tvar parsed map[string]json.RawMessage\n\tdec := json.NewDecoder(resp.Body)\n\tif err := dec.Decode(&parsed); err != nil {\n\t\treturn false\n\t}\n\trawSum, ok := parsed[\"sum\"]\n\tif !ok {\n\t\treturn false\n\t}\n\tvar n json.Number\n\tif err := json.Unmarshal(rawSum, &n); err != nil {\n\t\treturn false\n\t}\n\ts, err := n.Int64()\n\tif err != nil {\n\t\treturn false\n\t}\n\tfmt.Printf(\"%d\\n\", s)\n\treturn true\n}\n\nfunc main() {\n\tif !run() {\n\t\tfail()\n\t}\n}\n",
@@ -4046,6 +4891,71 @@
           "execMs": 367,
           "promptTokens": 3,
           "completionTokens": 265
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 12993,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 17365,
+          "execMs": 393,
+          "promptTokens": 3,
+          "completionTokens": 581
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 15217,
+          "execMs": 0,
+          "promptTokens": 3,
+          "completionTokens": 441
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 17263,
+          "execMs": 25,
+          "promptTokens": 3,
+          "completionTokens": 675
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13217,
+          "execMs": 371,
+          "promptTokens": 3,
+          "completionTokens": 298
         }
       ],
       "hardestLang": "zero",
@@ -4070,7 +4980,7 @@
         "wall_time_max_ms": 10000
       },
       "refs": {
-        "zero": "// HTTP header echo reference for AgentLang Index.\n//\n// Zero 0.1.2 has no exposed stdin, so URL/header-name come from\n// argv[1..2]. std.http.fetch is invoked with a GET envelope\n// (method-line + URL + blank line). On HTTP 200 we look up the\n// named header with std.http.headerValue and echo its bytes\n// + newline. On any transport, status, or header-miss failure\n// we write `error\\n`.\n//\n// The direct backend MVP forbids user functions that take Span<u8>,\n// MutSpan<u8>, or return shape locals, so all logic is inline.\n\npub fun main(world: World) -> Void raises {\n    let maybe_url = std.args.get(1)\n    let maybe_name = std.args.get(2)\n    if maybe_url.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if maybe_name.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    let url_s = std.mem.span(maybe_url.value)\n    let name_s = std.mem.span(maybe_name.value)\n\n    // ---- Build GET envelope: GET <url>\\n\\n ----\n    let mut envelope: [1024]u8 = [0_u8; 1024]\n    let mut env_n: usize = 0\n\n    let prefix = std.mem.span(\"GET \")\n    let pre_n = std.mem.len(prefix)\n    let mut pi: usize = 0\n    while pi < pre_n {\n        envelope[env_n] = prefix[pi]\n        env_n = env_n + 1\n        pi = pi + 1\n    }\n\n    let url_n = std.mem.len(url_s)\n    let mut ui: usize = 0\n    let mut url_flag: Bool = true\n    while url_flag {\n        if ui >= url_n {\n            url_flag = false\n        } else {\n            let c = url_s[ui]\n            if c == 10_u8 {\n                url_flag = false\n            } else {\n                if c == 13_u8 {\n                    url_flag = false\n                } else {\n                    envelope[env_n] = c\n                    env_n = env_n + 1\n                    ui = ui + 1\n                }\n            }\n        }\n    }\n    envelope[env_n] = 10_u8\n    env_n = env_n + 1\n    envelope[env_n] = 10_u8\n    env_n = env_n + 1\n\n    // ---- Fetch ----\n    let net = std.net.host()\n    let client = std.http.client(net)\n    let mut response: [8192]u8 = [0_u8; 8192]\n    let result = std.http.fetch(client, envelope[0..env_n], response, std.time.ms(5000))\n    if std.http.resultOk(result) == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if std.http.resultStatus(result) != 200 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // ---- Header lookup ----\n    let header_val = std.http.headerValue(response, name_s)\n    if std.http.headerFound(header_val) == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    let h_off = std.http.headerOffset(header_val)\n    let h_len = std.http.headerLen(header_val)\n\n    // ---- Render header value + newline ----\n    // Inline the write rather than reach for a helper so we obey\n    // the seventh codegen-quirk constraint about returning slices.\n    let mut out: [4096]u8 = [0_u8; 4096]\n    let mut out_n: usize = 0\n    let mut wi: usize = 0\n    while wi < h_len {\n        out[out_n] = response[h_off + wi]\n        out_n = out_n + 1\n        wi = wi + 1\n    }\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n",
+        "zero": "",
         "ts": "#!/usr/bin/env -S tsx\n// Reference implementation for 014-http-header-echo (TypeScript).\nimport { readFileSync } from \"node:fs\";\n\nasync function main(): Promise<void> {\n  let raw: string;\n  try {\n    raw = readFileSync(0, \"utf8\");\n  } catch {\n    process.stdout.write(\"error\\n\");\n    return;\n  }\n  const lines = raw.split(\"\\n\");\n  if (lines.length < 2) {\n    process.stdout.write(\"error\\n\");\n    return;\n  }\n  const url = lines[0].trim();\n  const name = lines[1].trim();\n  if (!url || !name) {\n    process.stdout.write(\"error\\n\");\n    return;\n  }\n  const ctl = new AbortController();\n  const timer = setTimeout(() => ctl.abort(), 5000);\n  try {\n    const resp = await fetch(url, { method: \"GET\", signal: ctl.signal });\n    clearTimeout(timer);\n    if (resp.status !== 200) {\n      process.stdout.write(\"error\\n\");\n      return;\n    }\n    const value = resp.headers.get(name);\n    if (value === null) {\n      process.stdout.write(\"error\\n\");\n      return;\n    }\n    process.stdout.write(value + \"\\n\");\n  } catch {\n    clearTimeout(timer);\n    process.stdout.write(\"error\\n\");\n  }\n}\n\nmain();\n",
         "rust": "// HTTP header echo reference for AgentLang Index.\n\nuse std::io::{self, Read};\nuse std::time::Duration;\n\nfn fail() {\n    print!(\"error\\n\");\n}\n\nfn run() -> Option<String> {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).ok()?;\n    let mut lines = input.lines();\n    let url = lines.next()?.trim().to_string();\n    let name = lines.next()?.trim().to_string();\n    if url.is_empty() || name.is_empty() {\n        return None;\n    }\n\n    let agent = ureq::Agent::config_builder()\n        .timeout_global(Some(Duration::from_secs(5)))\n        .build()\n        .new_agent();\n\n    let response = agent.get(&url).call();\n\n    let response = match response {\n        Ok(r) => r,\n        Err(_) => return None,\n    };\n    if response.status().as_u16() != 200 {\n        return None;\n    }\n    let headers = response.headers();\n    let value_opt = headers.get(&name);\n    let v = value_opt?;\n    v.to_str().ok().map(|s| s.to_string())\n}\n\nfn main() {\n    match run() {\n        Some(s) => print!(\"{}\\n\", s),\n        None => fail(),\n    }\n}\n",
         "go": "package main\n\nimport (\n\t\"bufio\"\n\t\"context\"\n\t\"fmt\"\n\t\"net/http\"\n\t\"os\"\n\t\"strings\"\n\t\"time\"\n)\n\nfunc main() {\n\treader := bufio.NewReader(os.Stdin)\n\turl, err := reader.ReadString('\\n')\n\tif err != nil && url == \"\" {\n\t\tfmt.Print(\"error\\n\")\n\t\treturn\n\t}\n\tname, err2 := reader.ReadString('\\n')\n\tif err2 != nil && name == \"\" {\n\t\tfmt.Print(\"error\\n\")\n\t\treturn\n\t}\n\turl = strings.TrimRight(url, \"\\r\\n \\t\")\n\turl = strings.TrimSpace(url)\n\tname = strings.TrimSpace(name)\n\tif url == \"\" || name == \"\" {\n\t\tfmt.Print(\"error\\n\")\n\t\treturn\n\t}\n\tctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)\n\tdefer cancel()\n\treq, err := http.NewRequestWithContext(ctx, \"GET\", url, nil)\n\tif err != nil {\n\t\tfmt.Print(\"error\\n\")\n\t\treturn\n\t}\n\tclient := &http.Client{\n\t\tCheckRedirect: func(*http.Request, []*http.Request) error {\n\t\t\treturn http.ErrUseLastResponse\n\t\t},\n\t}\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tfmt.Print(\"error\\n\")\n\t\treturn\n\t}\n\tdefer resp.Body.Close()\n\tif resp.StatusCode != 200 {\n\t\tfmt.Print(\"error\\n\")\n\t\treturn\n\t}\n\tvalue := resp.Header.Get(name)\n\tif value == \"\" {\n\t\t// Distinguish \"missing\" from \"present and empty\" — Go's\n\t\t// canonical Get returns \"\" for both. Check Values() instead.\n\t\tvalues := resp.Header.Values(name)\n\t\tif len(values) == 0 {\n\t\t\tfmt.Print(\"error\\n\")\n\t\t\treturn\n\t\t}\n\t\tvalue = values[0]\n\t}\n\tfmt.Print(value + \"\\n\")\n}\n",
@@ -4336,10 +5246,75 @@
           "execMs": 348,
           "promptTokens": 3,
           "completionTokens": 227
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 14465,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 15080,
+          "execMs": 346,
+          "promptTokens": 3,
+          "completionTokens": 493
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 21144,
+          "execMs": 13,
+          "promptTokens": 3,
+          "completionTokens": 1109
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12607,
+          "execMs": 29,
+          "promptTokens": 3,
+          "completionTokens": 324
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12708,
+          "execMs": 358,
+          "promptTokens": 3,
+          "completionTokens": 223
         }
       ],
       "hardestLang": "zero",
-      "mostCommonFailureMode": "compile"
+      "mostCommonFailureMode": "wrong-output"
     },
     {
       "slug": "015-checked-divide-u32",
@@ -4360,7 +5335,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Checked u32 divide reference for AgentLang Index.\n//\n// Zero 0.1.2 has no exposed stdin, so a and b come from argv[1..2].\n// std.parse.parseU32 cannot accept runtime String values on the\n// direct ELF64 backend (CGEN004: requires literal text), so the\n// parse + overflow check is implemented inline: u64 accumulator,\n// digit-by-digit, reject any non-digit byte, reject if final value\n// exceeds u32::MAX.\n//\n// Three failure modes collapse to \"error\\n\":\n//   - argv[1] or argv[2] missing\n//   - either argv has non-digit bytes, is empty, or exceeds u32::MAX\n//   - the divisor b parses to 0\n//\n// main ends with an explicit `return` to dodge the trailing-write\n// byte-count-as-exit-code codegen quirk.\n\npub fun main(world: World) -> Void raises {\n    let maybe_a = std.args.get(1)\n    let maybe_b = std.args.get(2)\n    if maybe_a.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if maybe_b.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    let a_in = std.mem.span(maybe_a.value)\n    let b_in = std.mem.span(maybe_b.value)\n\n    // ---- Parse a as u32, reject non-digit / empty / > u32::MAX ----\n    let a_len = std.mem.len(a_in)\n    let mut a_acc: u64 = 0_u64\n    let mut a_have: Bool = false\n    let mut a_ok: Bool = true\n    let mut a_i: usize = 0\n    while a_i < a_len {\n        let c = a_in[a_i]\n        if c >= 48_u8 {\n            if c <= 57_u8 {\n                let d: u64 = (c - 48_u8) as u64\n                a_acc = a_acc * 10_u64 + d\n                a_have = true\n                a_i = a_i + 1\n            } else {\n                a_ok = false\n                a_i = a_len\n            }\n        } else {\n            a_ok = false\n            a_i = a_len\n        }\n    }\n    if a_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if a_have == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if a_acc > 4294967295_u64 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let a_val: u32 = a_acc as u32\n\n    // ---- Parse b as u32 ----\n    let b_len = std.mem.len(b_in)\n    let mut b_acc: u64 = 0_u64\n    let mut b_have: Bool = false\n    let mut b_ok: Bool = true\n    let mut b_i: usize = 0\n    while b_i < b_len {\n        let c = b_in[b_i]\n        if c >= 48_u8 {\n            if c <= 57_u8 {\n                let d: u64 = (c - 48_u8) as u64\n                b_acc = b_acc * 10_u64 + d\n                b_have = true\n                b_i = b_i + 1\n            } else {\n                b_ok = false\n                b_i = b_len\n            }\n        } else {\n            b_ok = false\n            b_i = b_len\n        }\n    }\n    if b_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if b_have == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if b_acc > 4294967295_u64 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let b_val: u32 = b_acc as u32\n\n    if b_val == 0_u32 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    let q: u32 = a_val / b_val\n\n    // ---- Render q as decimal + newline ----\n    let mut out: [16]u8 = [0_u8; 16]\n    let mut out_n: usize = 0\n    if q == 0_u32 {\n        out[out_n] = 48_u8\n        out_n = out_n + 1\n    } else {\n        let mut tmp: [16]u8 = [0_u8; 16]\n        let mut tn: usize = 0\n        let mut v: u32 = q\n        while v > 0_u32 {\n            let digit_u32: u32 = 48_u32 + (v % 10_u32)\n            tmp[tn] = digit_u32 as u8\n            tn = tn + 1\n            v = v / 10_u32\n        }\n        let mut wj: usize = 0\n        while wj < tn {\n            out[out_n] = tmp[tn - 1 - wj]\n            out_n = out_n + 1\n            wj = wj + 1\n        }\n    }\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n",
+        "zero": "",
         "ts": "const U32_MAX = 4294967295n;\n\nfunction parseU32(s: string): bigint | null {\n    const t = s.trim();\n    if (t.length === 0) return null;\n    for (let i = 0; i < t.length; i++) {\n        const c = t.charCodeAt(i);\n        if (c < 48 || c > 57) return null;\n    }\n    try {\n        const v = BigInt(t);\n        if (v > U32_MAX) return null;\n        return v;\n    } catch {\n        return null;\n    }\n}\n\nasync function readAll(): Promise<string> {\n    const chunks: Buffer[] = [];\n    for await (const chunk of process.stdin) {\n        chunks.push(chunk as Buffer);\n    }\n    return Buffer.concat(chunks).toString(\"utf8\");\n}\n\nasync function main(): Promise<void> {\n    const data = await readAll();\n    const lines = data.split(\"\\n\");\n    if (lines.length < 2) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const a = parseU32(lines[0]);\n    const b = parseU32(lines[1]);\n    if (a === null || b === null || b === 0n) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    process.stdout.write(`${a / b}\\n`);\n}\n\nmain();\n",
         "rust": "use std::io::{self, Read, Write};\n\nfn parse_u32(s: &str) -> Option<u32> {\n    let t = s.trim();\n    if t.is_empty() {\n        return None;\n    }\n    for b in t.bytes() {\n        if !(b'0'..=b'9').contains(&b) {\n            return None;\n        }\n    }\n    t.parse::<u32>().ok()\n}\n\nfn main() {\n    let mut input = String::new();\n    if io::stdin().read_to_string(&mut input).is_err() {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    }\n    let mut lines = input.split('\\n');\n    let line_a = lines.next();\n    let line_b = lines.next();\n    let (Some(la), Some(lb)) = (line_a, line_b) else {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    };\n    let a = parse_u32(la);\n    let b = parse_u32(lb);\n    match (a, b) {\n        (Some(av), Some(bv)) if bv != 0 => {\n            let _ = writeln!(io::stdout(), \"{}\", av / bv);\n        }\n        _ => {\n            let _ = io::stdout().write_all(b\"error\\n\");\n        }\n    }\n}\n",
         "go": "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n)\n\nfunc parseU32(s string) (uint32, bool) {\n\tt := strings.TrimSpace(s)\n\tif t == \"\" {\n\t\treturn 0, false\n\t}\n\tfor _, c := range t {\n\t\tif c < '0' || c > '9' {\n\t\t\treturn 0, false\n\t\t}\n\t}\n\tv, err := strconv.ParseUint(t, 10, 32)\n\tif err != nil {\n\t\treturn 0, false\n\t}\n\treturn uint32(v), true\n}\n\nfunc main() {\n\tw := bufio.NewWriter(os.Stdout)\n\tdefer w.Flush()\n\tr := bufio.NewReader(os.Stdin)\n\tdata, _ := readAll(r)\n\tparts := strings.SplitN(data, \"\\n\", 3)\n\tif len(parts) < 2 {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\ta, okA := parseU32(parts[0])\n\tb, okB := parseU32(parts[1])\n\tif !okA || !okB || b == 0 {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\tfmt.Fprintf(w, \"%d\\n\", a/b)\n}\n\nfunc readAll(r *bufio.Reader) (string, error) {\n\tvar sb strings.Builder\n\tbuf := make([]byte, 4096)\n\tfor {\n\t\tn, err := r.Read(buf)\n\t\tif n > 0 {\n\t\t\tsb.Write(buf[:n])\n\t\t}\n\t\tif err != nil {\n\t\t\tbreak\n\t\t}\n\t}\n\treturn sb.String(), nil\n}\n",
@@ -4626,6 +5601,71 @@
           "execMs": 101,
           "promptTokens": 3,
           "completionTokens": 286
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 13669,
+          "execMs": 0,
+          "promptTokens": 2,
+          "completionTokens": 279
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13284,
+          "execMs": 225,
+          "promptTokens": 3,
+          "completionTokens": 273
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13502,
+          "execMs": 7,
+          "promptTokens": 3,
+          "completionTokens": 342
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14267,
+          "execMs": 9,
+          "promptTokens": 3,
+          "completionTokens": 478
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 16828,
+          "execMs": 146,
+          "promptTokens": 3,
+          "completionTokens": 210
         }
       ],
       "hardestLang": "zero",
@@ -4651,7 +5691,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Parse-list-sum reference for AgentLang Index.\n//\n// Zero 0.1.2 has no exposed stdin, so N comes from argv[1] and the N\n// values come from argv[2..N+1]. std.args.len() includes the program\n// name at index 0. Three failure modes collapse to \"error\\n\":\n//   - N argv missing, malformed, or > 1000\n//   - fewer than N value argv present\n//   - any value argv non-digit / empty / > u32::MAX, OR running sum > u32::MAX\n//\n// std.parse.parseU* rejects runtime String inputs on the direct ELF64\n// backend (CGEN004), so each parse is implemented inline with a u64\n// digit-accumulator and a u32::MAX bounds check.\n//\n// main ends with an explicit `return` to dodge the trailing-write\n// byte-count-as-exit-code codegen quirk.\n\npub fun main(world: World) -> Void raises {\n    let maybe_n = std.args.get(1)\n    if maybe_n.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let n_in = std.mem.span(maybe_n.value)\n\n    // ---- Parse N as u32, reject > 1000 ----\n    let n_len = std.mem.len(n_in)\n    let mut n_acc: u64 = 0_u64\n    let mut n_have: Bool = false\n    let mut n_ok: Bool = true\n    let mut n_i: usize = 0\n    while n_i < n_len {\n        let c = n_in[n_i]\n        if c >= 48_u8 {\n            if c <= 57_u8 {\n                let d: u64 = (c - 48_u8) as u64\n                n_acc = n_acc * 10_u64 + d\n                n_have = true\n                n_i = n_i + 1\n            } else {\n                n_ok = false\n                n_i = n_len\n            }\n        } else {\n            n_ok = false\n            n_i = n_len\n        }\n    }\n    if n_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if n_have == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if n_acc > 1000_u64 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let n_val: u32 = n_acc as u32\n\n    // ---- Verify std.args.len() >= n_val + 2 (program + N-arg + N values) ----\n    let argc = std.args.len()\n    let needed: usize = (n_val as usize) + 2_usize\n    if argc < needed {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // ---- Loop N times: parse argv[i+1] (i in 1..=N), accumulate in u64 ----\n    let mut total: u64 = 0_u64\n    let mut idx: u32 = 0_u32\n    let mut loop_ok: Bool = true\n    while idx < n_val {\n        let arg_pos: usize = (idx as usize) + 2_usize\n        let maybe_v = std.args.get(arg_pos)\n        if maybe_v.has == false {\n            loop_ok = false\n            idx = n_val\n        } else {\n            let v_in = std.mem.span(maybe_v.value)\n            let v_len = std.mem.len(v_in)\n            let mut v_acc: u64 = 0_u64\n            let mut v_have: Bool = false\n            let mut v_ok: Bool = true\n            let mut v_i: usize = 0\n            while v_i < v_len {\n                let c = v_in[v_i]\n                if c >= 48_u8 {\n                    if c <= 57_u8 {\n                        let d: u64 = (c - 48_u8) as u64\n                        v_acc = v_acc * 10_u64 + d\n                        v_have = true\n                        v_i = v_i + 1\n                    } else {\n                        v_ok = false\n                        v_i = v_len\n                    }\n                } else {\n                    v_ok = false\n                    v_i = v_len\n                }\n            }\n            if v_ok == false {\n                loop_ok = false\n                idx = n_val\n            } else {\n                if v_have == false {\n                    loop_ok = false\n                    idx = n_val\n                } else {\n                    if v_acc > 4294967295_u64 {\n                        loop_ok = false\n                        idx = n_val\n                    } else {\n                        total = total + v_acc\n                        if total > 4294967295_u64 {\n                            loop_ok = false\n                            idx = n_val\n                        } else {\n                            idx = idx + 1_u32\n                        }\n                    }\n                }\n            }\n        }\n    }\n    if loop_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // ---- Render total (u64, but constrained to u32 range) as decimal + newline ----\n    let mut out: [16]u8 = [0_u8; 16]\n    let mut out_n: usize = 0\n    if total == 0_u64 {\n        out[out_n] = 48_u8\n        out_n = out_n + 1\n    } else {\n        let mut tmp: [16]u8 = [0_u8; 16]\n        let mut tn: usize = 0\n        let mut v: u64 = total\n        while v > 0_u64 {\n            let digit_u64: u64 = 48_u64 + (v % 10_u64)\n            tmp[tn] = digit_u64 as u8\n            tn = tn + 1\n            v = v / 10_u64\n        }\n        let mut wj: usize = 0\n        while wj < tn {\n            out[out_n] = tmp[tn - 1 - wj]\n            out_n = out_n + 1\n            wj = wj + 1\n        }\n    }\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n",
+        "zero": "",
         "ts": "const U32_MAX = 4294967295n;\nconst N_MAX = 1000n;\n\nfunction parseU32(s: string): bigint | null {\n    const t = s.trim();\n    if (t.length === 0) return null;\n    for (let i = 0; i < t.length; i++) {\n        const c = t.charCodeAt(i);\n        if (c < 48 || c > 57) return null;\n    }\n    try {\n        const v = BigInt(t);\n        if (v > U32_MAX) return null;\n        return v;\n    } catch {\n        return null;\n    }\n}\n\nasync function readAll(): Promise<string> {\n    const chunks: Buffer[] = [];\n    for await (const chunk of process.stdin) {\n        chunks.push(chunk as Buffer);\n    }\n    return Buffer.concat(chunks).toString(\"utf8\");\n}\n\nasync function main(): Promise<void> {\n    const data = await readAll();\n    const lines = data.split(\"\\n\");\n    if (lines.length < 1) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const n = parseU32(lines[0]);\n    if (n === null || n > N_MAX) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const count = Number(n);\n    if (lines.length < count + 1) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    let total = 0n;\n    for (let i = 1; i <= count; i++) {\n        const v = parseU32(lines[i]);\n        if (v === null) {\n            process.stdout.write(\"error\\n\");\n            return;\n        }\n        total += v;\n        if (total > U32_MAX) {\n            process.stdout.write(\"error\\n\");\n            return;\n        }\n    }\n    process.stdout.write(`${total}\\n`);\n}\n\nmain();\n",
         "rust": "use std::io::{self, Read, Write};\n\nconst U32_MAX_U64: u64 = 4294967295;\nconst N_MAX: u32 = 1000;\n\nfn parse_u32(s: &str) -> Option<u32> {\n    let t = s.trim();\n    if t.is_empty() {\n        return None;\n    }\n    for b in t.bytes() {\n        if !(b'0'..=b'9').contains(&b) {\n            return None;\n        }\n    }\n    t.parse::<u32>().ok()\n}\n\nfn run() -> Option<u64> {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).ok()?;\n    let mut lines = input.split('\\n');\n    let n_line = lines.next()?;\n    let n = parse_u32(n_line)?;\n    if n > N_MAX {\n        return None;\n    }\n    let mut total: u64 = 0;\n    for _ in 0..n {\n        let line = lines.next()?;\n        let v = parse_u32(line)? as u64;\n        total += v;\n        if total > U32_MAX_U64 {\n            return None;\n        }\n    }\n    Some(total)\n}\n\nfn main() {\n    let stdout = io::stdout();\n    let mut out = stdout.lock();\n    match run() {\n        Some(total) => {\n            let _ = writeln!(out, \"{}\", total);\n        }\n        None => {\n            let _ = out.write_all(b\"error\\n\");\n        }\n    }\n}\n",
         "go": "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n)\n\nconst u32MaxU64 uint64 = 4294967295\nconst nMax uint32 = 1000\n\nfunc parseU32(s string) (uint32, bool) {\n\tt := strings.TrimSpace(s)\n\tif t == \"\" {\n\t\treturn 0, false\n\t}\n\tfor _, c := range t {\n\t\tif c < '0' || c > '9' {\n\t\t\treturn 0, false\n\t\t}\n\t}\n\tv, err := strconv.ParseUint(t, 10, 32)\n\tif err != nil {\n\t\treturn 0, false\n\t}\n\treturn uint32(v), true\n}\n\nfunc readAll(r *bufio.Reader) string {\n\tvar sb strings.Builder\n\tbuf := make([]byte, 4096)\n\tfor {\n\t\tn, err := r.Read(buf)\n\t\tif n > 0 {\n\t\t\tsb.Write(buf[:n])\n\t\t}\n\t\tif err != nil {\n\t\t\tbreak\n\t\t}\n\t}\n\treturn sb.String()\n}\n\nfunc run(data string) (uint64, bool) {\n\tlines := strings.Split(data, \"\\n\")\n\tif len(lines) < 1 {\n\t\treturn 0, false\n\t}\n\tn, ok := parseU32(lines[0])\n\tif !ok || n > nMax {\n\t\treturn 0, false\n\t}\n\tif uint32(len(lines)) < n+1 {\n\t\treturn 0, false\n\t}\n\tvar total uint64 = 0\n\tfor i := uint32(1); i <= n; i++ {\n\t\tv, ok := parseU32(lines[i])\n\t\tif !ok {\n\t\t\treturn 0, false\n\t\t}\n\t\ttotal += uint64(v)\n\t\tif total > u32MaxU64 {\n\t\t\treturn 0, false\n\t\t}\n\t}\n\treturn total, true\n}\n\nfunc main() {\n\tw := bufio.NewWriter(os.Stdout)\n\tdefer w.Flush()\n\tdata := readAll(bufio.NewReader(os.Stdin))\n\ttotal, ok := run(data)\n\tif !ok {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\tfmt.Fprintf(w, \"%d\\n\", total)\n}\n",
@@ -4917,6 +5957,71 @@
           "execMs": 88,
           "promptTokens": 3,
           "completionTokens": 442
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 95267,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14452,
+          "execMs": 207,
+          "promptTokens": 3,
+          "completionTokens": 433
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14262,
+          "execMs": 6,
+          "promptTokens": 3,
+          "completionTokens": 401
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14812,
+          "execMs": 9,
+          "promptTokens": 3,
+          "completionTokens": 579
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 25238,
+          "execMs": 126,
+          "promptTokens": 3,
+          "completionTokens": 918
         }
       ],
       "hardestLang": "zero",
@@ -4941,7 +6046,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// Checked u32 add-with-overflow reference for AgentLang Index.\n//\n// Zero 0.1.2 has no exposed stdin, so a and b come from argv[1..2].\n// std.parse.parseU32 cannot accept runtime String values on the\n// direct ELF64 backend (CGEN004: requires literal text), so the\n// parse + overflow check is implemented inline: u64 accumulator,\n// digit-by-digit, reject any non-digit byte, reject if final value\n// exceeds u32::MAX.\n//\n// Three failure modes collapse to \"error\\n\":\n//   - argv[1] or argv[2] missing\n//   - either argv has non-digit bytes, is empty, or exceeds u32::MAX\n//   - the sum a + b exceeds u32::MAX (computed in u64 to dodge wrap)\n//\n// main ends with an explicit `return` to dodge the trailing-write\n// byte-count-as-exit-code codegen quirk surfaced on task 012.\n\npub fun main(world: World) -> Void raises {\n    let maybe_a = std.args.get(1)\n    let maybe_b = std.args.get(2)\n    if maybe_a.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if maybe_b.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    let a_in = std.mem.span(maybe_a.value)\n    let b_in = std.mem.span(maybe_b.value)\n\n    // ---- Parse a as u32, reject non-digit / empty / > u32::MAX ----\n    let a_len = std.mem.len(a_in)\n    let mut a_acc: u64 = 0_u64\n    let mut a_have: Bool = false\n    let mut a_ok: Bool = true\n    let mut a_i: usize = 0\n    while a_i < a_len {\n        let c = a_in[a_i]\n        if c >= 48_u8 {\n            if c <= 57_u8 {\n                let d: u64 = (c - 48_u8) as u64\n                a_acc = a_acc * 10_u64 + d\n                a_have = true\n                a_i = a_i + 1\n            } else {\n                a_ok = false\n                a_i = a_len\n            }\n        } else {\n            a_ok = false\n            a_i = a_len\n        }\n    }\n    if a_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if a_have == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if a_acc > 4294967295_u64 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // ---- Parse b as u32 ----\n    let b_len = std.mem.len(b_in)\n    let mut b_acc: u64 = 0_u64\n    let mut b_have: Bool = false\n    let mut b_ok: Bool = true\n    let mut b_i: usize = 0\n    while b_i < b_len {\n        let c = b_in[b_i]\n        if c >= 48_u8 {\n            if c <= 57_u8 {\n                let d: u64 = (c - 48_u8) as u64\n                b_acc = b_acc * 10_u64 + d\n                b_have = true\n                b_i = b_i + 1\n            } else {\n                b_ok = false\n                b_i = b_len\n            }\n        } else {\n            b_ok = false\n            b_i = b_len\n        }\n    }\n    if b_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if b_have == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if b_acc > 4294967295_u64 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // ---- Sum in u64, bounds-check against u32::MAX ----\n    let sum: u64 = a_acc + b_acc\n    if sum > 4294967295_u64 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let s_val: u32 = sum as u32\n\n    // ---- Render s_val as decimal + newline ----\n    let mut out: [16]u8 = [0_u8; 16]\n    let mut out_n: usize = 0\n    if s_val == 0_u32 {\n        out[out_n] = 48_u8\n        out_n = out_n + 1\n    } else {\n        let mut tmp: [16]u8 = [0_u8; 16]\n        let mut tn: usize = 0\n        let mut v: u32 = s_val\n        while v > 0_u32 {\n            let digit_u32: u32 = 48_u32 + (v % 10_u32)\n            tmp[tn] = digit_u32 as u8\n            tn = tn + 1\n            v = v / 10_u32\n        }\n        let mut wj: usize = 0\n        while wj < tn {\n            out[out_n] = tmp[tn - 1 - wj]\n            out_n = out_n + 1\n            wj = wj + 1\n        }\n    }\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n",
+        "zero": "",
         "ts": "const U32_MAX = 4294967295n;\n\nfunction parseU32(s: string): bigint | null {\n    const t = s.trim();\n    if (t.length === 0) return null;\n    for (let i = 0; i < t.length; i++) {\n        const c = t.charCodeAt(i);\n        if (c < 48 || c > 57) return null;\n    }\n    try {\n        const v = BigInt(t);\n        if (v > U32_MAX) return null;\n        return v;\n    } catch {\n        return null;\n    }\n}\n\nasync function readAll(): Promise<string> {\n    const chunks: Buffer[] = [];\n    for await (const chunk of process.stdin) {\n        chunks.push(chunk as Buffer);\n    }\n    return Buffer.concat(chunks).toString(\"utf8\");\n}\n\nasync function main(): Promise<void> {\n    const data = await readAll();\n    const lines = data.split(\"\\n\");\n    if (lines.length < 2) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const a = parseU32(lines[0]);\n    const b = parseU32(lines[1]);\n    if (a === null || b === null) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const sum = a + b;\n    if (sum > U32_MAX) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    process.stdout.write(`${sum}\\n`);\n}\n\nmain();\n",
         "rust": "use std::io::{self, Read, Write};\n\nfn parse_u32(s: &str) -> Option<u32> {\n    let t = s.trim();\n    if t.is_empty() {\n        return None;\n    }\n    for b in t.bytes() {\n        if !(b'0'..=b'9').contains(&b) {\n            return None;\n        }\n    }\n    t.parse::<u32>().ok()\n}\n\nfn main() {\n    let mut input = String::new();\n    if io::stdin().read_to_string(&mut input).is_err() {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    }\n    let mut lines = input.split('\\n');\n    let line_a = lines.next();\n    let line_b = lines.next();\n    let (Some(la), Some(lb)) = (line_a, line_b) else {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    };\n    let a = parse_u32(la);\n    let b = parse_u32(lb);\n    match (a, b) {\n        (Some(av), Some(bv)) => match av.checked_add(bv) {\n            Some(sum) => {\n                let _ = writeln!(io::stdout(), \"{}\", sum);\n            }\n            None => {\n                let _ = io::stdout().write_all(b\"error\\n\");\n            }\n        },\n        _ => {\n            let _ = io::stdout().write_all(b\"error\\n\");\n        }\n    }\n}\n",
         "go": "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"math\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n)\n\nfunc parseU32(s string) (uint32, bool) {\n\tt := strings.TrimSpace(s)\n\tif t == \"\" {\n\t\treturn 0, false\n\t}\n\tfor _, c := range t {\n\t\tif c < '0' || c > '9' {\n\t\t\treturn 0, false\n\t\t}\n\t}\n\tv, err := strconv.ParseUint(t, 10, 32)\n\tif err != nil {\n\t\treturn 0, false\n\t}\n\treturn uint32(v), true\n}\n\nfunc main() {\n\tw := bufio.NewWriter(os.Stdout)\n\tdefer w.Flush()\n\tr := bufio.NewReader(os.Stdin)\n\tdata, _ := readAll(r)\n\tparts := strings.SplitN(data, \"\\n\", 3)\n\tif len(parts) < 2 {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\ta, okA := parseU32(parts[0])\n\tb, okB := parseU32(parts[1])\n\tif !okA || !okB {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\tsum := uint64(a) + uint64(b)\n\tif sum > math.MaxUint32 {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\tfmt.Fprintf(w, \"%d\\n\", uint32(sum))\n}\n\nfunc readAll(r *bufio.Reader) (string, error) {\n\tvar sb strings.Builder\n\tbuf := make([]byte, 4096)\n\tfor {\n\t\tn, err := r.Read(buf)\n\t\tif n > 0 {\n\t\t\tsb.Write(buf[:n])\n\t\t}\n\t\tif err != nil {\n\t\t\tbreak\n\t\t}\n\t}\n\treturn sb.String(), nil\n}\n",
@@ -5207,6 +6312,71 @@
           "execMs": 83,
           "promptTokens": 3,
           "completionTokens": 271
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 18556,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12853,
+          "execMs": 237,
+          "promptTokens": 3,
+          "completionTokens": 265
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14050,
+          "execMs": 8,
+          "promptTokens": 3,
+          "completionTokens": 266
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13971,
+          "execMs": 9,
+          "promptTokens": 3,
+          "completionTokens": 399
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13048,
+          "execMs": 97,
+          "promptTokens": 3,
+          "completionTokens": 259
         }
       ],
       "hardestLang": "zero",
@@ -5230,7 +6400,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// src/main.0\n// Caesar cipher main driver for AgentLang Index slot 018.\n//\n// Zero 0.1.2 has no exposed stdin, so shift and plaintext come\n// from argv[1..2]. Lib (src/lib.0) provides is_lowercase_letter\n// and shift_letter; main parses + validates + composes.\n//\n// Failure modes collapse to \"error\\n\":\n//   - argv[1] or argv[2] missing\n//   - shift fails to parse, has non-digit bytes, or is > 25\n//   - plaintext is empty\n//   - any plaintext byte is outside [a-z]\n\nuse lib\n\npub fun main(world: World) -> Void raises {\n    let maybe_shift = std.args.get(1)\n    let maybe_text = std.args.get(2)\n    if maybe_shift.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if maybe_text.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    let shift_in = std.mem.span(maybe_shift.value)\n    let text_in = std.mem.span(maybe_text.value)\n\n    // ---- Parse shift as u8 in 0..=25 ----\n    let s_len = std.mem.len(shift_in)\n    let mut s_acc: u64 = 0_u64\n    let mut s_have: Bool = false\n    let mut s_ok: Bool = true\n    let mut s_i: usize = 0\n    while s_i < s_len {\n        let c = shift_in[s_i]\n        if c >= 48_u8 {\n            if c <= 57_u8 {\n                let d: u64 = (c - 48_u8) as u64\n                s_acc = s_acc * 10_u64 + d\n                s_have = true\n                s_i = s_i + 1\n            } else {\n                s_ok = false\n                s_i = s_len\n            }\n        } else {\n            s_ok = false\n            s_i = s_len\n        }\n    }\n    if s_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if s_have == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if s_acc > 25_u64 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let shift_val: u8 = s_acc as u8\n\n    // ---- Validate plaintext non-empty + all lowercase letters ----\n    let t_len = std.mem.len(text_in)\n    if t_len == 0 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let mut text_ok: Bool = true\n    let mut t_i: usize = 0\n    while t_i < t_len {\n        let b = text_in[t_i]\n        if is_lowercase_letter(b) == false {\n            text_ok = false\n            t_i = t_len\n        } else {\n            t_i = t_i + 1\n        }\n    }\n    if text_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // ---- Build ciphertext + trailing newline ----\n    let mut out: [1100]u8 = [0_u8; 1100]\n    let mut out_n: usize = 0\n    let mut wi: usize = 0\n    while wi < t_len {\n        let b = text_in[wi]\n        out[out_n] = shift_letter(b, shift_val)\n        out_n = out_n + 1\n        wi = wi + 1\n    }\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n\n\n// src/lib.0\n// Caesar cipher helpers. Pure scalar-typed exports so the seventh\n// direct-backend codegen quirk (no user functions over Span/MutSpan/\n// shape values) does not bite at the module boundary.\n\npub fun is_lowercase_letter(b: u8) -> Bool {\n    if b < 97_u8 {\n        return false\n    }\n    if b > 122_u8 {\n        return false\n    }\n    return true\n}\n\npub fun shift_letter(b: u8, shift: u8) -> u8 {\n    // Caller is responsible for is_lowercase_letter(b) == true\n    // and shift in 0..=25 inclusive. Returns the byte rotated by\n    // shift positions within a-z.\n    let zero_based: u8 = b - 97_u8\n    let shifted: u8 = (zero_based + shift) % 26_u8\n    return 97_u8 + shifted\n}\n",
+        "zero": "// src/main.0\n// Caesar cipher main driver for AgentLang Index slot 018.\n//\n// Zero 0.1.2 has no exposed stdin, so shift and plaintext come\n// from argv[1..2]. Lib (src/lib.0) provides is_lowercase_letter\n// and shift_letter; main parses + validates + composes.\n//\n// Failure modes collapse to \"error\\n\":\n//   - argv[1] or argv[2] missing\n//   - shift fails to parse, has non-digit bytes, or is > 25\n//   - plaintext is empty\n//   - any plaintext byte is outside [a-z]\n\nuse lib\n\npub fn main(world: World) -> Void raises {\n    let maybe_shift: Maybe<String> = std.args.get(1)\n    let maybe_text: Maybe<String> = std.args.get(2)\n    if maybe_shift.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if maybe_text.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    let shift_in: Span<u8> = std.mem.span(maybe_shift.value)\n    let text_in: Span<u8> = std.mem.span(maybe_text.value)\n\n    // ---- Parse shift as u8 in 0..=25 ----\n    let s_len: usize = std.mem.len(shift_in)\n    var s_acc: u64 = 0_u64\n    var s_have: Bool = false\n    var s_ok: Bool = true\n    var s_i: usize = 0\n    while s_i < s_len {\n        let c: u8 = shift_in[s_i]\n        if c >= 48_u8 {\n            if c <= 57_u8 {\n                let d: u64 = (c - 48_u8) as u64\n                s_acc = s_acc * 10_u64 + d\n                s_have = true\n                s_i = s_i + 1\n            } else {\n                s_ok = false\n                s_i = s_len\n            }\n        } else {\n            s_ok = false\n            s_i = s_len\n        }\n    }\n    if s_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if s_have == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    if s_acc > 25_u64 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let shift_val: u8 = s_acc as u8\n\n    // ---- Validate plaintext non-empty + all lowercase letters ----\n    let t_len: usize = std.mem.len(text_in)\n    if t_len == 0 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    var text_ok: Bool = true\n    var t_i: usize = 0\n    while t_i < t_len {\n        let b: u8 = text_in[t_i]\n        if is_lowercase_letter(b) == false {\n            text_ok = false\n            t_i = t_len\n        } else {\n            t_i = t_i + 1\n        }\n    }\n    if text_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // ---- Build ciphertext + trailing newline ----\n    var out: [1100]u8 = [0_u8; 1100]\n    var out_n: usize = 0\n    var wi: usize = 0\n    while wi < t_len {\n        let b: u8 = text_in[wi]\n        out[out_n] = shift_letter(b, shift_val)\n        out_n = out_n + 1\n        wi = wi + 1\n    }\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n\n\n// src/lib.0\n// Caesar cipher helpers. Pure scalar-typed exports so the seventh\n// direct-backend codegen quirk (no user functions over Span/MutSpan/\n// shape values) does not bite at the module boundary.\n\npub fn is_lowercase_letter(b: u8) -> Bool {\n    if b < 97_u8 {\n        return false\n    }\n    if b > 122_u8 {\n        return false\n    }\n    return true\n}\n\npub fn shift_letter(b: u8, shift: u8) -> u8 {\n    // Caller is responsible for is_lowercase_letter(b) == true\n    // and shift in 0..=25 inclusive. Returns the byte rotated by\n    // shift positions within a-z.\n    let zero_based: u8 = b - 97_u8\n    let shifted: u8 = (zero_based + shift) % 26_u8\n    return 97_u8 + shifted\n}\n",
         "ts": "function isLowercaseLetter(b: number): boolean {\n    return b >= 97 && b <= 122;\n}\n\nfunction shiftLetter(b: number, shift: number): number {\n    const zeroBased = b - 97;\n    return 97 + ((zeroBased + shift) % 26);\n}\n\nfunction parseShift(s: string): number | null {\n    const t = s.trim();\n    if (t.length === 0) return null;\n    for (let i = 0; i < t.length; i++) {\n        const c = t.charCodeAt(i);\n        if (c < 48 || c > 57) return null;\n    }\n    const v = Number(t);\n    if (!Number.isInteger(v) || v < 0 || v > 25) return null;\n    return v;\n}\n\nasync function readAll(): Promise<string> {\n    const chunks: Buffer[] = [];\n    for await (const chunk of process.stdin) {\n        chunks.push(chunk as Buffer);\n    }\n    return Buffer.concat(chunks).toString(\"utf8\");\n}\n\nasync function main(): Promise<void> {\n    const data = await readAll();\n    const lines = data.split(\"\\n\");\n    if (lines.length < 2) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const shift = parseShift(lines[0]);\n    if (shift === null) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const text = lines[1];\n    if (text.length === 0) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const out: number[] = [];\n    for (let i = 0; i < text.length; i++) {\n        const c = text.charCodeAt(i);\n        if (!isLowercaseLetter(c)) {\n            process.stdout.write(\"error\\n\");\n            return;\n        }\n        out.push(shiftLetter(c, shift));\n    }\n    process.stdout.write(Buffer.from(out).toString(\"ascii\") + \"\\n\");\n}\n\nmain();\n",
         "rust": "use std::io::{self, Read, Write};\n\nfn is_lowercase_letter(b: u8) -> bool {\n    (b'a'..=b'z').contains(&b)\n}\n\nfn shift_letter(b: u8, shift: u8) -> u8 {\n    let zero_based = b - b'a';\n    b'a' + ((zero_based + shift) % 26)\n}\n\nfn parse_shift(s: &str) -> Option<u8> {\n    let t = s.trim();\n    if t.is_empty() {\n        return None;\n    }\n    for b in t.bytes() {\n        if !(b'0'..=b'9').contains(&b) {\n            return None;\n        }\n    }\n    let v: u32 = t.parse().ok()?;\n    if v > 25 {\n        return None;\n    }\n    Some(v as u8)\n}\n\nfn main() {\n    let mut input = String::new();\n    if io::stdin().read_to_string(&mut input).is_err() {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    }\n    let mut lines = input.split('\\n');\n    let line_shift = lines.next();\n    let line_text = lines.next();\n    let (Some(ls), Some(lt)) = (line_shift, line_text) else {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    };\n    let shift = match parse_shift(ls) {\n        Some(v) => v,\n        None => {\n            let _ = io::stdout().write_all(b\"error\\n\");\n            return;\n        }\n    };\n    let text_bytes = lt.as_bytes();\n    if text_bytes.is_empty() {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    }\n    let mut out = Vec::with_capacity(text_bytes.len() + 1);\n    for &b in text_bytes {\n        if !is_lowercase_letter(b) {\n            let _ = io::stdout().write_all(b\"error\\n\");\n            return;\n        }\n        out.push(shift_letter(b, shift));\n    }\n    out.push(b'\\n');\n    let _ = io::stdout().write_all(&out);\n}\n",
         "go": "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n)\n\nfunc isLowercaseLetter(b byte) bool {\n\treturn b >= 'a' && b <= 'z'\n}\n\nfunc shiftLetter(b, shift byte) byte {\n\tzeroBased := b - 'a'\n\treturn 'a' + ((zeroBased + shift) % 26)\n}\n\nfunc parseShift(s string) (byte, bool) {\n\tt := strings.TrimSpace(s)\n\tif t == \"\" {\n\t\treturn 0, false\n\t}\n\tfor _, c := range t {\n\t\tif c < '0' || c > '9' {\n\t\t\treturn 0, false\n\t\t}\n\t}\n\tv, err := strconv.ParseUint(t, 10, 32)\n\tif err != nil {\n\t\treturn 0, false\n\t}\n\tif v > 25 {\n\t\treturn 0, false\n\t}\n\treturn byte(v), true\n}\n\nfunc readAll(r *bufio.Reader) string {\n\tvar sb strings.Builder\n\tbuf := make([]byte, 4096)\n\tfor {\n\t\tn, err := r.Read(buf)\n\t\tif n > 0 {\n\t\t\tsb.Write(buf[:n])\n\t\t}\n\t\tif err != nil {\n\t\t\tbreak\n\t\t}\n\t}\n\treturn sb.String()\n}\n\nfunc main() {\n\tw := bufio.NewWriter(os.Stdout)\n\tdefer w.Flush()\n\tr := bufio.NewReader(os.Stdin)\n\tdata := readAll(r)\n\tparts := strings.SplitN(data, \"\\n\", 3)\n\tif len(parts) < 2 {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\tshift, ok := parseShift(parts[0])\n\tif !ok {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\ttext := parts[1]\n\tif len(text) == 0 {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\tout := make([]byte, 0, len(text)+1)\n\tfor i := 0; i < len(text); i++ {\n\t\tb := text[i]\n\t\tif !isLowercaseLetter(b) {\n\t\t\tfmt.Fprint(w, \"error\\n\")\n\t\t\treturn\n\t\t}\n\t\tout = append(out, shiftLetter(b, shift))\n\t}\n\tout = append(out, '\\n')\n\tw.Write(out)\n}\n",
@@ -5496,6 +6666,71 @@
           "execMs": 102,
           "promptTokens": 3,
           "completionTokens": 271
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 29786,
+          "execMs": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13687,
+          "execMs": 229,
+          "promptTokens": 3,
+          "completionTokens": 396
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 2,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 17029,
+          "execMs": 8,
+          "promptTokens": 3,
+          "completionTokens": 587
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 15172,
+          "execMs": 10,
+          "promptTokens": 3,
+          "completionTokens": 588
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13054,
+          "execMs": 117,
+          "promptTokens": 3,
+          "completionTokens": 268
         }
       ],
       "hardestLang": "zero",
@@ -5520,7 +6755,7 @@
         "wall_time_max_ms": 5000
       },
       "refs": {
-        "zero": "// src/main.0\n// Run-length encoder for AgentLang Index slot 019.\n//\n// Zero 0.1.2 has no exposed stdin, so plaintext comes from argv[1].\n// Lib exports is_lowercase_letter, digit_byte, decimal_length.\n//\n// Failure modes collapse to \"error\\n\":\n//   - argv[1] missing\n//   - plaintext is empty\n//   - any plaintext byte is outside [a-z]\n//\n// Output: for each maximal run of consecutive identical bytes, emit\n// the byte followed by the run length in decimal. Final newline.\n// Examples: \"aaabbc\" -> \"a3b2c1\\n\", \"abcdef\" -> \"a1b1c1d1e1f1\\n\",\n//           \"aaaaaaaaaaaaa\" -> \"a13\\n\".\n\nuse lib\n\npub fun main(world: World) -> Void raises {\n    let maybe_text = std.args.get(1)\n    if maybe_text.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let text_in = std.mem.span(maybe_text.value)\n\n    let t_len = std.mem.len(text_in)\n    if t_len == 0 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // Validate all bytes in [a-z] first.\n    let mut text_ok: Bool = true\n    let mut v_i: usize = 0\n    while v_i < t_len {\n        let b = text_in[v_i]\n        if is_lowercase_letter(b) == false {\n            text_ok = false\n            v_i = t_len\n        } else {\n            v_i = v_i + 1\n        }\n    }\n    if text_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // Walk maximal runs and emit byte + decimal count.\n    // Output buffer: each input byte expands to at most 1 + 10 bytes\n    // (letter + up to 10 decimal digits for u32 max). Plus newline.\n    let mut out: [16384]u8 = [0_u8; 16384]\n    let mut out_n: usize = 0\n\n    let mut run_start: usize = 0\n    while run_start < t_len {\n        let run_byte = text_in[run_start]\n        let mut run_len: usize = 1\n        let mut probe: usize = run_start + 1\n        let mut scanning: Bool = true\n        while scanning {\n            if probe >= t_len {\n                scanning = false\n            } else {\n                if text_in[probe] == run_byte {\n                    run_len = run_len + 1\n                    probe = probe + 1\n                } else {\n                    scanning = false\n                }\n            }\n        }\n\n        let run_len_u32: u32 = run_len as u32\n        let digit_count = decimal_length(run_len_u32)\n\n        // Emit the byte.\n        out[out_n] = run_byte\n        out_n = out_n + 1\n\n        // Emit decimal digits left-to-right by iterating positions.\n        let mut emit_i: u32 = digit_count\n        while emit_i > 0_u32 {\n            let pos = emit_i - 1_u32\n            let mut divisor: u32 = 1_u32\n            let mut p: u32 = 0_u32\n            while p < pos {\n                divisor = divisor * 10_u32\n                p = p + 1_u32\n            }\n            let d8: u8 = ((run_len_u32 / divisor) % 10_u32) as u8\n            out[out_n] = digit_byte(d8)\n            out_n = out_n + 1\n            emit_i = emit_i - 1_u32\n        }\n\n        run_start = run_start + run_len\n    }\n\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n\n\n// src/lib.0\n// Run-length encoder helpers. Pure scalar exports keeping the\n// seventh codegen quirk happy at the module boundary.\n\npub fun is_lowercase_letter(b: u8) -> Bool {\n    if b < 97_u8 {\n        return false\n    }\n    if b > 122_u8 {\n        return false\n    }\n    return true\n}\n\npub fun digit_byte(d: u8) -> u8 {\n    // Caller passes d in 0..=9. Returns the ASCII byte for that digit.\n    return 48_u8 + d\n}\n\npub fun decimal_length(n: u32) -> u32 {\n    // Number of decimal digits needed to render n. Always at least 1.\n    if n < 10_u32 {\n        return 1_u32\n    }\n    if n < 100_u32 {\n        return 2_u32\n    }\n    if n < 1000_u32 {\n        return 3_u32\n    }\n    if n < 10000_u32 {\n        return 4_u32\n    }\n    if n < 100000_u32 {\n        return 5_u32\n    }\n    if n < 1000000_u32 {\n        return 6_u32\n    }\n    if n < 10000000_u32 {\n        return 7_u32\n    }\n    if n < 100000000_u32 {\n        return 8_u32\n    }\n    if n < 1000000000_u32 {\n        return 9_u32\n    }\n    return 10_u32\n}\n",
+        "zero": "// src/main.0\n// Run-length encoder for AgentLang Index slot 019.\n//\n// Zero 0.1.2 has no exposed stdin, so plaintext comes from argv[1].\n// Lib exports is_lowercase_letter, digit_byte, decimal_length.\n//\n// Failure modes collapse to \"error\\n\":\n//   - argv[1] missing\n//   - plaintext is empty\n//   - any plaintext byte is outside [a-z]\n//\n// Output: for each maximal run of consecutive identical bytes, emit\n// the byte followed by the run length in decimal. Final newline.\n// Examples: \"aaabbc\" -> \"a3b2c1\\n\", \"abcdef\" -> \"a1b1c1d1e1f1\\n\",\n//           \"aaaaaaaaaaaaa\" -> \"a13\\n\".\n\nuse lib\n\npub fn main(world: World) -> Void raises {\n    let maybe_text: Maybe<String> = std.args.get(1)\n    if maybe_text.has == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n    let text_in: Span<u8> = std.mem.span(maybe_text.value)\n\n    let t_len: usize = std.mem.len(text_in)\n    if t_len == 0 {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // Validate all bytes in [a-z] first.\n    var text_ok: Bool = true\n    var v_i: usize = 0\n    while v_i < t_len {\n        let b: u8 = text_in[v_i]\n        if is_lowercase_letter(b) == false {\n            text_ok = false\n            v_i = t_len\n        } else {\n            v_i = v_i + 1\n        }\n    }\n    if text_ok == false {\n        check world.out.write(\"error\\n\")\n        return\n    }\n\n    // Walk maximal runs and emit byte + decimal count.\n    // Output buffer: each input byte expands to at most 1 + 10 bytes\n    // (letter + up to 10 decimal digits for u32 max). Plus newline.\n    var out: [16384]u8 = [0_u8; 16384]\n    var out_n: usize = 0\n\n    var run_start: usize = 0\n    while run_start < t_len {\n        let run_byte: u8 = text_in[run_start]\n        var run_len: usize = 1\n        var probe: usize = run_start + 1\n        var scanning: Bool = true\n        while scanning {\n            if probe >= t_len {\n                scanning = false\n            } else {\n                if text_in[probe] == run_byte {\n                    run_len = run_len + 1\n                    probe = probe + 1\n                } else {\n                    scanning = false\n                }\n            }\n        }\n\n        let run_len_u32: u32 = run_len as u32\n        let digit_count: u32 = decimal_length(run_len_u32)\n\n        // Emit the byte.\n        out[out_n] = run_byte\n        out_n = out_n + 1\n\n        // Emit decimal digits left-to-right by iterating positions.\n        var emit_i: u32 = digit_count\n        while emit_i > 0_u32 {\n            let pos: u32 = emit_i - 1_u32\n            var divisor: u32 = 1_u32\n            var p: u32 = 0_u32\n            while p < pos {\n                divisor = divisor * 10_u32\n                p = p + 1_u32\n            }\n            let d8: u8 = ((run_len_u32 / divisor) % 10_u32) as u8\n            out[out_n] = digit_byte(d8)\n            out_n = out_n + 1\n            emit_i = emit_i - 1_u32\n        }\n\n        run_start = run_start + run_len\n    }\n\n    out[out_n] = 10_u8\n    out_n = out_n + 1\n    check world.out.write(out[0..out_n])\n    return\n}\n\n\n// src/lib.0\n// Run-length encoder helpers. Pure scalar exports keeping the\n// seventh codegen quirk happy at the module boundary.\n\npub fn is_lowercase_letter(b: u8) -> Bool {\n    if b < 97_u8 {\n        return false\n    }\n    if b > 122_u8 {\n        return false\n    }\n    return true\n}\n\npub fn digit_byte(d: u8) -> u8 {\n    // Caller passes d in 0..=9. Returns the ASCII byte for that digit.\n    return 48_u8 + d\n}\n\npub fn decimal_length(n: u32) -> u32 {\n    // Number of decimal digits needed to render n. Always at least 1.\n    if n < 10_u32 {\n        return 1_u32\n    }\n    if n < 100_u32 {\n        return 2_u32\n    }\n    if n < 1000_u32 {\n        return 3_u32\n    }\n    if n < 10000_u32 {\n        return 4_u32\n    }\n    if n < 100000_u32 {\n        return 5_u32\n    }\n    if n < 1000000_u32 {\n        return 6_u32\n    }\n    if n < 10000000_u32 {\n        return 7_u32\n    }\n    if n < 100000000_u32 {\n        return 8_u32\n    }\n    if n < 1000000000_u32 {\n        return 9_u32\n    }\n    return 10_u32\n}\n",
         "ts": "function isLowercaseLetter(b: number): boolean {\n    return b >= 97 && b <= 122;\n}\n\nasync function readAll(): Promise<string> {\n    const chunks: Buffer[] = [];\n    for await (const chunk of process.stdin) {\n        chunks.push(chunk as Buffer);\n    }\n    return Buffer.concat(chunks).toString(\"utf8\");\n}\n\nasync function main(): Promise<void> {\n    const data = await readAll();\n    const lines = data.split(\"\\n\");\n    if (lines.length < 1) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const text = lines[0];\n    if (text.length === 0) {\n        process.stdout.write(\"error\\n\");\n        return;\n    }\n    const bytes = Buffer.from(text, \"utf8\");\n    for (let i = 0; i < bytes.length; i++) {\n        if (!isLowercaseLetter(bytes[i])) {\n            process.stdout.write(\"error\\n\");\n            return;\n        }\n    }\n    const out: string[] = [];\n    let i = 0;\n    while (i < bytes.length) {\n        const runByte = bytes[i];\n        let runLen = 1;\n        let j = i + 1;\n        while (j < bytes.length && bytes[j] === runByte) {\n            runLen++;\n            j++;\n        }\n        out.push(String.fromCharCode(runByte));\n        out.push(String(runLen));\n        i = j;\n    }\n    process.stdout.write(out.join(\"\") + \"\\n\");\n}\n\nmain();\n",
         "rust": "use std::io::{self, Read, Write};\n\nfn is_lowercase_letter(b: u8) -> bool {\n    (b'a'..=b'z').contains(&b)\n}\n\nfn main() {\n    let mut input = String::new();\n    if io::stdin().read_to_string(&mut input).is_err() {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    }\n    let mut lines = input.split('\\n');\n    let line_text = lines.next();\n    let Some(lt) = line_text else {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    };\n    let text_bytes = lt.as_bytes();\n    if text_bytes.is_empty() {\n        let _ = io::stdout().write_all(b\"error\\n\");\n        return;\n    }\n    for &b in text_bytes {\n        if !is_lowercase_letter(b) {\n            let _ = io::stdout().write_all(b\"error\\n\");\n            return;\n        }\n    }\n    let mut out: Vec<u8> = Vec::with_capacity(text_bytes.len() * 2 + 1);\n    let mut i = 0usize;\n    while i < text_bytes.len() {\n        let run_byte = text_bytes[i];\n        let mut run_len = 1usize;\n        let mut j = i + 1;\n        while j < text_bytes.len() && text_bytes[j] == run_byte {\n            run_len += 1;\n            j += 1;\n        }\n        out.push(run_byte);\n        out.extend_from_slice(run_len.to_string().as_bytes());\n        i = j;\n    }\n    out.push(b'\\n');\n    let _ = io::stdout().write_all(&out);\n}\n",
         "go": "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n)\n\nfunc isLowercaseLetter(b byte) bool {\n\treturn b >= 'a' && b <= 'z'\n}\n\nfunc readAll(r *bufio.Reader) string {\n\tvar sb strings.Builder\n\tbuf := make([]byte, 4096)\n\tfor {\n\t\tn, err := r.Read(buf)\n\t\tif n > 0 {\n\t\t\tsb.Write(buf[:n])\n\t\t}\n\t\tif err != nil {\n\t\t\tbreak\n\t\t}\n\t}\n\treturn sb.String()\n}\n\nfunc main() {\n\tw := bufio.NewWriter(os.Stdout)\n\tdefer w.Flush()\n\tr := bufio.NewReader(os.Stdin)\n\tdata := readAll(r)\n\tlines := strings.SplitN(data, \"\\n\", 2)\n\tif len(lines) < 1 {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\ttext := lines[0]\n\tif len(text) == 0 {\n\t\tfmt.Fprint(w, \"error\\n\")\n\t\treturn\n\t}\n\tfor i := 0; i < len(text); i++ {\n\t\tif !isLowercaseLetter(text[i]) {\n\t\t\tfmt.Fprint(w, \"error\\n\")\n\t\t\treturn\n\t\t}\n\t}\n\tout := make([]byte, 0, len(text)*2+1)\n\ti := 0\n\tfor i < len(text) {\n\t\trunByte := text[i]\n\t\trunLen := 1\n\t\tj := i + 1\n\t\tfor j < len(text) && text[j] == runByte {\n\t\t\trunLen++\n\t\t\tj++\n\t\t}\n\t\tout = append(out, runByte)\n\t\tout = append(out, strconv.Itoa(runLen)...)\n\t\ti = j\n\t}\n\tout = append(out, '\\n')\n\tw.Write(out)\n}\n",
@@ -5786,6 +7021,71 @@
           "execMs": 88,
           "promptTokens": 3,
           "completionTokens": 228
+        },
+        {
+          "model": "sonnet",
+          "lang": "zero",
+          "passed": false,
+          "numCases": 6,
+          "numPassed": 0,
+          "failureMode": "wrong-output",
+          "failureExcerpt": "",
+          "apiMs": 142441,
+          "execMs": 0,
+          "promptTokens": 2,
+          "completionTokens": 9030
+        },
+        {
+          "model": "sonnet",
+          "lang": "ts",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14141,
+          "execMs": 229,
+          "promptTokens": 3,
+          "completionTokens": 323
+        },
+        {
+          "model": "sonnet",
+          "lang": "rust",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 14096,
+          "execMs": 7,
+          "promptTokens": 3,
+          "completionTokens": 310
+        },
+        {
+          "model": "sonnet",
+          "lang": "go",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 13413,
+          "execMs": 10,
+          "promptTokens": 3,
+          "completionTokens": 358
+        },
+        {
+          "model": "sonnet",
+          "lang": "python",
+          "passed": true,
+          "numCases": 6,
+          "numPassed": 6,
+          "failureMode": "pass",
+          "failureExcerpt": "",
+          "apiMs": 12562,
+          "execMs": 95,
+          "promptTokens": 3,
+          "completionTokens": 231
         }
       ],
       "hardestLang": "zero",

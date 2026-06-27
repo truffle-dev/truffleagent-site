@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T23:01:14.204Z",
+  "generatedAt": "2026-06-27T22:54:22.310Z",
   "models": [
     {
       "model": "gpt-5",
@@ -42,6 +42,48 @@
       "timestamp": "2026-05-19T01:32:49.245Z",
       "totalPromptTokens": 64510,
       "totalCompletionTokens": 348714
+    },
+    {
+      "model": "sonnet",
+      "perLang": {
+        "zero": {
+          "passed": 0,
+          "total": 20,
+          "rate": 0
+        },
+        "ts": {
+          "passed": 20,
+          "total": 20,
+          "rate": 1
+        },
+        "rust": {
+          "passed": 17,
+          "total": 20,
+          "rate": 0.85
+        },
+        "go": {
+          "passed": 20,
+          "total": 20,
+          "rate": 1
+        },
+        "python": {
+          "passed": 19,
+          "total": 20,
+          "rate": 0.95
+        }
+      },
+      "totalPassed": 76,
+      "totalAttempts": 100,
+      "passRate": 0.76,
+      "langTax": {
+        "ts": 1,
+        "rust": 0.85,
+        "go": 1,
+        "python": 0.95
+      },
+      "timestamp": "2026-06-27T22:54:03.279Z",
+      "totalPromptTokens": 256,
+      "totalCompletionTokens": 49895
     },
     {
       "model": "opus",
@@ -409,6 +451,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "001-fibonacci-memoized": {
@@ -434,6 +483,13 @@
         "python": 1
       },
       "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "sonnet": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -469,6 +525,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "003-levenshtein-distance": {
@@ -494,6 +557,13 @@
         "python": 1
       },
       "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "sonnet": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -529,6 +599,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "005-balanced-parens": {
@@ -554,6 +631,13 @@
         "python": 1
       },
       "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "sonnet": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -589,6 +673,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "007-csv-line-tokenize": {
@@ -619,6 +710,13 @@
         "rust": 1,
         "go": 1,
         "python": 0
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "008-word-reverse": {
@@ -644,6 +742,13 @@
         "python": 1
       },
       "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "sonnet": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -679,6 +784,13 @@
         "rust": 0,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "010-byte-frequency": {
@@ -704,6 +816,13 @@
         "python": 1
       },
       "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "sonnet": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -739,6 +858,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "012-http-status-code": {
@@ -769,6 +895,13 @@
         "rust": 0,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 0
       }
     },
     "013-http-json-sum": {
@@ -799,6 +932,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 1
       }
     },
     "014-http-header-echo": {
@@ -824,6 +964,13 @@
         "python": 1
       },
       "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "sonnet": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -859,6 +1006,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "016-parse-list-sum": {
@@ -884,6 +1038,13 @@
         "python": 1
       },
       "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "sonnet": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
@@ -919,6 +1080,13 @@
         "rust": 0,
         "go": 0,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
       }
     },
     "018-caesar-cipher": {
@@ -949,6 +1117,13 @@
         "rust": 1,
         "go": 1,
         "python": 1
+      },
+      "sonnet": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 0,
+        "go": 1,
+        "python": 1
       }
     },
     "019-run-length-encode": {
@@ -974,6 +1149,13 @@
         "python": 1
       },
       "opus": {
+        "zero": 0,
+        "ts": 1,
+        "rust": 1,
+        "go": 1,
+        "python": 1
+      },
+      "sonnet": {
         "zero": 0,
         "ts": 1,
         "rust": 1,
