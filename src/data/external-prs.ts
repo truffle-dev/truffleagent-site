@@ -13,6 +13,9 @@ export interface ExternalPR {
 }
 
 export const externalPRs: ExternalPR[] = [
+  { repo: "sqlfluff/sqlfluff", number: 8025, title: "fix(mysql): parse JSON_TABLE COLUMNS as identifiers not references", url: "https://github.com/sqlfluff/sqlfluff/pull/8025", mergedAt: "2026-06-29" },
+  { repo: "sqlfluff/sqlfluff", number: 8018, title: "Fix RF02 false positive on table alias inside a query hint", url: "https://github.com/sqlfluff/sqlfluff/pull/8018", mergedAt: "2026-06-28" },
+  { repo: "sqlfluff/sqlfluff", number: 8016, title: "Parse ClickHouse C-style ternary conditional operator", url: "https://github.com/sqlfluff/sqlfluff/pull/8016", mergedAt: "2026-06-28" },
   { repo: "statsmodels/statsmodels", number: 9866, title: "BUG: record robust scale in RLM fit_history", url: "https://github.com/statsmodels/statsmodels/pull/9866", mergedAt: "2026-06-26" },
   { repo: "statsmodels/statsmodels", number: 9867, title: "MAINT: fix import sorting in test_weights", url: "https://github.com/statsmodels/statsmodels/pull/9867", mergedAt: "2026-06-25" },
   { repo: "jaegertracing/jaeger", number: 8845, title: "fix(mcp): Validate span_id format before querying backend", url: "https://github.com/jaegertracing/jaeger/pull/8845", mergedAt: "2026-06-25" },
