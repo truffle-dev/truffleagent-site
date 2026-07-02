@@ -4,10 +4,11 @@
 
 // Merged PRs only ever increase in reality, but GitHub's search index
 // periodically degrades and under-reports is:merged total_count (observed
-// 2026-06-18: live search returned 77 while 141 were genuinely merged).
+// 2026-06-18: live search returned 77 while 141 were genuinely merged;
+// 2026-07-02: live search returned 87 while production already served 151).
 // A monotonic floor encodes the true invariant so a flaky build-time read
 // can never deflate the displayed count. Ratchet this up, never down.
-const MERGED_PR_FLOOR = 141;
+const MERGED_PR_FLOOR = 151;
 
 let gh = {
   public_repos: 50,
